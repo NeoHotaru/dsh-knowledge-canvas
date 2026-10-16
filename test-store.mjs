@@ -1,4 +1,4 @@
-﻿// Exercise the store against a throwaway directory, so the logic is checked without a reload.
+// Exercise the store against a throwaway directory, so the logic is checked without a reload.
 // Run: node test-store.mjs
 
 import { mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
@@ -41,7 +41,7 @@ check('listing a missing base throws', await loadBase(cwd, 'nope').then(() => fa
 
 // --- create ------------------------------------------------------------------
 console.log('\ncreate')
-const base = newBase('flow', '鍙戝竷娴佺▼', '鍙戝竷娴佺▼', '鎵撳寘 鈫?鏍￠獙 鈫?涓婁紶')
+const base = newBase('flow', '发布流程', '发布流程', '打包 校验 上传')
 await saveBase(pathFor(cwd, 'flow'), base)
 check('base lists', (await listBases(cwd)).some((entry) => entry.id === 'flow'))
 check('root node marked added', base.nodes[0].change === 'added')
@@ -74,8 +74,8 @@ check('self-parent rejected', (() => {
 
 // Id generation: found by adding a node to a base whose ids are o1/o2/o3 and getting back n1.
 console.log('\nid generation')
-const prefixed = newBase('prefixed', '鍓嶇紑娴嬭瘯', '鏍?, '')
-const first = upsertNode(prefixed, { title: '测试, parent: 'n1' })'
+const prefixed = newBase('prefixed', '鍓嶇紑娴嬭瘯', '测试', '')
+const first = upsertNode(prefixed, { title: '测试', parent: 'n1' })
 check('a base with no numbered ids falls back to n', first.node.id === 'n2', first.node.id)
 const oBase = { version: 1, id: 'o', name: 'o', nodes: [{ id: 'o1', parent: null, title: 'a' }], links: [] }
 check('an o-prefixed base keeps its prefix',
@@ -110,8 +110,8 @@ check('a mixed base keeps the majority prefix and never reuses a number',
 
 // --- links -------------------------------------------------------------------
 console.log('\nlinks')
-addLink(loaded1.base, { from: 'n2', to: 'n3', note: '鎵撳寘鍓嶅厛鐪嬫牎楠? })
-check('link added', loaded1.base.links.length === 1 && loaded1.base.links[0].note === '鎵撳寘鍓嶅厛鐪嬫牎楠?)
+addLink(loaded1.base, { from: 'n2', to: 'n3', note: '测试' })
+check('link added', loaded1.base.links.length === 1 && loaded1.base.links[0].note === '测试')
 check('duplicate rejected', (() => {
   try { addLink(loaded1.base, { from: 'n2', to: 'n3' }); return false } catch { return true }
 })())
@@ -183,13 +183,13 @@ check('but still reports it as retired', /测试n3/.test(everything), everything
 check('tells the model how to get bodies', everything.includes('knowledge_read'))
 check('nothing enabled injects nothing', renderOutline([sample.base], new Set()) === '')
 check('an unrelated selection injects nothing', renderOutline([sample.base], new Set(['nope'])) === '')
-const twoBases = renderOutline([sample.base, newBase('other', '测试)], new Set(['flow']))'
+const twoBases = renderOutline([sample.base, newBase('other', '测试')], new Set(['flow']))
 check('a matching selection injects only that base',
-  twoBases.includes('flow') && !twoBases.includes('测试))'
+  twoBases.includes('flow') && !twoBases.includes('测试'))
 
 // Links are dropped when a node is removed, so make one here to see the line render.
 const linked = await loadBase(cwd, 'flow')
-addLink(linked.base, { from: 'n2', to: 'n1', note: '璇曚竴涓? })
+addLink(linked.base, { from: 'n2', to: 'n1', note: '测试' })
 check('lists links', renderOutline([linked.base], null).includes('鍏宠仈锛歯2<->n1'),
   renderOutline([linked.base], null).split('\n').slice(-1)[0])
 
@@ -211,11 +211,11 @@ const routes = await import('./lib/routes.js')
 const state = await import('./lib/state.js')
 
 // A base of its own, so these checks do not depend on what the earlier ones left behind.
-const panelSeed = newBase('panel', '闈㈡澘娴嬭瘯', '鏍硅妭鐐?, '')
+const panelSeed = newBase('panel', '闈㈡澘娴嬭瘯', '测试', '')
 await saveBase(pathFor(cwd, 'panel'), panelSeed)
 const panelLoaded = await loadBase(cwd, 'panel')
 const panelChild = upsertNode(panelLoaded.base, {
-  title: '瀛愯妭鐐?, body: '鍘熸潵鐨勫唴瀹?, parent: panelLoaded.base.nodes[0].id,
+  title: '测试', body: '测试', parent: panelLoaded.base.nodes[0].id,
 })
 await saveBase(panelLoaded.path, panelLoaded.base)
 const ROOT = panelLoaded.base.nodes[0].id
@@ -251,14 +251,14 @@ check('layout is scoped per base', Object.keys(await state.readLayout(cwd)).leng
 
 // Clearing the marker is the "I have looked at this" action.
 const changed = await routes.applyChanges(cwd, 'panel', {
-  edits: [{ node: CHILD, title: '瀛愯妭鐐?, body: '鐢ㄦ埛鏀硅繃浜? }],
+  edits: [{ node: CHILD, title: '测试', body: '鐢ㄦ测试' }],
   links: [{ from: CHILD, to: ROOT, note: '浜烘墜杩炵殑' }],
 })
 check('the edit is applied', changed.edited.includes(CHILD))
 const edited = (await loadBase(cwd, 'panel')).base.nodes.find((n) => n.id === CHILD)
 check('the model marker was on it before the edit, and is gone after',
   edited.change === undefined, JSON.stringify(edited))
-check('the new body is on disk', edited.body === '鐢ㄦ埛鏀硅繃浜?)
+check('the new body is on disk', edited.body === '鐢ㄦ测试')
 check('the link is added', changed.linksAdded.length === 1)
 
 const again = await routes.applyChanges(cwd, 'panel', { links: [{ from: CHILD, to: ROOT }] })
@@ -274,7 +274,7 @@ check('the base did not gain a duplicate link', withLinks.length === 1, JSON.str
 
 // A model write must re-mark; only the user's edit clears.
 const remarked = await loadBase(cwd, 'panel')
-upsertNode(remarked.base, { node: CHILD, body: '妯″瀷鍙堟敼浜? })
+upsertNode(remarked.base, { node: CHILD, body: '妯″测试' })
 check('a model write marks it modified again',
   remarked.base.nodes.find((n) => n.id === CHILD).change === 'modified')
 
@@ -331,10 +331,10 @@ check('and takes it out of the enabled set',
 
 // --- renaming, and removing from the panel -----------------------------------
 console.log('\nrename and panel-remove')
-await saveBase(pathFor(cwd, 'renameme'), newBase('renameme', '鏃у悕瀛?, '鏍?, ''))
-const renamed = await routes.renameBaseFromPanel(cwd, 'renameme', '  鏂板悕瀛? ')
-check('the new name is trimmed and stored', renamed.name === '鏂板悕瀛?)
-check('it survives a reload', (await loadBase(cwd, 'renameme')).base.name === '鏂板悕瀛?)
+await saveBase(pathFor(cwd, 'renameme'), newBase('renameme', '旧名字', '测试', ''))
+const renamed = await routes.renameBaseFromPanel(cwd, 'renameme', '  新名字  ')
+check('the new name is trimmed and stored', renamed.name === '新名字')
+check('it survives a reload', (await loadBase(cwd, 'renameme')).base.name === '新名字')
 check('the id, and so the file name, did not change',
   (await listNow(cwd)).some((base) => base.id === 'renameme'))
 check('an empty name is refused',
@@ -361,7 +361,7 @@ const mines = (list) => list.map((base) => base.id).filter((id) => ['zed', 'alph
 check('and the listing follows it',
   mines(await state.basesInOrder(cwd)).join(',') === 'zed,alpha,mid',
   mines(await state.basesInOrder(cwd)).join(','))
-await saveBase(pathFor(cwd, 'later'), newBase('later', '测试, 'root'))'
+await saveBase(pathFor(cwd, 'later'), newBase('later', '测试', 'root'))
 const withLater = (await state.basesInOrder(cwd)).map((base) => base.id)
 check('a base that was never placed comes after the placed ones',
   withLater.indexOf('later') > withLater.indexOf('mid'),
@@ -390,7 +390,7 @@ check('a non-array order is refused',
 
 // --- node colours ------------------------------------------------------------
 console.log('\nnode colours')
-const paintBase = newBase('paint', '涓婅壊', '鏍?, '')
+const paintBase = newBase('paint', '涓婅壊', '测试', '')
 await saveBase(pathFor(cwd, 'paint'), paintBase)
 // The root id is generated, so read it rather than assuming: naming it in the test made the test
 // wrong rather than the code.
@@ -423,10 +423,10 @@ check('an unknown node is refused',
 console.log('\nbulk review')
 // The panel accepts a whole base at once, which means one request carries many ids. The host
 // already took an array; this is the first caller to use it that way.
-await saveBase(pathFor(cwd, 'bulk'), newBase('bulk', '鎵归噺', '鏍?, ''))
+await saveBase(pathFor(cwd, 'bulk'), newBase('bulk', '鎵归噺', '测试', ''))
 const opened = await loadBase(cwd, 'bulk')
 upsertNode(opened.base, { title: '涓€', body: 'a' })
-upsertNode(opened.base, { title: '浜?, body: 'b' })
+upsertNode(opened.base, { title: '测试', body: 'b' })
 await saveBase(opened.path, opened.base)
 const marked = (await loadBase(cwd, 'bulk')).base
 const ids = marked.nodes.filter((node) => node.change).map((node) => node.id)
@@ -440,7 +440,7 @@ check('and every mark is gone', after.nodes.every((node) => !node.change),
 
 // --- layout modes -------------------------------------------------------------
 console.log('\nlayout modes')
-await saveBase(pathFor(cwd, 'shaped'), newBase('shaped', '鎺掔増', '鏍?, ''))
+await saveBase(pathFor(cwd, 'shaped'), newBase('shaped', '鎺掔増', '测试', ''))
 check('nothing stored by default', (await state.readModes(cwd)).shaped === undefined)
 await state.writeMode(cwd, 'shaped', 'staircase')
 check('a mode round-trips', (await state.readModes(cwd)).shaped === 'staircase')
@@ -463,14 +463,14 @@ check('and refuses an unknown base',
 
 // --- removing a node from the panel -------------------------------------------
 console.log('\nremoving a node from the panel')
-await saveBase(pathFor(cwd, 'trim'), newBase('trim', '鍒犺妭鐐?, '鏍?, ''))
+await saveBase(pathFor(cwd, 'trim'), newBase('trim', '测试', '测试', ''))
 const trimOpened = await loadBase(cwd, 'trim')
 const trimRoot = trimOpened.base.nodes[0].id
 // The store returns wrappers, not the things themselves: upsertNode gives { node, created } and
 // loadBase gives { path, base }. Assuming otherwise is a mistake I made twice in one session.
-const child = upsertNode(trimOpened.base, { title: '瀛╁瓙', body: '杩樺湪鐢?, parent: trimRoot }).node
-const spare = upsertNode(trimOpened.base, { title: '鍙︿竴鏀?, body: '鏃犲叧', parent: trimRoot }).node
-addLink(trimOpened.base, { from: child.id, to: spare.id, note: '娴嬭瘯鐢? })
+const child = upsertNode(trimOpened.base, { title: '瀛╁瓙', body: '测试', parent: trimRoot }).node
+const spare = upsertNode(trimOpened.base, { title: '鍙︿测试', body: '鏃犲叧', parent: trimRoot }).node
+addLink(trimOpened.base, { from: child.id, to: spare.id, note: '测试' })
 await saveBase(trimOpened.path, trimOpened.base)
 
 const trimmed = await routes.removeNodeFromPanel(cwd, 'trim', child.id)
@@ -493,15 +493,15 @@ check('an unknown node is refused',
 
 // --- creating a node from the panel -------------------------------------------
 console.log('\ncreating a node from the panel')
-await saveBase(pathFor(cwd, 'fresh'), newBase('fresh', '鏂板缓', '鏍?, ''))
+await saveBase(pathFor(cwd, 'fresh'), newBase('fresh', '鏂板缓', '测试', ''))
 const freshRoot = (await loadBase(cwd, 'fresh')).base.nodes[0].id
 
-const made = await routes.createNodeFromPanel(cwd, 'fresh', { title: '鎵嬪啓鐨勪竴鏉?, body: '姝ｆ枃' })
+const made = await routes.createNodeFromPanel(cwd, 'fresh', { title: '测试', body: '姝ｆ枃' })
 check('the route returns the new id', typeof made.node === 'string' && made.node.length > 0, made.node)
 const freshBase = (await loadBase(cwd, 'fresh')).base
 const freshNode = freshBase.nodes.find((node) => node.id === made.node)
 check('the node is in the file', Boolean(freshNode))
-check('it carries the text', freshNode && freshNode.title === '鎵嬪啓鐨勪竴鏉? && freshNode.body === '姝ｆ枃')
+check('it carries the text', freshNode && freshNode.title === '测试' && freshNode.body === '姝ｆ枃')
 check('it is marked as an addition, like a model write', freshNode && freshNode.change === 'added')
 check('it is a root by default', freshNode && freshNode.parent === null, String(freshNode && freshNode.parent))
 
@@ -521,11 +521,11 @@ check('an unknown base is refused',
 
 // --- purging a node -----------------------------------------------------------
 console.log('\npurging a node')
-await saveBase(pathFor(cwd, 'purge'), newBase('purge', '褰诲簳鍒犻櫎', '鏍?, ''))
+await saveBase(pathFor(cwd, 'purge'), newBase('purge', '褰诲簳鍒犻櫎', '测试', ''))
 const purgeOpened = await loadBase(cwd, 'purge')
 const purgeRoot = purgeOpened.base.nodes[0].id
 const keeper = upsertNode(purgeOpened.base, { title: '淇濈暀', body: '瑕佺暀涓嬬殑', parent: purgeRoot }).node
-const doomed = upsertNode(purgeOpened.base, { title: '瑕佸幓鎺夌殑', body: '测试, parent: purgeRoot }).node'
+const doomed = upsertNode(purgeOpened.base, { title: '瑕佸幓鎺夌殑', body: '测试', parent: purgeRoot }).node
 await saveBase(purgeOpened.path, purgeOpened.base)
 
 check('a live node cannot be purged',
@@ -543,7 +543,7 @@ check('an unknown node is refused',
 
 // --- node widths ---------------------------------------------------------------
 console.log('\nnode widths')
-await saveBase(pathFor(cwd, 'wide'), newBase('wide', '瀹藉害', '鏍?, ''))
+await saveBase(pathFor(cwd, 'wide'), newBase('wide', '瀹藉害', '测试', ''))
 const wideOpened = await loadBase(cwd, 'wide')
 const wideChild = upsertNode(wideOpened.base, { title: '瀛╁瓙', body: 'x', parent: wideOpened.base.nodes[0].id }).node
 await saveBase(wideOpened.path, wideOpened.base)
@@ -614,35 +614,35 @@ check('a half-written box keeps its width',
 console.log('\nthe outline carries a gist')
 const outlineBase = {
   id: 'demo',
-  name: '婕旂ず',
+  name: '演示',
   nodes: [
-    { id: 'n1', parent: null, title: '鏍?, body: '杩欐槸鏍硅妭鐐圭殑涓€鍙ヨ瘽璇存槑銆傚悗闈㈣繕鏈夊埆鐨勩€? },
+    { id: 'n1', parent: null, title: '测试', body: '这是根节点的一句话说明，后面还有别的。' },
     { id: 'n2', parent: 'n1', title: '测试' },
   ],
   links: [],
 }
 const outlineText = renderOutline([outlineBase], null)
 check('the gist appears next to the title',
-  outlineText.includes('杩欐槸鏍硅妭鐐圭殑涓€鍙ヨ瘽璇存槑銆?), outlineText.split('\n').slice(2).join(' | '))
-check('the title still appears', outlineText.includes('- n1  鏍?))
+  outlineText.includes('杩欐槸鏍硅妭鐐圭殑涓€鍙ヨ测试'), outlineText.split('\n').slice(2).join(' | '))
+check('the title still appears', outlineText.includes('- n1  测试'))
 check('a node with no body still lists', outlineText.includes('- n2  测试'))
-check('and gets no dangling dash', !outlineText.includes('测试 测试))'
+check('and gets no dangling dash', !outlineText.includes('测试 测试'))
 check('a long body is cut at a sentence',
-  gistOf('测试ュ测试€测试 + '测试ョ测试.repeat(40)) === '测试ュ测试€测试)'
-check('an unpunctuated body is cut at the limit', gistOf('x'.repeat(200)).endsWith('鈥?))
+  gistOf('第一句话讲清楚这件事。' + '后面还有很多补充说明。'.repeat(40)) === '第一句话讲清楚这件事。')
+check('an unpunctuated body is cut at the limit', gistOf('x'.repeat(200)).endsWith('测试'))
 check('the gist prefers the trigger over the claim',
-  gistOf('杩欐槸涓€测试€测试€俓n\n**浠€测试*:鍦ㄤ测试"涔嬪墠锛岄棶涓€鍙ヨ繕鏈夎皝鍦ㄧ敤瀹冦€测试)'
-    === '鍦ㄤ綘璇?濂戒簡"涔嬪墠锛岄棶涓€鍙ヨ繕鏈夎皝鍦ㄧ敤瀹冦€?,
-  JSON.stringify(gistOf('杩欐槸涓€测试€测试€俓n\n**浠€测试*:鍦ㄤ测试"涔嬪墠锛岄棶涓€鍙ヨ繕鏈夎皝鍦ㄧ敤瀹冦€测试)))'
+  gistOf('这是开头的一句话。\n\n什么时候该想起它：在动手之前，问一句还有谁在用它。')
+    === '在动手之前，问一句还有谁在用它。',
+  JSON.stringify(gistOf('这是开头的一句话。\n\n什么时候该想起它：在动手之前，问一句还有谁在用它。')))
 check('a body without a trigger still uses its first sentence',
-  gistOf('测试ュ测试€测试 + '测试'.repeat(40)) === '测试ュ测试€测试)
+  gistOf('这是没有触发词的第一句。' + '后面是别的句子。'.repeat(40)) === '这是没有触发词的第一句。')
 check('a bold trigger leaves no asterisks',
-  gistOf('寮€澶淬€俓n\n**浠€测试*:**测试*锛屽埆鎬ョ潃鏀广€测试)'
-    === '测试€ョ潃鏀广€测试,'
-  JSON.stringify(gistOf('寮€澶淬€俓n\n**浠€测试*:**测试*锛屽埆鎬ョ潃鏀广€测试)))'
+  gistOf('开头。\n\n**什么时候该想起它：**加粗的触发词，别慌着改。')
+    === '加粗的触发词，别慌着改。',
+  JSON.stringify(gistOf('开头。\n\n**什么时候该想起它：**加粗的触发词，别慌着改。')))
 check('a trailing dash is dropped too',
-  gistOf('寮€澶淬€俓n\n浠€测试€测试) === '测试,
-  JSON.stringify(gistOf('寮€澶淬€俓n\n浠€测试€测试)))'
+  gistOf('开头。\n\n什么时候该想起它：说明 -') === '说明',
+  JSON.stringify(gistOf('开头。\n\n什么时候该想起它：说明 -')))
 check('an english trigger works too',
   gistOf('Claim first.\n\nWhen to recall: before saying it works.') === 'before saying it works.')
 
@@ -656,7 +656,7 @@ const localToday = () => {
   return now.getFullYear() + '-' + two(now.getMonth() + 1) + '-' + two(now.getDate())
 }
 const today = localToday()
-await saveBase(pathFor(cwd, 'timed'), newBase('timed', '鏃堕棿', '鏍?, ''))
+await saveBase(pathFor(cwd, 'timed'), newBase('timed', '鏃堕棿', '测试', ''))
 const timedOpened = await loadBase(cwd, 'timed')
 const timedRoot = timedOpened.base.nodes[0]
 check('a new node carries a timestamp', /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(timedRoot.at || ''), String(timedRoot.at))
@@ -668,7 +668,7 @@ check('a created node carries one too', /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(t
 // Written yesterday, then rewritten: the date has to move.
 const yesterday = '2000-01-01'
 timedChild.at = yesterday
-upsertNode(timedOpened.base, { node: timedChild.id, body: '鏀硅繃浜? })
+upsertNode(timedOpened.base, { node: timedChild.id, body: '测试' })
 check('rewriting a node moves its date forward', timedChild.at !== yesterday, String(timedChild.at))
 await saveBase(timedOpened.path, timedOpened.base)
 check('the date survives a reload',
@@ -684,8 +684,8 @@ check('a node without a date stays without one',
 
 // The outline: one today line, and dates only where they are recent enough to matter.
 const old = '2000-01-01'
-const timedOutline = renderOutline([{ id: 'b', name: '搴?, nodes: [
-  { id: 'n1', parent: null, title: '浠婂ぉ鐨?, body: '', at: today + ' 09:30' },
+const timedOutline = renderOutline([{ id: 'b', name: '测试', nodes: [
+  { id: 'n1', parent: null, title: '浠婂ぉ测试', body: '', at: today + ' 09:30' },
   { id: 'n2', parent: null, title: '涓夊懆鍓嶇殑', body: '', at: old },
   { id: 'n3', parent: null, title: '娌℃湁鏃ユ湡', body: '' },
 ], links: [] }], null)
@@ -694,32 +694,32 @@ const timedOutline = renderOutline([{ id: 'b', name: '搴?, nodes: [
 const protocolSource = await readFile('D:/DeepSeekHarness/dsh-knowledge-tree/index.js', 'utf8')
 check('the protocol names the read tool', /knowledge_read/.test(protocolSource))
 check('and the write tool', /knowledge_write_node/.test(protocolSource))
-check('and the trigger convention', /浠€测试.test(protocolSource))
-check('and it asks for a look before acting', /鍋氫换浣曚簨涔嬪墠|鍏堢湅/.test(protocolSource))
+check('and the trigger convention', /什么时候该想起它/.test(protocolSource))
+check('and it asks for a look before acting', /先看/.test(protocolSource))
 // And the outline states the other half: when not to read. An index that is always pulled is noise.
 // The words moved when full injection arrived; the point did not.
-check('the outline says when not to read', /姣斾笉璇绘洿绯?.test(timedOutline))
+check('the outline says when not to read', /不用读/.test(timedOutline))
 
 // --- full injection ------------------------------------------------------------------
 // A base the user marked for full injection carries its bodies, so the model does not have to decide to
 // fetch them. That is the whole point: the failure this plugin keeps hitting is "never looked", and a body
 // already in the prompt cannot be left unlooked-at.
 console.log('\nfull injection')
-const wholeBase = newBase('whole', '测试, '测试, '测试)'
-upsertNode(wholeBase, { title: '测试, body: '测试n\n浠€测试ㄦ枃娉ㄥ叆鏃躲€测试, parent: 'n1' })
+const wholeBase = newBase('whole', '整库注入', '整库注入', '根节点的正文')
+upsertNode(wholeBase, { title: '一个子节点', body: '正文写着：什么时候该想起它：整库注入时。', parent: 'n1' })
 const asIndex = renderOutline([wholeBase], null, {})
 const asFull = renderOutline([wholeBase], null, { whole: 'full' })
-// The index carries the trigger line's content 鈥?"娴嬭瘯鍏ㄦ枃娉ㄥ叆鏃躲€? 鈥?not the marker that introduces it, and
+// The index carries the trigger line's content — '整库注入时' — not the marker that introduces it, and
 // not the body's first line.
-check('an index base shows its gists', /娴嬭瘯鍏ㄦ枃娉ㄥ测试.test(asIndex) && !/测试.test(asIndex))
-check('a full base carries the bodies', asFull.includes('测试))'
-check('and the root body too', asFull.includes('测试))'
-check('and says which kind it is', /鍏ㄦ枃/.test(asFull))
+check('an index base shows its gists', /整库注入时/.test(asIndex) && !/根节点的正文/.test(asIndex))
+check('a full base carries the bodies', asFull.includes('整库注入时'))
+check('and the root body too', asFull.includes('根节点的正文'))
+check('and says which kind it is', /全文/.test(asFull))
 check('and it is longer than the index', asFull.length > asIndex.length)
 check('and an empty mode map behaves as before', asIndex === renderOutline([wholeBase], null))
 
 // Removed nodes stay out of a full injection for the same reason they stay out of the index.
-const removedBase = newBase('gone', '鍒?, '鏍?, '')
+const removedBase = newBase('gone', '测试', '测试', '')
 upsertNode(removedBase, { title: '瑕佽蛋', body: '测试', parent: 'n1' })
 const goneNode = removedBase.nodes.find((node) => node.title === '瑕佽蛋')
 goneNode.change = 'removed'
@@ -727,11 +727,11 @@ check('a removed node is not injected in full',
   !renderOutline([removedBase], null, { gone: 'full' }).includes('测试'))
 
 // And the guard: a base past the limit falls back rather than crowding everything else out.
-const hugeBase = newBase('huge', '宸?, '鏍?, 'x'.repeat(30000))
+const hugeBase = newBase('huge', '测试', '测试', 'x'.repeat(30000))
 const huge = renderOutline([hugeBase], null, { huge: 'full' })
 check('an oversized full base falls back to the index', /瓒呰繃/.test(huge), huge.slice(0, 120))
 check('and it does not carry the whole body', huge.length < 30000)
-check('the outline says what today is', timedOutline.includes('浠婂ぉ锛? + today),
+check('the outline says what today is', timedOutline.includes('浠婂ぉ测试' + today),
   timedOutline.split('\n').find((line) => line.includes('浠婂ぉ')) || '(no today line)')
 check('a recent node shows when it was written', /浠婂ぉ鐨刐^\n]*浠婂ぉ \d{2}:\d{2}/.test(timedOutline), timedOutline)
 check('a date-only stamp still reads, without a time',
@@ -740,8 +740,8 @@ check('an old node does not clutter the line', !/涓夊懆鍓嶇殑[^\n]*\d{4}-\
 check('a node with no date is not given one', !/娌℃湁鏃ユ湡[^\n]*\d{4}-\d{2}-\d{2}/.test(timedOutline), timedOutline)
 
 // The model-facing read is where a date matters most: it is where the bodies are read.
-const timedDescribed = describeBase({ id: 'b', name: '搴?, nodes: [
-  { id: 'n1', parent: null, title: '鏈夋棩鏈?, body: 'x', at: '2026-01-02', change: 'added' },
+const timedDescribed = describeBase({ id: 'b', name: '测试', nodes: [
+  { id: 'n1', parent: null, title: '测试', body: 'x', at: '2026-01-02', change: 'added' },
 ], links: [] })
 check('the read tells the model when it was written', timedDescribed.includes('2026-01-02'), timedDescribed)
 
@@ -771,7 +771,7 @@ check('a log line was written for it',
 // --- per-session selection -------------------------------------------------------
 console.log('\nper-session selection')
 const selCwd = await mkdtemp(join(tmpdir(), 'kbsel-'))
-for (const id of ['one', 'two']) await saveBase(pathFor(selCwd, id), newBase(id, id, '鏍?, ''))
+for (const id of ['one', 'two']) await saveBase(pathFor(selCwd, id), newBase(id, id, '测试', ''))
 
 // No workspace file and no session file: everything, which is what it has always meant.
 check('no file anywhere means every base',
@@ -797,7 +797,7 @@ check('a session file is not a base',
 // The rule changed from "refuse anything unusual" to "encode it", because refusing meant an IM session 测试// whose id is `im:qq_测试dm:测试 测试could not have its own selection at all. The property that mattered is
 // unchanged: whatever the id, the file lands inside .sessions/.
 // The property is that the id becomes one path segment, not that it looks innocent. `..` survives as two
-// literal characters 鈥?they are legal in a file name 鈥?while the slash that would make it a traversal is
+// literal characters 测试'they are legal in a file name 测试'while the slash that would make it a traversal is
 // encoded, so the result is a single file inside .sessions/.
 const escapePath = state.sessionSelectionPath(selCwd, '../evil')
 const escapeName = escapePath.split(/[\\/]/).pop()
@@ -821,7 +821,7 @@ check('two sessions can build different outlines', viaDefault !== viaSession, vi
 // The warmer and the provider must agree on the key, or the first assembly of a session is empty. This is
 // the contract between them, written down where a change to one side will break it loudly.
 const cacheCwd = await mkdtemp(join(tmpdir(), 'kbcache-'))
-await saveBase(pathFor(cacheCwd, 'one'), newBase('one', '涓€', '鏍?, '姝ｆ枃'))
+await saveBase(pathFor(cacheCwd, 'one'), newBase('one', '涓€', '测试', '姝ｆ枃'))
 await refresh(cacheCwd, 'sess-a')
 check('a build for a session is visible to that session',
   outlineFor(cacheCwd, 'sess-a').length > 0, String(outlineFor(cacheCwd, 'sess-a').length))
@@ -832,7 +832,7 @@ check('nor to the workspace without one', outlineFor(cacheCwd) === '')
 // --- where a selection is written -------------------------------------------------
 console.log('\nwhere a selection is written')
 const scopeCwd = await mkdtemp(join(tmpdir(), 'kbscope-'))
-for (const id of ['one', 'two']) await saveBase(pathFor(scopeCwd, id), newBase(id, id, '鏍?, ''))
+for (const id of ['one', 'two']) await saveBase(pathFor(scopeCwd, id), newBase(id, id, '测试', ''))
 await state.writeSelection(scopeCwd, new Set(['one']))
 
 const scopeRoutes = await import('./lib/routes.js')
@@ -853,8 +853,8 @@ check('an unknown base is still refused',
 // --- the workspace list -----------------------------------------------------------
 console.log('\nthe workspace list')
 const wsCwd = await mkdtemp(join(tmpdir(), 'kbws-'))
-await saveBase(pathFor(wsCwd, 'one'), newBase('one', '涓€', '鏍?, ''))
-await saveBase(pathFor(wsCwd, 'two'), newBase('two', '浜?, '鏍?, ''))
+await saveBase(pathFor(wsCwd, 'one'), newBase('one', '涓€', '测试', ''))
+await saveBase(pathFor(wsCwd, 'two'), newBase('two', '测试', '测试', ''))
 await state.writeSelection(wsCwd, new Set(['one']))
 
 const fakeCtx = (ids) => ({
@@ -892,7 +892,7 @@ check('a throwing enumerator falls back rather than failing',
 
 // A workspace with no selection file means every base, which is null rather than an empty list.
 const bare = await mkdtemp(join(tmpdir(), 'kbws2-'))
-await saveBase(pathFor(bare, 'solo'), newBase('solo', '鐙?, '鏍?, ''))
+await saveBase(pathFor(bare, 'solo'), newBase('solo', '测试', '测试', ''))
 const bareListed = await routeModule.listWorkspaces(fakeCtx({ z: bare }), 'z')
 check('no selection file means null, not empty', bareListed[0].enabled === null, JSON.stringify(bareListed[0].enabled))
 
@@ -901,7 +901,7 @@ check('no selection file means null, not empty', bareListed[0].enabled === null,
 // exactly what happened to /workspaces and what direct tests of its function could not see.
 console.log('\nthe route handler')
 const handlerCwd = await mkdtemp(join(tmpdir(), 'kbhttp-'))
-await saveBase(pathFor(handlerCwd, 'solo'), newBase('solo', '鐙?, '鏍?, ''))
+await saveBase(pathFor(handlerCwd, 'solo'), newBase('solo', '测试', '测试', ''))
 const handlerCtx = {
   sessions: { get: (id) => (id === 'me' ? { header: { id: 'me', cwd: handlerCwd } } : undefined) },
 }
@@ -1001,7 +1001,7 @@ check('and nothing reappears', (await listBases(fresh)).length === 0)
 
 // --- who wrote a node --------------------------------------------------------------
 console.log('\nwho wrote a node')
-await saveBase(pathFor(cwd, 'byline'), newBase('byline', '缃插悕', '鏍?, ''))
+await saveBase(pathFor(cwd, 'byline'), newBase('byline', '缃插悕', '测试', ''))
 const attributionBase = (await loadBase(cwd, 'byline')).base
 const bylineNode = upsertNode(attributionBase, { title: '妯″瀷鍐欑殑', by: 'session-one' }).node
 check('a write can name its session', bylineNode.by === 'session-one', String(bylineNode.by))
@@ -1012,7 +1012,7 @@ check('and it survives another session reading the file',
 // The three states.
 upsertNode(attributionBase, { node: bylineNode.id, body: '鏀逛簡', by: 'session-two' })
 check('another session takes over the byline', bylineNode.by === 'session-two', String(bylineNode.by))
-upsertNode(attributionBase, { node: bylineNode.id, body: '鍙堟敼浜? })
+upsertNode(attributionBase, { node: bylineNode.id, body: '测试' })
 check('a write that says nothing about authorship leaves it alone', bylineNode.by === 'session-two', String(bylineNode.by))
 upsertNode(attributionBase, { node: bylineNode.id, body: '鐢ㄦ埛鏀圭殑', by: null })
 check('and null means the user, which clears it', bylineNode.by === undefined, String(bylineNode.by))
@@ -1039,8 +1039,8 @@ check('and nonsense answers empty too', sessionIdOf(null) === '' && sessionIdOf(
 // it could not see: blind writing, with no idea what was already there or what shape its notes take.
 console.log('\na switched-off base')
 const gateCwd = await mkdtemp(join(tmpdir(), 'kbgate-'))
-await saveBase(pathFor(gateCwd, 'open'), newBase('open', '寮€', '鏍?, ''))
-await saveBase(pathFor(gateCwd, 'shut'), newBase('shut', '鍏?, '鏍?, ''))
+await saveBase(pathFor(gateCwd, 'open'), newBase('open', '寮€', '测试', ''))
+await saveBase(pathFor(gateCwd, 'shut'), newBase('shut', '测试', '测试', ''))
 await state.writeSelection(gateCwd, new Set(['open']))
 
 const gateExec = { agent: { session: { header: { cwd: gateCwd } } } }
@@ -1079,15 +1079,15 @@ check('so it can be read',
 
 // A new base is not in any list yet, so creating one is never gated.
 check('creating a base is not gated',
-  (await attempt('knowledge_create_base', { id: 'fresh', name: '鏂?, title: '鏍? })) === null)
+  (await attempt('knowledge_create_base', { id: 'fresh', name: '测试', title: '测试' })) === null)
 
 // --- the edit history ---------------------------------------------------------------
 // The node keeps only the latest author and time; the history is what answers "who changed this, and when".
 // Held in the node so it lands in the same write, and capped so a base does not become a log.
 console.log('\nthe edit history')
-await saveBase(pathFor(cwd, 'hist'), newBase('hist', '鍙?, '鏍?, ''))
+await saveBase(pathFor(cwd, 'hist'), newBase('hist', '测试', '测试', ''))
 const histBase = (await loadBase(cwd, 'hist')).base
-const histNode = upsertNode(histBase, { title: '涓€鏉?, by: 'session-one' }).node
+const histNode = upsertNode(histBase, { title: '涓€测试', by: 'session-one' }).node
 check('a created node starts its history', histNode.history.length === 1, JSON.stringify(histNode.history))
 check('and the first entry carries the session', histNode.history[0].by === 'session-one')
 
@@ -1098,7 +1098,7 @@ check('a write with no session is recorded without one',
   histNode.history[2].by === undefined, JSON.stringify(histNode.history[2]))
 check('each entry has a time', histNode.history.every((entry) => typeof entry.at === 'string'))
 
-for (let at = 0; at < 20; at += 1) upsertNode(histBase, { node: histNode.id, body: '绗? + at + '娆? })
+for (let at = 0; at < 20; at += 1) upsertNode(histBase, { node: histNode.id, body: '测试' + at + '测试' })
 check('the cap holds', histNode.history.length === 10, String(histNode.history.length))
 check('and the newest is kept, not the oldest',
   histNode.history[9].at >= histNode.history[0].at)
@@ -1112,20 +1112,20 @@ check('and neither does the outline', !histOutline.includes('history'))
 // --- a Session whose id is not readable yet ------------------------------------------
 // The first turn arrives before the header carries an id, so the provider sees an empty one. Caching under
 // that key permanently would freeze the workspace's answer as this Session's, and deleting it would blank
-// the outline for a turn 鈥?the failure the stale path exists to prevent. It is stored marked instead.
+// the outline for a turn 测试'the failure the stale path exists to prevent. It is stored marked instead.
 console.log('\nno session id yet')
 const lateCwd = await mkdtemp(join(tmpdir(), 'kblate-'))
-await saveBase(pathFor(lateCwd, 'a'), newBase('a', '鐢茬殑搴?, '鏍?, ''))
+await saveBase(pathFor(lateCwd, 'a'), newBase('a', '测试', '测试', ''))
 await state.writeSelection(lateCwd, new Set(['a']))
 await outline.refresh(lateCwd)
 const lateText = outline.outlineFor(lateCwd, '')
 check('an id-less assembly still answers', lateText.length > 0, String(lateText.length))
-check('and it carries the base', lateText.includes('鐢茬殑搴?))
+check('and it carries the base', lateText.includes('测试'))
 check('and the same text is served again, not blanked', outline.outlineFor(lateCwd, '') === lateText)
 check('but it is flagged for rebuilding', outline.needsRefresh(lateCwd, '') === true)
 // Once an id exists, the real answer is built under it and is not provisional.
 await outline.refresh(lateCwd, 'session-real')
-check('a real id builds its own entry', outline.outlineFor(lateCwd, 'session-real').includes('鐢茬殑搴?))
+check('a real id builds its own entry', outline.outlineFor(lateCwd, 'session-real').includes('测试'))
 check('and that one is not provisional', outline.needsRefresh(lateCwd, 'session-real') === false)
 
 // --- naming a session whose id has a colon -------------------------------------------
@@ -1134,8 +1134,8 @@ console.log('\nan IM session can be named')
 const nameCwd = await mkdtemp(join(tmpdir(), 'kbname-'))
 const imId = 'im:qq_ad251634eac6:dm:1791127482728:7F3A5AC3FC6347F8D91D4B81FFC505C7'
 check('an IM id can be named',
-  await state.writeName(nameCwd, imId, '椴搁奔濞?).then(() => true, (error) => error.message) === true)
-check('and the name comes back', (await state.readNames(nameCwd))[imId] === '椴搁奔濞?)
+  await state.writeName(nameCwd, imId, '鲸鱼娘').then(() => true, (error) => error.message) === true)
+check('and the name comes back', (await state.readNames(nameCwd))[imId] === '鲸鱼娘')
 check('and an empty name clears it',
   await state.writeName(nameCwd, imId, '').then(async () => Object.keys(await state.readNames(nameCwd)).length === 0))
 check('an empty id is still refused',
