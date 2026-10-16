@@ -281,14 +281,14 @@ window.__ModuleLoader__.load({
      * right say "layers, top to bottom". Both are read faster than the word for them, and the tighter
      * spacing of the last one is the whole difference between it and the first.
      */
-    function ModeIcon({ mode }) {
+    function ShapeIcon({ shape }) {
       const dot = (cx, cy, r) => h('circle', { key: cx + ':' + cy, cx, cy, r });
       const block = (x, y) => h('rect', { key: x + ':' + y, x, y, width: 5.4, height: 3.4, rx: 1 });
-      const middle = mode === 'layers'
+      const middle = shape === 'layers'
         ? [block(4.3, 0.6), block(0.6, 5.3), block(4.3, 5.3), block(8, 5.3), block(4.3, 10)]
-        : mode === 'staircase'
+        : shape === 'staircase'
         ? [block(0.6, 0.6), block(4.4, 5.3), block(8.2, 10)]
-        : mode === 'compact'
+        : shape === 'compact'
           ? [dot(7, 7, 2), dot(7, 3.2, 1.3), dot(10.8, 7, 1.3), dot(7, 10.8, 1.3), dot(3.2, 7, 1.3)]
           : [dot(7, 7, 2.2), dot(7, 1.6, 1.5), dot(12.4, 7, 1.5), dot(7, 12.4, 1.5), dot(1.6, 7, 1.5)];
       return h('svg', {
@@ -1580,7 +1580,7 @@ function estimateBox(node) {
       names,
       labels,
       base, extraLinks, onLink, edits, onEdit, onReview, fullscreen, positions, onMove,
-      colors, onColor, focusId, onResetLayout, mode, onSetMode, onRemoveNode, onCreateNode, onPurgeNode,
+      colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onCreateNode, onPurgeNode,
       onSendToChat, widths, nodeWidths, onSetWidth,
     }) {
       const ordered = layout(base.nodes || []);
@@ -1748,7 +1748,7 @@ function estimateBox(node) {
 
       // Compact is the same shape with tighter rings. A separate arrangement would need its own
       // separating pass; density is the honest difference.
-      const dense = mode === 'compact' ? 0.62 : 1;
+      const dense = shape === 'compact' ? 0.62 : 1;
       const RING_X = 250 * dense;
       const RING_Y = 190 * dense;
       const centre = { x: offsetX + 120, y: 40 };
@@ -1766,7 +1766,7 @@ function estimateBox(node) {
         }
       };
 
-      if (mode === 'layers') {
+      if (shape === 'layers') {
         // One row per depth, and every parent centred over the span its own subtree occupies. The
         // horizontal order is therefore meaningful: a node sits directly above its children, and
         // siblings from different parents never interleave.
@@ -1823,7 +1823,7 @@ function estimateBox(node) {
           layOut(root.node.id, cursor);
           cursor += spanOf(root.node.id) + GAP_X * 2;
         }
-      } else if (mode === 'staircase') {
+      } else if (shape === 'staircase') {
         // One column per depth, one row per node in visit order, each row as tall as its own box.
         // This is the arrangement the panel had before the radial one, and for a straight chain of
         // steps — which is exactly what a release flow is — it reads better than a fan.
@@ -2517,15 +2517,15 @@ function estimateBox(node) {
             type: 'button',
             title: label + '：' + hint + '（会取消这份库里手动拖过的位置）',
             'aria-label': label + '：' + hint,
-            'aria-pressed': mode === key,
+            'aria-pressed': shape === key,
             onClick: () => {
-              onSetMode(key);
+              onSetShape(key);
               // Choosing an arrangement is a request to look at it. The template recomputes every position,
               // so the view you had is now pointing at empty canvas — which is exactly what "the canvas went
               // blank" was: the nodes had moved, not disappeared, and finding them again was the user's job.
               //
               // Centring on the root is what makes the choice legible: the new shape appears under the
-              // cursor, sliding into place. `onLocate` is called in the same handler as the mode change, so
+              // cursor, sliding into place. `onLocate` is called in the same handler as the shape change, so
               // the glide reads the layout this change produced rather than the one it replaced.
               const root = ordered.find((entry) => !entry.node.parent || entry.node.parent === 'root');
               if (onLocate && root) onLocate(root.node.id);
@@ -2537,14 +2537,14 @@ function estimateBox(node) {
               width: 24,
               height: 22,
               padding: 0,
-              border: '1px solid ' + (mode === key ? 'rgba(128,128,128,0.75)' : HAIRLINE),
+              border: '1px solid ' + (shape === key ? 'rgba(128,128,128,0.75)' : HAIRLINE),
               borderRadius: 6,
-              background: mode === key ? SURFACE : 'transparent',
+              background: shape === key ? SURFACE : 'transparent',
               color: 'inherit',
-              opacity: mode === key ? 1 : 0.62,
+              opacity: shape === key ? 1 : 0.62,
               cursor: 'pointer',
             },
-          }, h(ModeIcon, { mode: key })))),
+          }, h(ShapeIcon, { shape: key })))),
           // `positions` here is already this base's map, keyed by node id — Body hands down
           // positions[base.id]. Indexing it again with base.id returned undefined, so the button
           // never rendered at all.
@@ -3007,7 +3007,7 @@ function estimateBox(node) {
       // Per-node colours the user chose, keyed by base then node.
       const [colors, setColors] = React.useState({});
       // Which arrangement each base uses. Presentation, stored with the positions and the colours.
-      const [modes, setModes] = React.useState({});
+      const [shapes, setShapes] = React.useState({});
       // Box widths. The base's is the room every node in it gets; a node's own overrides it. Kept apart
       // because they answer different questions: "make this base wider" and "this node needs more room".
       const [widths, setWidths] = React.useState({});
@@ -3234,10 +3234,10 @@ function estimateBox(node) {
        * leaves every node where the user dragged it is indistinguishable from a broken button, and
        * the point of choosing one is to stop arranging by hand.
        */
-      const chooseMode = (base, mode) => {
-        setModes((current) => Object.assign({}, current, { [base.id]: mode }));
+      const chooseShape = (base, shape) => {
+        setShapes((current) => Object.assign({}, current, { [base.id]: shape }));
         setPositions((current) => Object.assign({}, current, { [base.id]: {} }));
-        post('mode', { base: base.id, mode }).catch(() => {});
+        post('shape', { base: base.id, shape }).catch(() => {});
         post('layout', { base: base.id, positions: {} }).catch(() => {});
       };
 
@@ -3495,7 +3495,7 @@ function estimateBox(node) {
             setHasOwnSelection(ownsSelection);
             setPositions((layout && layout.positions) || {});
             setColors((layout && layout.colors) || {});
-            setModes((layout && layout.modes) || {});
+            setShapes((layout && layout.shapes) || {});
             setWidths((layout && layout.widths) || {});
             setNodeWidths((layout && layout.sizes) || {});
             setNames((layout && layout.names) || {});
@@ -3984,7 +3984,7 @@ function estimateBox(node) {
             labels,
             names,
                 onResetLayout: resetArrangement,
-                mode: modes[base.id] || 'layers',
+                shape: shapes[base.id] || 'layers',
                 widths,
                 nodeWidths: nodeWidths[base.id] || {},
                 onSetWidth: (nodeId, value) => {
@@ -4060,7 +4060,7 @@ function estimateBox(node) {
                   patchNodeLocally(base.id, nodeId, { change: 'removed' });
                   post('removeNode', { base: base.id, node: nodeId }).catch(() => {});
                 },
-                onSetMode: (next) => chooseMode(base, next),
+                onSetShape: (next) => chooseShape(base, next),
                 focusId: focus && focus.base === base.id ? focus.node : null,
                 colors: colors[base.id] || {},
                 onColor: (nodeId, hex) => {

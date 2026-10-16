@@ -1,7 +1,7 @@
 // Exercise the store against a throwaway directory, so the logic is checked without a reload.
 // Run: node test-store.mjs
 
-import { mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -438,27 +438,39 @@ const after = (await loadBase(cwd, 'bulk')).base
 check('and every mark is gone', after.nodes.every((node) => !node.change),
   JSON.stringify(after.nodes.map((node) => node.change)))
 
-// --- layout modes -------------------------------------------------------------
-console.log('\nlayout modes')
-await saveBase(pathFor(cwd, 'shaped'), newBase('shaped', '鎺掔増', '测试', ''))
-check('nothing stored by default', (await state.readModes(cwd)).shaped === undefined)
-await state.writeMode(cwd, 'shaped', 'staircase')
-check('a mode round-trips', (await state.readModes(cwd)).shaped === 'staircase')
-check('an unknown mode is refused',
-  await state.writeMode(cwd, 'shaped', 'spiral')
-    .then(() => false, (error) => /unknown layout mode/.test(error.message)))
+// --- layout shapes -------------------------------------------------------------
+console.log('\nlayout shapes')
+await saveBase(pathFor(cwd, 'shaped'), newBase('shaped', '排版', '测试', ''))
+// The old key still reads. `modes` in layout.json is what a test session mistook for the injection switch;
+// renaming it is only safe if the workspaces that already have it keep their arrangement.
+await state.writeLayout(cwd, 'legacy', {})
+await state.writeShape(cwd, 'legacy', 'staircase')
+const legacyFile = JSON.parse(await readFile(join(cwd, '.dsh-knowledge', 'layout.json'), 'utf8'))
+check('the new key is what gets written', legacyFile.shapes && legacyFile.shapes.legacy === 'staircase')
+check('and the old key is gone after a write', legacyFile.modes === undefined)
+const handcrafted = JSON.parse(JSON.stringify(legacyFile))
+handcrafted.modes = { old: 'radial' }
+delete handcrafted.shapes
+await writeFile(join(cwd, '.dsh-knowledge', 'layout.json'), JSON.stringify(handcrafted), 'utf8')
+check('a file that still says modes is still read', (await state.readShapes(cwd)).old === 'radial')
+check('nothing stored by default', (await state.readShapes(cwd)).shaped === undefined)
+await state.writeShape(cwd, 'shaped', 'staircase')
+check('a shape round-trips', (await state.readShapes(cwd)).shaped === 'staircase')
+check('an unknown shape is refused',
+  await state.writeShape(cwd, 'shaped', 'spiral')
+    .then(() => false, (error) => /unknown layout shape/.test(error.message)))
 // Three fields share one file, so every writer has to carry the other two.
 await state.writeLayout(cwd, 'shaped', { n1: { x: 4, y: 5 } })
-check('moving a box keeps the mode', (await state.readModes(cwd)).shaped === 'staircase')
+check('moving a box keeps the shape', (await state.readShapes(cwd)).shaped === 'staircase')
 await state.writeColors(cwd, 'shaped', { n1: '#2e9e5b' })
-check('colouring a node keeps the mode', (await state.readModes(cwd)).shaped === 'staircase')
-await state.writeMode(cwd, 'shaped', 'compact')
+check('colouring a node keeps the shape', (await state.readShapes(cwd)).shaped === 'staircase')
+await state.writeShape(cwd, 'shaped', 'compact')
 check('changing the mode keeps the positions', (await state.readLayout(cwd)).shaped.n1.x === 4)
 check('and keeps the colours', (await state.readColors(cwd)).shaped.n1 === '#2e9e5b')
-const routed = await routes.setMode(cwd, 'shaped', 'radial')
-check('the route sets a mode', routed.modes.shaped === 'radial')
+const routed = await routes.setShape(cwd, 'shaped', 'radial')
+check('the route sets a shape', routed.shapes.shaped === 'radial')
 check('and refuses an unknown base',
-  await routes.setMode(cwd, 'nope', 'radial')
+  await routes.setShape(cwd, 'nope', 'radial')
     .then(() => false, (error) => /no knowledge base/.test(error.message)))
 
 // --- removing a node from the panel -------------------------------------------
@@ -565,7 +577,7 @@ await state.writeLayout(cwd, 'wide', { n1: { x: 1, y: 2 } })
 check('moving a box keeps the widths', (await state.readWidths(cwd)).wide === 260)
 await state.writeColors(cwd, 'wide', { n1: '#2e9e5b' })
 check('colouring keeps the widths', (await state.readWidths(cwd)).wide === 260)
-await state.writeMode(cwd, 'wide', 'compact')
+await state.writeShape(cwd, 'wide', 'compact')
 check('the mode keeps the widths', (await state.readSizes(cwd)).wide[wideChild.id].w === 320)
 check('and the positions survive all of it', (await state.readLayout(cwd)).wide.n1.x === 1)
 
@@ -1192,13 +1204,13 @@ check('and the panel agrees with the host',
 console.log('\nconcurrent layout patches')
 const raceCwd = await mkdtemp(join(tmpdir(), 'kb-race-'))
 await Promise.all([
-  state.writeMode(raceCwd, 'ops', 'radial'),
+  state.writeShape(raceCwd, 'ops', 'radial'),
   state.writeLayout(raceCwd, 'ops', { o1: { x: 11, y: 22 } }),
   state.writeBaseWidth(raceCwd, 'ops', 240),
 ])
 const raced = JSON.parse(await readFile(join(raceCwd, '.dsh-knowledge', 'layout.json'), 'utf8'))
 check('the file still parses', raced && raced.version === 1)
-check('the mode survived', raced.modes && raced.modes.ops === 'radial', JSON.stringify(raced.modes))
+check('the shape survived', raced.shapes && raced.shapes.ops === 'radial', JSON.stringify(raced.modes))
 check('and so did the positions', raced.positions && raced.positions.ops
   && raced.positions.ops.o1 && raced.positions.ops.o1.x === 11, JSON.stringify(raced.positions))
 check('and the width', raced.widths && raced.widths.ops === 240, JSON.stringify(raced.widths))
