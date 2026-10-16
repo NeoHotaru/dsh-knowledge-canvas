@@ -142,6 +142,14 @@ for (const file of SOURCES) {
       // loop header, a call's arguments. Those run later, so the order here does not matter.
       if (depthAt[at] > declaration.depth) continue
       const line = lines[at]
+      // A loop head that binds this very name is that loop's own variable, not a read of the declaration being
+      // checked. `for (let i = a.length - 1; …)` above a later `let i = 0` looked exactly like a read of it.
+      //
+      // Only the name the head binds is skipped, not the whole line: `for (let j = i; …)` really does read an
+      // outer `i`, and that is a genuine use-before-declare. Skipping every `for` line outright would have been
+      // simpler and would have hidden it.
+      const head = /^\s*for\s*\(\s*(?:const|let|var)\s+([A-Za-z_$][\w$]*)/.exec(line)
+      if (head && head[1] === name) continue
       const hit = pattern.exec(line)
       if (!hit) continue
       const rest = line.slice(hit.index + hit[0].length)

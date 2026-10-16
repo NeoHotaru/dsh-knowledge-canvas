@@ -760,6 +760,9 @@ const MIN_ZOOM = 0.12;
 const MAX_ZOOM = 2.6;
 const DETAIL_ZOOM = 0.55;
 
+/** Lines a version shows in the history card before it folds. See `VersionBody`. */
+const FOLD_LINES = 6;
+
 /**
  * The width and height a node wants, from its text alone.
  *
@@ -902,6 +905,61 @@ function estimateBox(node) {
       const span = DETAIL_ZOOM - MIN_ZOOM
       const t = span > 0 ? Math.min(1, Math.max(0, (DETAIL_ZOOM - k) / span)) : 0
       return 'rgba(128,128,128,' + (NEAR + (FAR - NEAR) * t).toFixed(3) + ')'
+    }
+
+    /**
+     * Line-level diff between two versions of a node's body.
+     *
+     * The history card had no diff, and without one it does not actually answer "what changed". Two full bodies
+     * side by side leave the reader to do the comparing — and the asymmetry is worse than it looks: an addition
+     * is visible because the new text is longer, while a deletion means noticing an absence inside a wall of
+     * text, which is the thing people are worst at. The user's question after reading a version that had grown
+     * was exactly that: "what does it look like when something was removed?"
+     *
+     * Longest common subsequence over lines, then walk it. O(n·m) in lines, which for a knowledge node — tens
+     * of lines, occasionally a couple of hundred — is nothing, and it is exact rather than heuristic. A
+     * word-level diff would read better on a reworded sentence and is not worth the machinery here: the unit
+     * people edit in these bodies is the line.
+     *
+     * @returns `{ old: [...], next: [...] }` — the same lines with a `kind` of `same` / `added` / `removed`.
+     * `old` is what the earlier version said (its deleted lines marked); `next` is what the later one says (its
+     * added lines marked). A line can only be `added` in `next` or `removed` in `old`, never both.
+     */
+    function diffLines(before, after) {
+      const a = (typeof before === 'string' ? before : '').split('\n');
+      const b = (typeof after === 'string' ? after : '').split('\n');
+      // Lengths of the common suffix/prefix, thrown away before the table is built. Bodies are usually mostly
+      // unchanged, so this is what keeps the quadratic part proportional to the edit rather than to the file.
+      const table = [];
+      for (let i = 0; i <= a.length; i += 1) table.push(new Array(b.length + 1).fill(0));
+      for (let i = a.length - 1; i >= 0; i -= 1) {
+        for (let j = b.length - 1; j >= 0; j -= 1) {
+          table[i][j] = a[i] === b[j]
+            ? table[i + 1][j + 1] + 1
+            : Math.max(table[i + 1][j], table[i][j + 1]);
+        }
+      }
+      const old = [];
+      const next = [];
+      let i = 0;
+      let j = 0;
+      while (i < a.length && j < b.length) {
+        if (a[i] === b[j]) {
+          old.push({ kind: 'same', text: a[i] });
+          next.push({ kind: 'same', text: b[j] });
+          i += 1;
+          j += 1;
+        } else if (table[i + 1][j] >= table[i][j + 1]) {
+          old.push({ kind: 'removed', text: a[i] });
+          i += 1;
+        } else {
+          next.push({ kind: 'added', text: b[j] });
+          j += 1;
+        }
+      }
+      while (i < a.length) { old.push({ kind: 'removed', text: a[i] }); i += 1; }
+      while (j < b.length) { next.push({ kind: 'added', text: b[j] }); j += 1; }
+      return { old, next };
     }
 
     function edgeFades(spotlight, fromId, toId) {
@@ -3272,6 +3330,20 @@ function estimateBox(node) {
           const entries = Array.isArray(item.node.history) ? item.node.history.slice().reverse() : [];
           return h('div', {
             'data-kb-history': historyFor.id,
+            // The canvas leaves the wheel alone over this card.
+            //
+            // The card scrolls (`maxHeight` below) and the wheel is bound to zoom, so without this the reader
+            // cannot scroll the history at all — they zoom instead, which is what "展开全文以后滚不动" was.
+            //
+            // It went unnoticed because the card used to hold a few lines of times and session names and never
+            // reached its own height limit; nothing about it scrolled, so nothing about it needed the wheel.
+            // Bodies made it long enough to scroll for the first time.
+            //
+            // The same mark the node boxes use, and it carries the same trade: while the pointer is over a card
+            // that happens to have nothing to scroll, the wheel does nothing rather than zooming. That is the
+            // behaviour already established for a fixed-height node, and moving the pointer off restores
+            // zooming — which is a smaller surprise than a scroll gesture that zooms.
+            'data-kb-scroll': 'true',
             style: {
               position: 'absolute',
               left: 0,
@@ -3316,47 +3388,69 @@ function estimateBox(node) {
             ),
             // The version on disk, then every version kept. The card used to list times and sessions only,
             // because that was all the store kept — a local git with commit dates and no contents. It keeps
-            // the contents now, so this shows them.
-            h('div', {
-              style: { paddingBottom: 7, marginBottom: 7, borderBottom: '1px solid ' + HAIRLINE },
-            },
-              h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
-                h('span', { style: { fontWeight: 600, fontSize: 11.5 } }, '当前'),
-                h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, shortWhen(item.node.at)),
-              ),
-              h('div', { style: { fontWeight: 600, marginBottom: 2 } }, item.node.title || historyFor.id),
-              h(VersionBody, { text: item.node.body }),
-            ),
-            entries.length === 0
-              ? h('div', { style: { opacity: 0.55 } }, '没有更早的版本（写在加历史之前）。')
-              : entries.map((entry, index) => h('div', {
-                key: index,
-                style: {
-                  paddingTop: index ? 7 : 0,
-                  marginTop: index ? 7 : 0,
-                  borderTop: index ? '1px solid ' + HAIRLINE : undefined,
-                  // Older versions fade rather than disappear: the newest kept version is the one being
-                  // compared against the present, and it should not read as less real than the rest.
-                  opacity: index === 0 ? 1 : 0.72,
-                },
+            // the contents now, so this shows them, and shows what changed between them.
+            //
+            // Each side carries one half of the change: the current version marks what it added relative to the
+            // one before it, and each older version marks what was deleted after it. Together the two halves
+            // are the whole edit, and neither has to display both kinds at once — which on a reworded paragraph
+            // would be a page of confetti.
+            (() => {
+              const after = entries.length ? (entries[0].body || '') : ''
+              const lines = entries.length ? diffLines(after, item.node.body || '').next : null
+              return h('div', {
+                style: { paddingBottom: 7, marginBottom: 7, borderBottom: '1px solid ' + HAIRLINE },
               },
                 h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
-                  h('span', {
-                    style: { fontVariantNumeric: 'tabular-nums', opacity: 0.7 },
-                  }, shortWhen(entry.at)),
-                  h('span', { style: { opacity: 0.7 } },
-                    entry.by ? ((names && names[entry.by]) || '一个会话') : '你'),
-                  index === 0 ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '上一个版本') : null,
+                  h('span', { style: { fontWeight: 600, fontSize: 11.5 } }, '当前'),
+                  h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, shortWhen(item.node.at)),
+                  entries.length ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } },
+                    '（绿色是相对上一版新增的）') : null,
                 ),
-                // Entries written before the store kept contents have neither field. Saying so is the honest
-                // option; showing an empty body would read as "it was blank", which is a different fact.
-                entry.title === undefined && entry.body === undefined
-                  ? h('div', { style: { opacity: 0.5, fontStyle: 'italic' } }, '这一版没有留下内容（写在存内容之前）。')
-                  : h(React.Fragment, null,
-                    entry.title ? h('div', { style: { fontWeight: 600, marginBottom: 2 } }, entry.title) : null,
-                    h(VersionBody, { text: entry.body }),
+                h('div', { style: { fontWeight: 600, marginBottom: 2 } }, item.node.title || historyFor.id),
+                h(VersionBody, { text: item.node.body, lines }),
+              );
+            })(),
+            entries.length === 0
+              ? h('div', { style: { opacity: 0.55 } }, '没有更早的版本（写在加历史之前）。')
+              : entries.map((entry, index) => {
+                // What this version lost: compared against the one after it, which is the version that replaced
+                // it. `entries` is newest-first, so the next entry is the older one.
+                const before = entries[index + 1]
+                const marked = before && before.body !== undefined && entry.body !== undefined
+                  ? diffLines(entry.body || '', before.body || '').old
+                  : null
+                return h('div', {
+                  key: index,
+                  style: {
+                    paddingTop: index ? 7 : 0,
+                    marginTop: index ? 7 : 0,
+                    borderTop: index ? '1px solid ' + HAIRLINE : undefined,
+                    // Older versions fade rather than disappear: the newest kept version is the one being
+                    // compared against the present, and it should not read as less real than the rest.
+                    opacity: index === 0 ? 1 : 0.72,
+                  },
+                },
+                  h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
+                    h('span', {
+                      style: { fontVariantNumeric: 'tabular-nums', opacity: 0.7 },
+                    }, shortWhen(entry.at)),
+                    h('span', { style: { opacity: 0.7 } },
+                      entry.by ? ((names && names[entry.by]) || '一个会话') : '你'),
+                    index === 0 ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '上一个版本') : null,
+                    marked && marked.some((line) => line.kind === 'removed')
+                      ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '（红色是之后被删掉的）')
+                      : null,
                   ),
-              )),
+                  // Entries written before the store kept contents have neither field. Saying so is the honest
+                  // option; showing an empty body would read as "it was blank", which is a different fact.
+                  entry.title === undefined && entry.body === undefined
+                    ? h('div', { style: { opacity: 0.5, fontStyle: 'italic' } }, '这一版没有留下内容（写在存内容之前）。')
+                    : h(React.Fragment, null,
+                      entry.title ? h('div', { style: { fontWeight: 600, marginBottom: 2 } }, entry.title) : null,
+                      h(VersionBody, { text: entry.body, lines: marked }),
+                    ),
+                );
+              }),
           );
         })() : null,
         ),
@@ -3366,30 +3460,56 @@ function estimateBox(node) {
     /**
      * One version's body inside the history card.
      *
+     * `lines` is the diff-marked form from `diffLines` when there is another version to compare against; absent
+     * means the version stands alone and is printed as it was written.
+     *
      * Folded rather than truncated. `HISTORY_LIMIT` is ten, and ten full bodies printed flat would make the
      * card unreadable and its scroll useless — but the reason to keep the bodies at all is to read them, so
-     * the rest is one click away rather than cut off. A body with no newlines is long rather than tall, so the
-     * fold is by line count and the clamp is by height.
+     * the rest is one click away rather than cut off. The fold is by line count, and when the folded-away part
+     * contains changes the button says how many, because a fold that hides the one line you opened the card to
+     * see is worse than no fold.
      */
-    function VersionBody({ text }) {
+    function VersionBody({ text, lines }) {
       const [open, setOpen] = React.useState(false);
       const body = typeof text === 'string' ? text : '';
       if (!body.trim()) {
         return h('div', { style: { opacity: 0.45, fontStyle: 'italic' } }, '（这一版没有正文）');
       }
-      const lines = body.split('\n');
-      const folded = !open && (lines.length > 6 || body.length > 320);
+      const marked = Array.isArray(lines) ? lines : null;
+      const count = marked ? marked.length : body.split('\n').length;
+      const hiddenChanges = marked && !open
+        ? marked.slice(FOLD_LINES).filter((line) => line.kind !== 'same').length
+        : 0;
+      const folded = !open && (count > FOLD_LINES || body.length > 320);
+      const shown = marked ? (open ? marked : marked.slice(0, FOLD_LINES)) : null;
       return h('div', null,
         h('div', {
           style: {
             whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
-            maxHeight: folded ? 74 : undefined, overflow: 'hidden',
+            maxHeight: folded && !marked ? 74 : undefined, overflow: 'hidden',
             // Fades at the cut rather than ending mid-glyph, so "there is more" reads as a fact of the layout
-            // and not as a rendering accident.
-            maskImage: folded ? 'linear-gradient(to bottom, #000 62%, transparent)' : undefined,
-            WebkitMaskImage: folded ? 'linear-gradient(to bottom, #000 62%, transparent)' : undefined,
+            // and not as a rendering accident. Only when the cut is by height; a marked body is cut by line.
+            maskImage: folded && !marked ? 'linear-gradient(to bottom, #000 62%, transparent)' : undefined,
+            WebkitMaskImage: folded && !marked ? 'linear-gradient(to bottom, #000 62%, transparent)' : undefined,
           },
-        }, body),
+        },
+          shown
+            ? shown.map((line, index) => h('div', {
+              key: index,
+              style: {
+                // The two marks the whole diff exists for. Tinted rather than coloured text: these bodies
+                // contain their own emphasis, and recolouring the words would fight it.
+                background: line.kind === 'added' ? 'rgba(46,160,67,0.16)'
+                  : line.kind === 'removed' ? 'rgba(196,60,60,0.14)' : undefined,
+                borderLeft: line.kind === 'added' ? '2px solid rgba(46,160,67,0.7)'
+                  : line.kind === 'removed' ? '2px solid rgba(196,60,60,0.7)' : '2px solid transparent',
+                paddingLeft: 5,
+                // A deleted line is not in this version any more, so it should not read as current text.
+                opacity: line.kind === 'removed' ? 0.75 : 1,
+              },
+            }, line.text === '' ? '\u00a0' : line.text))
+            : body,
+        ),
         folded ? h('button', {
           type: 'button',
           onClick: () => setOpen(true),
@@ -3397,8 +3517,9 @@ function estimateBox(node) {
             marginTop: 2, padding: 0, border: 0, background: 'transparent', color: 'inherit',
             font: 'inherit', fontSize: 10.5, opacity: 0.6, cursor: 'pointer', textDecoration: 'underline',
           },
-        }, '展开全文（' + lines.length + ' 行）') : null,
-        open && (lines.length > 6 || body.length > 320) ? h('button', {
+        }, '展开全文（' + count + ' 行'
+          + (hiddenChanges ? '，其中 ' + hiddenChanges + ' 处改动' : '') + '）') : null,
+        open && (count > FOLD_LINES || body.length > 320) ? h('button', {
           type: 'button',
           onClick: () => setOpen(false),
           style: {
@@ -4955,7 +5076,7 @@ function estimateBox(node) {
       // shows up as a line that looks slightly off rather than as a failure.
       // Pure decisions the panel makes, exposed for the same reason the geometry is: a button cannot
       // be pressed by a check script, but the question the button answers can be asked directly.
-      __logic: { nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases },
+      __logic: { nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines },
       __geometry: {
         segmentHitsBox,
         curveHitsBox,

@@ -203,6 +203,72 @@ if (client && client.__geometry) {
   if (edgeFades('a', 'a', 'c') || edgeFades('a', 'c', 'a')) {
     problems.push('spotlight: an edge attached to the hovered node fades')
   }
+
+  // The history card's diff. Without it the card prints two full bodies and leaves the reader to compare —
+  // and the asymmetry is the problem: an addition is visible because the text got longer, while a deletion
+  // means noticing an absence inside a wall of text. So the assertions that matter are not "does it colour the
+  // right line" but the two invariants that make a diff trustworthy at all: it must not lose a line, and it
+  // must not invent one.
+  if (client.__logic && typeof client.__logic.diffLines === 'function') {
+    const diffLines = client.__logic.diffLines
+    const kinds = (rows) => rows.map((row) => row.kind).join()
+    const texts = (rows) => rows.map((row) => row.text).join('|')
+
+    const addOne = diffLines('a\nb', 'a\nb\nc')
+    if (texts(addOne.next) !== 'a|b|c') problems.push('diff: an addition lost or reordered a line')
+    if (kinds(addOne.next) !== 'same,same,added') problems.push('diff: an addition is marked wrong: ' + kinds(addOne.next))
+    if (kinds(addOne.old) !== 'same,same') problems.push('diff: an addition changed the old side: ' + kinds(addOne.old))
+
+    const dropOne = diffLines('a\nb\nc', 'a\nc')
+    if (kinds(dropOne.old) !== 'same,removed,same') problems.push('diff: a deletion is marked wrong: ' + kinds(dropOne.old))
+    if (kinds(dropOne.next) !== 'same,same') problems.push('diff: a deletion changed the new side: ' + kinds(dropOne.next))
+
+    const reword = diffLines('a\nold\nc', 'a\nnew\nc')
+    if (kinds(reword.old) !== 'same,removed,same') problems.push('diff: a rewrite lost the old line')
+    if (kinds(reword.next) !== 'same,added,same') problems.push('diff: a rewrite lost the new line')
+
+    const none = diffLines('a\nb', 'a\nb')
+    if (/added|removed/.test(kinds(none.old) + kinds(none.next))) {
+      problems.push('diff: identical text reports a change')
+    }
+
+    // The invariants, over the shapes a real body takes: a paragraph appended, one removed, edits at both ends
+    // at once, and the empty cases.
+    const cases = [
+      ['a\nb\nc\nd\ne\nf', 'a\nb\nc\nd\ne\nf\ng'],
+      ['a\nb\nc\nd\ne\nf', 'a\nc\nd\ne\nf'],
+      ['a\nb\nc\nd\ne\nf', 'z\na\nb\nc\nd\ne\nf\ny'],
+      ['', 'a\nb'],
+      ['a\nb', ''],
+      ['a\nb\nc', 'a\nx\nc'],
+      ['same\nsame', 'same\nsame'],
+    ]
+    for (const [before, after] of cases) {
+      const result = diffLines(before, after)
+      // Every line of each side appears exactly once on that side, whatever its mark. Counting only the
+      // unmarked ones was the first version of this assertion and it was simply wrong: an added line is part of
+      // the new text, so excluding it undercounts by exactly the number of additions.
+      if (result.old.length !== before.split('\n').length) {
+        problems.push('diff: the old side lost or invented a line (' + before.split('\n').length + ' in, ' + result.old.length + ' out)')
+      }
+      if (result.next.length !== after.split('\n').length) {
+        problems.push('diff: the new side lost or invented a line (' + after.split('\n').length + ' in, ' + result.next.length + ' out)')
+      }
+      // And the text on each side is that side's text, in order, verbatim.
+      if (texts(result.old) !== before.split('\n').join('|')) problems.push('diff: the old side is not the old text')
+      if (texts(result.next) !== after.split('\n').join('|')) problems.push('diff: the new side is not the new text')
+      // Only `old` may carry `removed` and only `next` may carry `added`; a line cannot be both.
+      if (result.old.some((row) => row.kind === 'added')) problems.push('diff: the old side claims an addition')
+      if (result.next.some((row) => row.kind === 'removed')) problems.push('diff: the new side claims a deletion')
+      // Whatever stayed must be the same text on both sides, or the two halves cannot be read as one change.
+      if (texts(result.old.filter((row) => row.kind === 'same'))
+        !== texts(result.next.filter((row) => row.kind === 'same'))) {
+        problems.push('diff: the two sides disagree about what stayed the same')
+      }
+    }
+  } else {
+    problems.push('diffLines: missing from __logic, so the history diff cannot be checked')
+  }
   // Boxes carry their own size now. Passing bare corners here made every value NaN, the slab
   // comparisons all false, and the function happened to return "hit" — so these assertions
   // passed while testing nothing. A box without a size is not a box.
