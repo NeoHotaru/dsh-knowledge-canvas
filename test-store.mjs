@@ -453,6 +453,16 @@ handcrafted.modes = { old: 'radial' }
 delete handcrafted.shapes
 await writeFile(join(cwd, '.dsh-knowledge', 'layout.json'), JSON.stringify(handcrafted), 'utf8')
 check('a file that still says modes is still read', (await state.readShapes(cwd)).old === 'radial')
+
+// And reading it is what cleans the file. Asserted against the file itself, not against a returned value:
+// the complaint was about what is on disk, and only the file answers that.
+const migrated = JSON.parse(await readFile(join(cwd, '.dsh-knowledge', 'layout.json'), 'utf8'))
+check('reading migrates the old key away', migrated.modes === undefined, JSON.stringify(migrated))
+check('and leaves the arrangement under the new one', migrated.shapes && migrated.shapes.old === 'radial', JSON.stringify(migrated.shapes))
+
+// A second read must not write again, and must still return the same thing.
+const twiceRead = await state.readShapes(cwd)
+check('a second read is stable', twiceRead.old === 'radial')
 check('nothing stored by default', (await state.readShapes(cwd)).shaped === undefined)
 await state.writeShape(cwd, 'shaped', 'staircase')
 check('a shape round-trips', (await state.readShapes(cwd)).shaped === 'staircase')
