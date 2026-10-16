@@ -59,6 +59,12 @@ That line is extracted into the index in the system prompt, so the model knows *
 
 **npm**: the package is `dsh-knowledge-canvas`. Type it into DSH's "add plugin" dialog.
 
+**The first run seeds a tutorial base.** If the workspace has no `.dsh-knowledge/` at all, this plugin
+creates one containing `welcome.json` — six nodes covering what a base is, how to read and edit one, what is
+worth writing down, and a worked example of a well-written node. It is switched on, so the model reads it
+too. It is also just a base: delete it whenever you like. (Delete the whole `.dsh-knowledge/` directory to
+get the defaults back; the seed only runs when that directory is absent.)
+
 **From source**:
 
 ```json
