@@ -232,7 +232,35 @@ if (client && client.__geometry) {
       problems.push('diff: identical text reports a change')
     }
 
-    // Blank lines: the diff still reports them exactly — a removed empty line *is* a removed line — but the
+    // Which version each kept version is compared against. This is the rule that was wrong, and wrong in the
+    // one place that matters: every entry was compared against the entry *below* it, but the newest entry is
+    // replaced by the node itself — and the entry below it is often one written before the store kept contents,
+    // with no body at all. So the comparison silently produced nothing, and the reader who asked to see a
+    // deletion saw no red at all. Nothing reported it, because nothing could reach inside the `.map`.
+    const historyMarks = client.__logic.historyMarks
+    if (typeof historyMarks === 'function') {
+      // The newest kept version must be compared against the node, so its deletions are found.
+      const newest = historyMarks([{ at: '2', body: 'a\nb\nc' }], 'a\nc')
+      if (!newest[0].lines) {
+        problems.push('marks: the newest kept version is not compared against the node itself')
+      } else if (!newest[0].lines.some((row) => row.kind === 'removed' && row.text === 'b')) {
+        problems.push('marks: the newest version loses no line when one was deleted')
+      }
+      // An older entry is compared against the entry above it, which is the version that replaced it.
+      const second = historyMarks([{ at: '2', body: 'a\nb\nc' }, { at: '1', body: 'a\nb\nc\nd' }], 'a\nc')
+      if (!second[1].lines || !second[1].lines.some((row) => row.kind === 'removed' && row.text === 'd')) {
+        problems.push('marks: an older version is not compared against the one that replaced it')
+      }
+      // An entry with no content, or nothing to compare against, gives null — never an empty array pretending a
+      // comparison happened, because the card renders those two the same and they are not the same.
+      const noContent = historyMarks([{ at: '2' }, { at: '1', body: 'a' }], 'a')
+      if (noContent[0].lines !== null) problems.push('marks: a version with no content claims a comparison')
+      if (noContent[1].lines !== null) problems.push('marks: a version with nothing after it claims a comparison')
+      if (historyMarks([], 'a').length !== 0) problems.push('marks: no history gives rows')
+    } else {
+      problems.push('historyMarks: missing from __logic, so the version pairing cannot be checked')
+    }
+
     // card must not mark them. The first real use proved why: the only deletion between the two versions of
     // `o17` was a single empty line, so the card announced "红色是之后被删掉的" and pointed at a red line with
     // nothing on it. A mark that points at nothing spends the reader's attention and returns nothing.

@@ -984,6 +984,31 @@ function estimateBox(node) {
       return row.kind !== 'same' && row.text.trim() !== '';
     }
 
+    /**
+     * What each kept version lost, given the version that replaced it.
+     *
+     * Extracted from the card because the rule it encodes is the one that was wrong, and wrong in a way nothing
+     * reported: every entry was compared against the entry below it, but the newest entry is replaced by the
+     * node itself — and the entry below it is often one written before the store kept contents, with no body at
+     * all. So the comparison silently produced nothing and the newest version rendered with no marks, which is
+     * exactly the "I still don't see any red" the reader reported. A pure function can be asserted; a chain of
+     * ternaries inside a `.map` inside a JSX expression cannot.
+     *
+     * @param entries - history, newest first, as the store keeps it reversed for display.
+     * @param currentBody - the node's own body: the version that replaced `entries[0]`.
+     * @returns one `{ lines }` per entry, in the same order. `lines` is the marked old side, or null when there
+     * is nothing to compare against — never an empty array pretending a comparison happened.
+     */
+    function historyMarks(entries, currentBody) {
+      return entries.map((entry, index) => {
+        const replacing = index === 0 ? { body: currentBody } : entries[index - 1];
+        const lines = replacing && replacing.body !== undefined && entry.body !== undefined
+          ? diffLines(entry.body || '', replacing.body || '').old
+          : null;
+        return { lines };
+      });
+    }
+
     function edgeFades(spotlight, fromId, toId) {
       return spotlight !== null && spotlight !== fromId && spotlight !== toId;
     }
@@ -3350,6 +3375,8 @@ function estimateBox(node) {
             }, '历史：找不到节点 ' + historyFor.id);
           }
           const entries = Array.isArray(item.node.history) ? item.node.history.slice().reverse() : [];
+          // Computed once here rather than per row, and by a function a check can reach — see `historyMarks`.
+          const marks = historyMarks(entries, item.node.body);
           return h('div', {
             'data-kb-history': historyFor.id,
             // The canvas leaves the wheel alone over this card.
@@ -3437,12 +3464,10 @@ function estimateBox(node) {
             entries.length === 0
               ? h('div', { style: { opacity: 0.55 } }, '没有更早的版本（写在加历史之前）。')
               : entries.map((entry, index) => {
-                // What this version lost: compared against the one after it, which is the version that replaced
-                // it. `entries` is newest-first, so the next entry is the older one.
-                const before = entries[index + 1]
-                const marked = before && before.body !== undefined && entry.body !== undefined
-                  ? diffLines(entry.body || '', before.body || '').old
-                  : null
+                // What this version lost, which is defined by what replaced it: the current node for the newest
+                // kept version, and the entry above it for every older one. See `historyMarks` for what went
+                // wrong when that rule was written inline as "the entry below it".
+                const marked = marks[index] ? marks[index].lines : null;
                 return h('div', {
                   key: index,
                   style: {
@@ -5103,7 +5128,9 @@ function estimateBox(node) {
       // shows up as a line that looks slightly off rather than as a failure.
       // Pure decisions the panel makes, exposed for the same reason the geometry is: a button cannot
       // be pressed by a check script, but the question the button answers can be asked directly.
-      __logic: { nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines, worthMarking },
+      __logic: {
+        nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines, worthMarking, historyMarks,
+      },
       __geometry: {
         segmentHitsBox,
         curveHitsBox,
