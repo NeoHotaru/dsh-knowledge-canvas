@@ -1720,6 +1720,23 @@ function estimateBox(node) {
       // it only grazed. `offsetHeight` is the layout size, so the canvas's zoom transform does not
       // affect it, which is exactly what the geometry wants.
       const [sizes, setSizes] = React.useState({});
+      // Measuring is the most expensive thing a render does: a `querySelectorAll` over the whole canvas plus
+      // three forced layout reads per node (`offsetWidth`, `offsetHeight`, `scrollHeight`). With no dependency
+      // list this ran after *every* render — including every frame of a pan or zoom — and a single frame with
+      // 33 nodes paid 99 layout reads. Six nodes felt fine; that gap is what the user saw.
+      //
+      // It cannot simply depend on the sizes, because the sizes are what it computes. So it depends on the
+      // things that can change a node's rendered height: which nodes exist, how wide the user has dragged
+      // them, what is being edited, and the base itself. `base` is replaced on every save and every refresh,
+      // which is what makes an edited body get re-measured.
+      const measureKey = (() => {
+        const parts = [base.id];
+        for (const entry of ordered) {
+          parts.push(entry.node.id + ':' + widthOf(widths, nodeWidths, base.id, entry.node.id, entry.node));
+        }
+        parts.push('e' + (edits ? Object.keys(edits).join(',') : ''));
+        return parts.join('|');
+      })();
       React.useLayoutEffect(() => {
         const holder = boxRef.current;
         if (!holder) return;
@@ -1742,7 +1759,10 @@ function estimateBox(node) {
         });
         // Only when something actually moved, or this would re-render forever.
         if (changed || Object.keys(found).length !== Object.keys(sizes).length) setSizes(found);
-      });
+        // `measureKey` and not the sizes: see above. `boxRef` is stable, and `ordered`/`widths`/`edits` are
+        // all folded into the key.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [measureKey]);
       const placed = {};
       for (const item of ordered) placed[item.node.id] = { x: 0, y: 0 };
 
