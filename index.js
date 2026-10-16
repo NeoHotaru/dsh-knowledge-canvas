@@ -32,7 +32,7 @@ import { PREFIX, createHandler } from './lib/routes.js'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { LOG_PATH, describeError, log } from './lib/log.js'
-import { describeArgs, noteFor, ruleFor, workspaceOf } from './lib/inject.js'
+import { describeArgs, noteFor, notesDisabled, ruleFor, workspaceOf } from './lib/inject.js'
 
 /** Cordis plugin name; matches the `id` of this bundle's `cordis.patch.yml` row. */
 export const name = 'dsh-knowledge-tree'
@@ -269,6 +269,12 @@ export function apply(ctx) {
       try {
         const hit = ruleFor(describeArgs([exec]))
         if (!hit) return downstream
+        // The switch for comparing two runs that differ in exactly one thing. Checked per call, so dropping
+        // the sentinel file changes the next call rather than the next boot.
+        if (notesDisabled(workspaceOf(hit.path))) {
+          log('inject: suppressed by the sentinel for ' + hit.path)
+          return downstream
+        }
         const note = noteForRule(hit)
         if (!note) return downstream
         const message = {
