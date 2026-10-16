@@ -41,38 +41,6 @@ export const name = 'dsh-knowledge-tree'
 export const inject = ['tools', 'systemPrompt', 'webServer', 'sessions']
 
 /**
- * Report the shape of the two services the settings page needs, once.
- *
- * Written because guessing service names has already cost this project twice: a wrong \`inject\` entry
- * stalls the plugin outright, and a method that does not exist throws only at the moment it is called,
- * which for a settings page is when a user opens it. One line at startup turns both into something read.
- */
-function probeServices(ctx) {
-  const describe = (label, value) => {
-    if (!value || typeof value !== 'object') {
-      return label + '=' + (value === undefined ? 'undefined' : typeof value)
-    }
-    const names = []
-    for (const key in value) names.push(key)
-    return label + '=[' + names.sort().join(',') + ']'
-  }
-  try {
-    const slots = typeof ctx.get === 'function' ? ctx.get('slots') : undefined
-    log('services: ' + describe('sessions', ctx.sessions) + '  ' + describe('slots', slots))
-    // The first probe used for-in, which sees own enumerable properties only. `get` is on the prototype
-    // and works, so anything that lists sessions is too.
-    const chain = []
-    for (let proto = Object.getPrototypeOf(ctx.sessions); proto && proto !== Object.prototype;
-      proto = Object.getPrototypeOf(proto)) {
-      for (const name of Object.getOwnPropertyNames(proto)) chain.push(name)
-    }
-    log('sessions prototype: [' + [...new Set(chain)].sort().join(',') + ']')
-  } catch (error) {
-    log('FAIL probing services: ' + ((error && error.message) || error))
-  }
-}
-
-/**
  * The instruction that makes the rest of this plugin worth having.
  *
  * Modelled on the one Anthropic's memory tool injects automatically, which is the closest published
@@ -132,15 +100,6 @@ export function apply(ctx) {
     })
   }
 
-  /** Set once the outline provider has been reached, for the same reason. */
-  let probed = false
-
-  /** Set once the session shape has been reported, for the same reason. */
-  let shapeLogged = false
-
-  /** Set once the tools service's surface has been reported, for the same reason. */
-  let probedTools = false
-
   if (!ctx.tools || typeof ctx.tools.register !== 'function') {
     log('FAIL: ctx.tools.register is not available — the tools service is not mounted')
   } else {
@@ -170,71 +129,16 @@ export function apply(ctx) {
     log(`tools done: ${registered}/${TOOLS.length}`)
   }
 
-  // Which method actually dispatches a tool call?
+  // The tools surface used to be printed here, once per boot, because the dispatcher's name had to be
+  // discovered and guessing service members had already cost this project twice.
   //
-  // The plan is to hand knowledge to the model at the moment it reaches for a file, rather than hoping it
-  // remembers to look — the same shape `dsh-read-animation` uses to wrap `admitPromptContent`. That needs the
-  // dispatcher's name, and guessing service members has already cost this project twice (see the `slots`
-  // note above). So: print the surface, once, and read it back from the log.
-  if (ctx.tools && !probedTools) {
-    probedTools = true
-    const surface = new Set()
-    for (let at = ctx.tools; at && at !== Object.prototype; at = Object.getPrototypeOf(at)) {
-      for (const key of Object.getOwnPropertyNames(at)) {
-        if (key === 'constructor') continue
-        let kind = '?'
-        try {
-          kind = typeof ctx.tools[key] === 'function' ? '()' : 'v'
-        } catch {
-          kind = '!'
-        }
-        surface.add(key + kind)
-      }
-    }
-    log('tools surface: ' + [...surface].sort().join(' '))
-
-    // The two that look designed for this are `contentProjectors` and `contentFinalizers`: the probe shows
-    // them as values rather than methods, so they may be lists something can be added to. Print their shape —
-    // and the dispatcher's source — so the next step does not need another restart just to guess.
-    const shapeOf = (value) => {
-      if (value === null || value === undefined) return String(value)
-      if (Array.isArray(value)) {
-        return 'array(' + value.length + ')' + (value.length ? ' of ' + value.map((item) => typeof item).join(',') : '')
-      }
-      return typeof value
-    }
-    for (const key of ['contentProjectors', 'contentFinalizers', 'canonicalResults', 'layers',
-      'deferredContexts', 'concludingExecutions', 'contentFinalizers']) {
-      try {
-        log('tools.' + key + ' = ' + shapeOf(ctx.tools[key]))
-      } catch (error) {
-        log('tools.' + key + ' threw: ' + describeError(error))
-      }
-    }
-    for (const key of ['dispatchToolBody', 'postExecute', 'prepareExecution', 'finishScheduledExecution']) {
-      try {
-        const fn = ctx.tools[key]
-        log('tools.' + key + ' arity=' + (typeof fn === 'function' ? fn.length : 'n/a'))
-        if (typeof fn === 'function') log('  ' + key + ' src: ' + String(fn).replace(/\s+/g, ' ').slice(0, 260))
-      } catch (error) {
-        log('tools.' + key + ' threw: ' + describeError(error))
-      }
-    }
-    try {
-      const projectors = ctx.tools.contentProjectors
-      if (projectors && typeof projectors.forEach === 'function') {
-        projectors.forEach((item, index) => {
-          log('  projector[' + index + '] ' + (item && item.name ? item.name : typeof item)
-            + ' :: ' + String(item && item.project ? item.project : item).replace(/\s+/g, ' ').slice(0, 170))
-        })
-      }
-    } catch (error) {
-      log('projector walk threw: ' + describeError(error))
-    }
-
-    // The surface has been logged, so the logging wrapper has done its job. It is replaced below by one that
-    // attaches notes to results rather than printing shapes into the log.
-  }
+  // It is gone now, and that matters for more than tidiness: reading `ctx.tools.dispatchToolBody`,
+  // `contentProjectors`, `prepareExecution` and the rest made this plugin depend on four *internal* methods
+  // it does not use. `dsh-read-animation`'s COMPATIBILITY.md records what that costs — a plugin wrapping
+  // internals cannot state a version floor, because the signature can change without notice.
+  //
+  // The path this plugin actually uses is `ctx.on('tools/post-execute')`, a published event. What is left
+  // below needs only `ctx.tools.register`.
 
   // Hand the relevant nodes to the model at the moment it reaches for a file.
   //
@@ -433,54 +337,10 @@ export function apply(ctx) {
       // synchronous, which is why lib/outline.js caches instead of reading files here.
       text: ({ agent }) => {
         const cwd = agent?.session?.header?.cwd
-        const value = outlineFor(cwd, sessionIdOf(agent))
-        // Once: what a Session object is actually shaped like. Four guessed names all returned nothing, and
-        // a guess costs a restart to test; this costs one restart in total.
-        if (!shapeLogged) {
-          shapeLogged = true
-          try {
-            const session = agent && agent.session
-            // Anything that looks like a title, wherever it lives. The window has one, so it exists.
-            const titleish = []
-            const scan = (value, label, depth) => {
-              if (!value || typeof value !== 'object' || depth > 2) return
-              for (const key of Object.keys(value)) {
-                if (/title|name|label|summary|subject/i.test(key)) {
-                  const held = value[key]
-                  titleish.push(label + '.' + key + '=' + (typeof held === 'string' ? JSON.stringify(held.slice(0, 40)) : typeof held))
-                }
-              }
-            }
-            scan(session, 'session', 0)
-            scan(session && session.header, 'header', 1)
-            scan(session && session.derived, 'derived', 1)
-            scan(session && session.headerFold, 'headerFold', 1)
-            log('title-ish: ' + (titleish.length ? titleish.join('  ') : 'NONE FOUND'))
-            // The value, not just the key list. "Has an id key" and "has a usable id" are the same line in a
-            // log otherwise, and that ambiguity is what kept this question open across two sessions.
-            const idValue = session && session.header ? session.header.id : undefined
-            log('session id: typeof=' + typeof idValue
-              + ' value=' + JSON.stringify(idValue === undefined ? null : idValue)
-              + ' usable=' + JSON.stringify(sessionIdOf(agent))
-              + ' agent.id=' + JSON.stringify(agent && agent.id !== undefined ? agent.id : null))
-            log('session shape: session=[' + Object.keys(session || {}).join(',') + ']'
-              + ' header=[' + Object.keys((session && session.header) || {}).join(',') + ']'
-              + ' id-found=' + JSON.stringify(sessionIdOf(agent)))
-          } catch (error) {
-            log('FAIL reading the session shape: ' + ((error && error.message) || error))
-          }
-        }
-        // One line ever: whether the provider is reached at all is the difference between
-        // "the registration did not take" and "something downstream drops it".
-        if (!probed) {
-          probed = true
-          log(`outline provider reached: cwd=${cwd ?? '(none)'} chars=${value.length}`)
-        }
-        return value
+        return outlineFor(cwd, sessionIdOf(agent))
       },
     }), 'knowledge-tree: runtime context')
     log('registered the knowledge-tree context')
-    probeServices(ctx)
   } catch (error) {
     log(`FAIL registering the knowledge-tree context: ${describeError(error)}`)
   }
