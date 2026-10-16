@@ -116,7 +116,7 @@ for (const expected of ['tab', 'sidebar.right.pane.tab', 'sidebar.right.pane.tab
 if (client && client.__geometry) {
   const {
     segmentHitsBox, curveHitsBox, linkControlPoint, routeLink, anchorsOf, bestLink, edgeFades,
-    centreOf, edgePoint, BOX_W, BOX_H,
+    centreOf, edgePoint, routeKeyOf, BOX_W, BOX_H,
   } = client.__geometry
 
   // Hover spotlight: with nothing under the pointer nothing fades, and the hovered node's own
@@ -126,6 +126,44 @@ if (client && client.__geometry) {
   }
   if (!edgeFades('a', 'b', 'c')) {
     problems.push('spotlight: an unrelated edge stays lit')
+  }
+
+  // The edge routing is memoised on a string, because it is quadratic in the node count and must not run on
+  // a pan frame — and a memo keyed on the objects would never hit, since `ordered` and `placed` are rebuilt
+  // every render. The entire safety of that memo is this function: **if it omits an input, the edges are
+  // drawn where things used to be, and nothing reports it.**
+  //
+  // So the property to assert is not "the key is stable" but "every input moves it". Change one thing at a
+  // time; each must produce a different string.
+  if (typeof routeKeyOf === 'function') {
+    const two = [
+      { id: 'a', parent: '', x: 0, y: 0, w: 100, h: 40 },
+      { id: 'b', parent: 'a', x: 0, y: 60, w: 100, h: 40 },
+    ]
+    const oneLink = [{ from: 'a', to: 'b' }]
+    const reference = routeKeyOf(two, null, oneLink, [])
+    const changes = [
+      ['a node moves', routeKeyOf([{ ...two[0], x: 1 }, two[1]], null, oneLink, [])],
+      ['a node resizes', routeKeyOf([{ ...two[0], w: 101 }, two[1]], null, oneLink, [])],
+      ['a node is reparented', routeKeyOf([two[0], { ...two[1], parent: '' }], null, oneLink, [])],
+      ['a node is added', routeKeyOf(two.concat([{ id: 'c', parent: '', x: 0, y: 0, w: 9, h: 9 }]), null, oneLink, [])],
+      ['a node loses its position', routeKeyOf([{ ...two[0], x: null }, two[1]], null, oneLink, [])],
+      ['a link is drawn', routeKeyOf(two, null, oneLink.concat([{ from: 'b', to: 'a' }]), [])],
+      ['a link is dropped', routeKeyOf(two, null, [], [])],
+      ['a drag starts', routeKeyOf(two, { from: 'a', x: 5, y: 5 }, oneLink, [])],
+      ['a drag moves', routeKeyOf(two, { from: 'a', x: 6, y: 5 }, oneLink, [])],
+      ['a second drag starts', routeKeyOf(two, { from: 'b', x: 5, y: 5 }, oneLink, [])],
+      ['a link becomes unsaved', routeKeyOf(two, null, oneLink, ['a>b'])],
+    ]
+    for (const [what, value] of changes) {
+      if (value === reference) problems.push('routeKey: ' + what + ' leaves the key unchanged')
+    }
+    // And the other direction: the same inputs must give the same key, or the memo never hits.
+    if (routeKeyOf(two, null, oneLink, []) !== reference) {
+      problems.push('routeKey: the same inputs give a different key')
+    }
+  } else {
+    problems.push('routeKey: __geometry.routeKeyOf is missing, so the routing memo cannot be checked')
   }
   if (edgeFades('a', 'a', 'c') || edgeFades('a', 'c', 'a')) {
     problems.push('spotlight: an edge attached to the hovered node fades')

@@ -849,6 +849,35 @@ function estimateBox(node) {
     }
 
     /**
+     * The value the edge routing is memoised on.
+     *
+     * The routing is quadratic in the node count, so it must not run on a pan frame — and a memo keyed on the
+     * objects it reads would never hit, because `ordered` and `placed` are rebuilt on every render. Hence a
+     * string. The whole safety of that memo is this function: **if it omits an input, the edges are drawn
+     * where things used to be, and nothing reports it.**
+     *
+     * So it is pure and it is exported on `__geometry`, which lets a check assert the property that matters:
+     * change any single input and the key must change.
+     *
+     * @param boxes - one `{ id, parent, x, y, w, h }` per node, in render order. `w`/`h` may be null.
+     * @param drag - the drag in flight, or null.
+     * @param links - `[{ from, to }]`, every drawn link.
+     * @param unsaved - iterable of `from>to` pairs drawn as pending.
+     */
+    function routeKeyOf(boxes, drag, links, unsaved) {
+      const parts = [drag ? 'drag:' + drag.from + ',' + drag.x + ',' + drag.y : 'drag:-'];
+      for (const box of boxes) {
+        parts.push(box.id + '<' + (box.parent || '') + '>'
+          + (box.x === null || box.x === undefined
+            ? 'none'
+            : box.x + ',' + box.y + ',' + box.w + ',' + box.h));
+      }
+      for (const link of links) parts.push(link.from + '>' + link.to);
+      for (const id of unsaved) parts.push('unsaved:' + id);
+      return parts.join('|');
+    }
+
+    /**
      * The points a link may attach to: the middle of each edge.
      *
      * Which one gets used is not a detail. Picking the point where the centre-to-centre line
@@ -2027,9 +2056,20 @@ function estimateBox(node) {
       if (moving && placed[moving.id]) placed[moving.id] = { x: moving.x, y: moving.y };
 
 
-      /** A node's box for geometry: where it sits, and how big it really is. */
+      /**
+       * A node's box for geometry: where it sits, and how big it really is.
+       *
+       * The lookup is a Map built once per render, not `ordered.find`. `ordered` is rebuilt on every render
+       * (`layout(base.nodes)`), so any cache keyed on it would miss every time — but a Map built in the same
+       * render and closed over here is a straight O(n) instead of O(n) per call. `rectOf` is called about
+       * three times per edge from `parentEdges` and again from every link, so the find was quadratic in the
+       * node count, and it ran inside the pan/zoom transform layer: one frame of dragging paid it in full.
+       */
+      const entryById = new Map();
+      for (const entry of ordered) entryById.set(entry.node.id, entry);
+
       const rectOf = (id) => {
-        const placedNode = ordered.find((entry) => entry.node.id === id);
+        const placedNode = entryById.get(id);
         const spot = placed[id];
         if (!spot) return null;
         const size = sizes[id] || { w: BOX_W, h: estimateBox(placedNode ? placedNode.node : {}).h };
@@ -2345,50 +2385,82 @@ function estimateBox(node) {
         };
       }, [onLink, onMove]);
 
-      const parentEdges = [];
-      ordered.forEach((entry) => {
-        const parent = entry.node.parent ? rectOf(entry.node.parent) : null;
-        const self = rectOf(entry.node.id);
-        if (parent && self) {
-          parentEdges.push({
-            fromId: entry.node.parent, from: parent, toId: entry.node.id, to: self,
+      // The routing below is quadratic in the node count: every edge tries all 16 attachment pairs, and each
+      // pair is tested against every other box in the canvas. Measured on this workspace's own bases that came
+      // to about 30 000 operations per render — and it sat inside the pan/zoom transform layer, so a single
+      // frame of dragging paid for all of it. That is what "the canvas gets heavy as the content grows" was.
+      //
+      // A memo over the objects would never hit: `ordered` and `placed` are rebuilt on every render, so a
+      // dependency list of them rebuilds every render too. The key is therefore a value, and it names
+      // everything the routing reads — each node's box, its parent, the links, the drag in flight, and the
+      // unsaved set. A key that misses one of those draws the edges where things used to be, and does it
+      // silently; that list is the whole mechanism, so it is written out rather than inferred.
+      const routeKey = (() => {
+        const boxes = [];
+        for (const entry of ordered) {
+          const box = rectOf(entry.node.id);
+          boxes.push({
+            id: entry.node.id,
+            parent: entry.node.parent || '',
+            x: box ? box.x : null,
+            y: box ? box.y : null,
+            w: box ? box.w : null,
+            h: box ? box.h : null,
           });
         }
-      });
+        return routeKeyOf(boxes, drag, allLinks, unsaved);
+      })();
 
-      // centreOf and edgePoint live with the other pure geometry, so the load check can assert on
-      // them: whether a link starts on the border or a few pixels inside is exactly the kind of bug
-      // that is obvious in a screenshot and invisible in a passing test suite.
-      const linkPaths = allLinks.map((link) => {
-        const from = rectOf(link.from);
-        const to = rectOf(link.to);
-        if (!from || !to) return null;
-        // Every other box in the canvas is a candidate obstacle; routeLink decides which of them
-        // the curve actually has to avoid, working from the curve rather than from the chord.
-        const others = ordered
-          .filter((entry) => entry.node.id !== link.from && entry.node.id !== link.to)
-          .map((entry) => rectOf(entry.node.id))
-          .filter(Boolean);
+      const routed = React.useMemo(() => {
+        const parentEdges = [];
+        ordered.forEach((entry) => {
+          const parent = entry.node.parent ? rectOf(entry.node.parent) : null;
+          const self = rectOf(entry.node.id);
+          if (parent && self) {
+            parentEdges.push({
+              fromId: entry.node.parent, from: parent, toId: entry.node.id, to: self,
+            });
+          }
+        });
 
-        // Try every attachment pair and keep the best drawing.
-        const { start: a, end: b, control, bow } = bestLink(from, to, others);
-        return {
-          from: link.from,
-          to: link.to,
-          d: 'M' + a.x.toFixed(1) + ' ' + a.y.toFixed(1)
-            + ' Q' + control.x.toFixed(1) + ' ' + control.y.toFixed(1)
-            + ' ' + b.x.toFixed(1) + ' ' + b.y.toFixed(1),
-          bowed: bow > 0.5,
-          pending: unsaved.has(link.from + '>' + link.to),
-        };
-      }).filter(Boolean);
+        // centreOf and edgePoint live with the other pure geometry, so the load check can assert on
+        // them: whether a link starts on the border or a few pixels inside is exactly the kind of bug
+        // that is obvious in a screenshot and invisible in a passing test suite.
+        const linkPaths = allLinks.map((link) => {
+          const from = rectOf(link.from);
+          const to = rectOf(link.to);
+          if (!from || !to) return null;
+          // Every other box in the canvas is a candidate obstacle; routeLink decides which of them
+          // the curve actually has to avoid, working from the curve rather than from the chord.
+          const others = ordered
+            .filter((entry) => entry.node.id !== link.from && entry.node.id !== link.to)
+            .map((entry) => rectOf(entry.node.id))
+            .filter(Boolean);
 
-      const band = drag && rectOf(drag.from)
-        ? (() => {
-          const start = edgePoint(rectOf(drag.from), { x: drag.x, y: drag.y });
-          return 'M' + start.x + ' ' + start.y + ' L' + drag.x + ' ' + drag.y;
-        })()
-        : null;
+          // Try every attachment pair and keep the best drawing.
+          const { start: a, end: b, control, bow } = bestLink(from, to, others);
+          return {
+            from: link.from,
+            to: link.to,
+            d: 'M' + a.x.toFixed(1) + ' ' + a.y.toFixed(1)
+              + ' Q' + control.x.toFixed(1) + ' ' + control.y.toFixed(1)
+              + ' ' + b.x.toFixed(1) + ' ' + b.y.toFixed(1),
+            bowed: bow > 0.5,
+            pending: unsaved.has(link.from + '>' + link.to),
+          };
+        }).filter(Boolean);
+
+        const band = drag && rectOf(drag.from)
+          ? (() => {
+            const start = edgePoint(rectOf(drag.from), { x: drag.x, y: drag.y });
+            return 'M' + start.x + ' ' + start.y + ' L' + drag.x + ' ' + drag.y;
+          })()
+          : null;
+        return { parentEdges, linkPaths, band };
+        // routeKey names every input on purpose. Listing the objects as well would rebuild on every render
+        // and defeat the memo — which is the failure this whole block exists to avoid, in the other direction.
+      }, [routeKey]);
+      const { parentEdges, linkPaths, band } = routed;
 
       // The canvas needs a height of its own. `flex: 1` alone does nothing here: the pane gives
       // the tab body no definite height, so `height: 100%` resolves to auto, the flex container
@@ -4488,6 +4560,7 @@ function estimateBox(node) {
         edgeFades,
         centreOf,
         edgePoint,
+        routeKeyOf,
         BOX_W,
         BOX_H,
       },
