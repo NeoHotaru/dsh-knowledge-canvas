@@ -1727,12 +1727,15 @@ function estimateBox(node) {
       //
       // It cannot simply depend on the sizes, because the sizes are what it computes. So it depends on the
       // things that can change a node's rendered height: which nodes exist, how wide the user has dragged
-      // them, what is being edited, and the base itself. `base` is replaced on every save and every refresh,
-      // which is what makes an edited body get re-measured.
+      // them, what is being edited, and **the text itself** — a body that grew has to be re-measured, and the
+      // first version of this key carried `base.id` instead, which does not change when you save. The comment
+      // there claimed the object identity was the signal; the code had the id. The code was the wrong one.
       const measureKey = (() => {
-        const parts = [base.id];
+        const parts = [];
         for (const entry of ordered) {
-          parts.push(entry.node.id + ':' + widthOf(widths, nodeWidths, base.id, entry.node.id, entry.node));
+          const node = entry.node;
+          parts.push(node.id + ':' + widthOf(widths, nodeWidths, base.id, node.id, node)
+            + ':' + (node.title || '').length + ':' + (node.body || '').length);
         }
         parts.push('e' + (edits ? Object.keys(edits).join(',') : ''));
         return parts.join('|');
@@ -2105,8 +2108,30 @@ function estimateBox(node) {
 
       const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 
+      /**
+       * True while the view is moving, and for a moment after it stops.
+       *
+       * The canvas is one `transform: scale(k)` layer and every node in it carries a 9px radius and a 10px
+       * blur shadow, so the theory was that zooming re-rasterised those shadows every frame. The user's
+       * report killed it: **zooming felt fine and panning felt heavy**, and zooming is the one that redraws
+       * while panning is pure compositing. The real cause was event rate, fixed in the pan handler below.
+       *
+       * This is kept, because dropping the shadows and promoting the layer does reduce work while the view is
+       * in motion and costs nothing at rest — but it is a small optimisation resting on no measurement, not
+       * the fix. Do not read it as one.
+       */
+      const [movingView, setMovingView] = React.useState(false);
+      const settle = React.useRef(null);
+      const markViewMoving = React.useCallback(() => {
+        setMovingView(true);
+        if (settle.current) clearTimeout(settle.current);
+        settle.current = setTimeout(() => setMovingView(false), 180);
+      }, []);
+      React.useEffect(() => () => { if (settle.current) clearTimeout(settle.current); }, []);
+
       /** Zoom about one viewport point, so whatever sits under the cursor stays under it. */
       const zoomAt = (factor, viewX, viewY) => {
+        markViewMoving();
         setView((current) => {
           const k = clampZoom(current.k * factor);
           if (k === current.k) return current;
@@ -2154,20 +2179,48 @@ function estimateBox(node) {
       };
 
       React.useEffect(() => {
+        // One React render per animation frame, not one per pointer event.
+        //
+        // This is the fix for what the user reported, and the shape of it is worth keeping: panning felt
+        // heavy while zooming felt fine, which rules out the rasterisation theory (zoom is the one that
+        // redraws every node's shadow, panning is pure compositing). The difference is event rate — a wheel
+        // is throttled by the browser, a high-report-rate mouse emits `pointermove` well over a hundred times
+        // a second, and each one was its own `setView`. So the cost scaled with node count (each render is
+        // more expensive) and not with content length, and making each render cheaper — the routing memo, the
+        // rect lookup, the size measurement — could not fix it, because the problem was the number of renders.
+        //
+        // The latest pointer position wins; intermediate ones are dropped, which is what a frame is for.
+        let queued = null;
+        let frame = 0;
+        const flush = () => {
+          frame = 0;
+          const latest = queued;
+          queued = null;
+          if (!latest || !pan.current) return;
+          setView({
+            k: latest.view.k,
+            x: latest.view.x + (latest.clientX - latest.startX),
+            y: latest.view.y + (latest.clientY - latest.startY),
+          });
+        };
         const move = (event) => {
           const current = pan.current;
           if (!current) return;
-          setView({
-            k: current.view.k,
-            x: current.view.x + (event.clientX - current.startX),
-            y: current.view.y + (event.clientY - current.startY),
-          });
+          markViewMoving();
+          queued = { view: current.view, startX: current.startX, startY: current.startY,
+            clientX: event.clientX, clientY: event.clientY };
+          if (!frame) frame = requestAnimationFrame(flush);
         };
-        const up = () => { pan.current = null; };
+        const up = () => {
+          pan.current = null;
+          queued = null;
+          if (frame) { cancelAnimationFrame(frame); frame = 0; }
+        };
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
         window.addEventListener('pointercancel', up);
         return () => {
+          if (frame) cancelAnimationFrame(frame);
           window.removeEventListener('pointermove', move);
           window.removeEventListener('pointerup', up);
           window.removeEventListener('pointercancel', up);
