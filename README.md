@@ -1,4 +1,7 @@
-# dsh-knowledge-tree
+# dsh-knowledge-canvas
+
+> 包名是 `dsh-knowledge-canvas`（`dsh-knowledge-tree` 在 npm 上已被别人占用）。
+> 本机那个目录仍叫 `dsh-knowledge-tree` —— 它只是 `link:` 的目标路径，不是包名。
 
 DeepSeek Harness 的树状知识库插件，支持会话选择、大纲注入、节点编辑与修改记录。
 
@@ -21,8 +24,9 @@ DeepSeek Harness 的树状知识库插件，支持会话选择、大纲注入、
 ## 检查与重载
 
 ```powershell
-cd D:\DeepSeekHarness\dsh-knowledge-tree
-npm run check:all
+node check-client-loads.mjs   # 以及同目录下其余八条 check-*.mjs
+node test-store.mjs           # 313 项断言
+npm run check:all             # 上面两件一起
 ```
 
 修改 `index.js` / `lib/*` 后必须重启 Harness；修改 `client.js` 后刷新页面。
