@@ -29,8 +29,10 @@ import { needsRefresh, outlineFor, refresh } from './lib/outline.js'
 import { sessionIdOf } from './lib/session.js'
 import { seedIfFirstTime } from './lib/seed.js'
 import { PREFIX, createHandler } from './lib/routes.js'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { LOG_PATH, describeError, log } from './lib/log.js'
-import { missingMethods, wrapServiceMethod } from './lib/patch.js'
+import { describeArgs, noteFor, ruleFor, workspaceOf } from './lib/inject.js'
 
 /** Cordis plugin name; matches the `id` of this bundle's `cordis.patch.yml` row. */
 export const name = 'dsh-knowledge-tree'
@@ -230,26 +232,111 @@ export function apply(ctx) {
       log('projector walk threw: ' + describeError(error))
     }
 
-    // Their shapes are still unknown and the source is hidden behind the cordis proxy, so the only way to
-    // learn the arguments is to wrap the candidates and print what arrives. A logging wrapper is harmless:
-    // it delegates, so behaviour is unchanged whether or not the guess is right.
-    for (const name of ['dispatchToolBody', 'postExecute']) {
-      if (missingMethods(ctx.tools, [name]).length) {
-        log('PROBE skip ' + name + ': not a method on the service')
-        continue
-      }
-      const patch = wrapServiceMethod(ctx.tools, name, (inner) => function (...args) {
-        log('PROBE ' + name + '(' + args.map((item) => shapeOf(item)).join(', ') + ')')
-        if (args[0] && typeof args[0] === 'object') {
-          try {
-            log('  arg0 keys: ' + Object.keys(args[0]).join(','))
-          } catch { /* ignore */ }
-        }
-        return inner.apply(this, args)
-      })
-      log('PROBE wrap ' + name + ': installed=' + patch.installed)
-    }
+    // The surface has been logged, so the logging wrapper has done its job. It is replaced below by one that
+    // attaches notes to results rather than printing shapes into the log.
   }
+
+  // Hand the relevant nodes to the model at the moment it reaches for a file.
+  //
+  // Not a reminder. The outline and the protocol are already in the prompt, and on 2026-10-15 that was
+  // demonstrably not enough — the author of this plugin edited `lib/state.js`, said "refresh will do", and the
+  // node saying otherwise was in context the whole time. A reminder competes with everything else in a long
+  // context; this arrives attached to the call that is about to touch the file.
+  //
+  // ### Why the event and not a wrapped method
+  //
+  // The first version wrapped `ctx.tools.dispatchToolBody` and appended text to its return value. It fired —
+  // the log said so — and nothing reached the model: `dispatchScheduledExecution` runs every result through
+  // `normalizeDispatchResult` and `markCanonical`, which validate results against a `WeakMap` keyed by the
+  // dispatch that produced them, so a decorated copy is not the canonical one.
+  //
+  // Reading the bundle (it is not compressed, so this needs no restart) found the supported path:
+  //
+  //     for (const context of result.additionalContexts ?? []) acceptContext(context)
+  //
+  // and DSH's own PostToolUse bridge uses it — `ctx.on('tools/post-execute', …)`, returning
+  // `{ ...downstream, additionalContexts: [message, …] }`. An entry is a user message, built by
+  // `createUserMessage`, which a `link:`ed plugin cannot import, so the shape is spelled out here.
+  const noteCache = new Map()
+  const installInjection = () => {
+    if (typeof ctx.on !== 'function') {
+      log('inject: ctx.on is not available; no action-time notes')
+      return
+    }
+    ctx.on('tools/post-execute', async (exec, result, next) => {
+      // Let the rest of the chain run first: the note belongs after whatever the tool itself reported.
+      const downstream = typeof next === 'function' ? await next() : result
+      try {
+        const hit = ruleFor(describeArgs([exec]))
+        if (!hit) return downstream
+        const note = noteForRule(hit)
+        if (!note) return downstream
+        const message = {
+          id: 'kb-note-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+          role: 'user',
+          content: [{ type: 'text', text: note }],
+          source: { kind: 'dsh-knowledge-tree' },
+        }
+        log('inject: attached ' + hit.rule.nodes.join('+') + ' to ' + exec.name + ' of ' + hit.path)
+        return {
+          ...downstream,
+          additionalContexts: [message, ...(downstream && downstream.additionalContexts) || []],
+        }
+      } catch (error) {
+        // A failure here must never break the tool call it was decorating.
+        log('inject: could not attach the note: ' + describeError(error))
+        return downstream
+      }
+    })
+    log('inject: tools/post-execute registered')
+  }
+
+  /** The node texts for a rule, read once per workspace and cached briefly. */
+  const noteForRule = (hit) => {
+    const workspace = workspaceOf(hit.path)
+    if (!workspace) return ''
+    let cache = noteCache.get(workspace)
+    if (!cache || Date.now() - cache.at > 5000) {
+      cache = { at: Date.now(), texts: readNodeTexts(workspace) }
+      noteCache.set(workspace, cache)
+    }
+    return noteFor(hit.rule, cache.texts)
+  }
+
+  /**
+   * Title and first line of the named nodes, from every base in the workspace.
+   *
+   * Deliberately short. The note is read in passing, next to a tool result — a full body would be a wall of
+   * text in the one place that has to stay legible, and the model can call `knowledge_read` for the rest.
+   */
+  function readNodeTexts(workspace) {
+    const texts = {}
+    const dir = join(workspace, '.dsh-knowledge')
+    let names = []
+    try {
+      // The same two files `lib/store.js` excludes: they are settings, not bases.
+      names = readdirSync(dir).filter((name) => name.endsWith('.json')
+        && name !== 'selection.json' && name !== 'layout.json')
+    } catch {
+      return texts
+    }
+    for (const name of names) {
+      try {
+        const base = JSON.parse(readFileSync(join(dir, name), 'utf8'))
+        for (const node of base.nodes || []) {
+          if (!node || typeof node.id !== 'string') continue
+          const body = String(node.body || '').split('\n')
+            .map((line) => line.trim())
+            .find((line) => line.length > 0 && !line.startsWith('#')) || ''
+          texts[node.id] = String(node.title || '')
+            + (body ? ' —— ' + body.slice(0, 120) : '')
+        }
+      } catch { /* one unreadable base must not stop the others */ }
+    }
+    return texts
+  }
+
+  installInjection()
 
   // The panel's write path. Registered before the prompt wiring, so a failure there cannot
   // take saving down with it — the two are independent.
