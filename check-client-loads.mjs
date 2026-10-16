@@ -116,7 +116,7 @@ for (const expected of ['tab', 'sidebar.right.pane.tab', 'sidebar.right.pane.tab
 if (client && client.__geometry) {
   const {
     segmentHitsBox, curveHitsBox, linkControlPoint, routeLink, anchorsOf, bestLink, edgeFades,
-    centreOf, edgePoint, routeKeyOf, BOX_W, BOX_H,
+    edgeStroke, centreOf, edgePoint, routeKeyOf, BOX_W, BOX_H,
   } = client.__geometry
 
   // Hover spotlight: with nothing under the pointer nothing fades, and the hovered node's own
@@ -126,6 +126,37 @@ if (client && client.__geometry) {
   }
   if (!edgeFades('a', 'b', 'c')) {
     problems.push('spotlight: an unrelated edge stays lit')
+  }
+
+  // Zoomed out, the edges are the structure, and a constant translucent grey turned them into a smudge: at 31%
+  // they were a third of a pixel wide at 42% opacity, which reads as cards scattered on a background rather
+  // than as a graph. So the weight is fixed in screen pixels (`vector-effect`) and the contrast rises as the
+  // canvas shrinks. What must hold is the shape of that curve — a step or an inversion would look like a bug
+  // on screen, and neither is visible in a screenshot.
+  if (typeof edgeStroke === 'function') {
+    const alpha = (k) => Number(/rgba\(128,128,128,([\d.]+)\)/.exec(edgeStroke(k))?.[1])
+    const far = alpha(0.12)
+    const near = alpha(1)
+    const middle = alpha(0.34)
+    if (!(near > 0 && near < 1)) problems.push('edgeStroke: near zoom is not a usable alpha: ' + edgeStroke(1))
+    if (!(far > 0 && far < 1)) problems.push('edgeStroke: far zoom is not a usable alpha: ' + edgeStroke(0.12))
+    if (!(far > near)) problems.push('edgeStroke: zooming out does not increase contrast')
+    if (!(middle > near && middle < far)) problems.push('edgeStroke: the midpoint is not between the ends')
+    // Monotone across the whole range: the colour must never get lighter as the canvas gets smaller.
+    let previous = alpha(3)
+    for (let k = 2.9; k >= 0.05; k -= 0.05) {
+      const current = alpha(k)
+      if (current < previous - 1e-9) {
+        problems.push('edgeStroke: contrast drops while zooming out, at k=' + k.toFixed(2))
+        break
+      }
+      previous = current
+    }
+    // And it stays put past the ends of the range rather than drifting.
+    if (alpha(0.01) !== far) problems.push('edgeStroke: below the zoom floor drifts past the far end')
+    if (alpha(9) !== near) problems.push('edgeStroke: above the detail threshold drifts past the near end')
+  } else {
+    problems.push('edgeStroke: missing from __geometry, so the edge contrast curve cannot be checked')
   }
 
   // The edge routing is memoised on a string, because it is quadratic in the node count and must not run on

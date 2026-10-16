@@ -662,6 +662,25 @@ window.__ModuleLoader__.load({
      * The host has the same function for the same reason — it is the input to the horizontal step between
      * siblings — but the client half cannot import it, so it exists here too.
      */
+    /**
+     * The box a node occupies when its body is not drawn.
+     *
+     * Below `DETAIL_ZOOM` a node renders its title only, so the box on screen is shorter than the one the body
+     * used to need — and the geometry has to know that, or every edge arrives at the edge of a box that is no
+     * longer there. The user's description of the result was exact: the lines look cut in half.
+     *
+     * This is *not* the compact mode that was reverted. That one changed the width and the layout to make a
+     * large base fit; this one only keeps the edges attached to what is actually drawn, and the width stays
+     * whatever the reader set.
+     */
+    function oneLineBox(node) {
+      const full = estimateBox(node)
+      const title = String((node && node.title) || '')
+      const perLine = Math.max(8, (full.w - BOX_PADDING) / GLYPH_W)
+      const titleLines = Math.ceil((title.length / perLine) + 1)
+      return { w: full.w, h: Math.max(BOX_H, Math.round(9 + titleLines * 17 + 9 + 15)) }
+    }
+
     function boxOf(widths, nodeWidths, baseId, nodeId, node) {
       // A bare number is what this field used to hold: a width. Reading it as one keeps existing files
       // working, which is why the store does the same.
@@ -723,6 +742,23 @@ const GLYPH_W = 14.5;
 
 /** Padding either side of the text, plus the room the byline needs. */
 const BOX_PADDING = 26;
+
+/**
+ * The zoom range, and the zoom below which nodes stop drawing their bodies.
+ *
+ * `MIN_ZOOM` is 0.12 rather than the 0.4 it started at. That floor was chosen for reading, and the reason to
+ * zoom out is not reading — it is seeing the shape of a large base in order to reorganise it. A
+ * thirty-three-node tree needs roughly 15% to fit, so at 40% the reader could never see more than three or
+ * four nodes at once, and the "fit" button was clamped by the same floor.
+ *
+ * Below `DETAIL_ZOOM` a node draws its title and skips the body, which is illegible at that scale anyway.
+ *
+ * Module scope, not inside `Tree`, because `edgeStroke` needs them too and it lives up here with the rest of
+ * the pure geometry — which is also what makes it checkable from a Node script.
+ */
+const MIN_ZOOM = 0.12;
+const MAX_ZOOM = 2.6;
+const DETAIL_ZOOM = 0.55;
 
 /**
  * The width and height a node wants, from its text alone.
@@ -844,6 +880,30 @@ function estimateBox(node) {
      * own edges looks like "the highlight did not work" and gives no clue which comparison is
      * wrong. With nothing under the pointer every edge stays lit.
      */
+    /**
+     * The colour of an edge at a given zoom, and why it is not a constant.
+     *
+     * The edges were `rgba(128,128,128,0.42)` at `1.1` units, inside a `transform: scale(k)` layer — so at 31%
+     * they were a third of a pixel wide at 42% opacity, and the antialiasing turned that into a pale smudge.
+     * The user's description of the result was exact: it reads as cards scattered on a background rather than
+     * as a graph. That is backwards, because zooming out is *for* seeing the structure, and the lines are the
+     * structure.
+     *
+     * So the weight is fixed in screen pixels (`vector-effect: non-scaling-stroke`, which does this natively
+     * rather than by dividing by `k` by hand) and the contrast rises as the canvas shrinks — smoothly, because
+     * a step at the threshold would be a visible pop at exactly the moment the reader is looking for structure.
+     *
+     * @param k - the canvas scale.
+     * @returns a CSS colour, one of a continuous family between the two extremes.
+     */
+    function edgeStroke(k) {
+      const FAR = 0.78         // at or below MIN_ZOOM: the lines are the subject
+      const NEAR = 0.42        // at or above DETAIL_ZOOM: the bodies are the subject
+      const span = DETAIL_ZOOM - MIN_ZOOM
+      const t = span > 0 ? Math.min(1, Math.max(0, (DETAIL_ZOOM - k) / span)) : 0
+      return 'rgba(128,128,128,' + (NEAR + (FAR - NEAR) * t).toFixed(3) + ')'
+    }
+
     function edgeFades(spotlight, fromId, toId) {
       return spotlight !== null && spotlight !== fromId && spotlight !== toId;
     }
@@ -1667,6 +1727,17 @@ function estimateBox(node) {
 
       const [view, setView] = React.useState({ k: 1, x: 0, y: 0 });
 
+      /**
+       * Whether nodes are drawn without their bodies.
+       *
+       * A ref rather than reading `view` inside `rectOf`, because `rectOf` is called by code that runs before
+       * `view` is declared — the focus-and-centre effect — and a block-scoped `const` read that early is a
+       * throw, not a warning. Published immediately below, in the same render, because the layout reads it and
+       * the layout runs before the zoom helpers do.
+       */
+      const detailRef = React.useRef(true);
+      detailRef.current = view.k >= DETAIL_ZOOM;
+
       // The edge drag. Movement is divided by the zoom, because the width is in canvas units: at 50% a
       // 100px drag is a 200px box, and forgetting that is the difference between the edge tracking the
       // pointer and running away from it.
@@ -1802,6 +1873,9 @@ function estimateBox(node) {
 
       const sizeOf = (id) => {
         const item = entryById.get(id);
+        // Without a body drawn, the box is one line — and the geometry has to agree with what is on screen, or
+        // every edge arrives at the edge of a box that is no longer there.
+        if (!detailRef.current) return oneLineBox(item ? item.node : {});
         const box = boxOf(widths, nodeWidths, base.id, id, item ? item.node : undefined);
         if (Number.isFinite(box.h)) return { w: box.w, h: box.h };
         const found = sizes[id];
@@ -2119,7 +2193,10 @@ function estimateBox(node) {
         const placedNode = entryById.get(id);
         const spot = placed[id];
         if (!spot) return null;
-        const size = sizes[id] || { w: BOX_W, h: estimateBox(placedNode ? placedNode.node : {}).h };
+        // Same rule as `sizeOf`: the box the geometry uses is the box that is drawn.
+        const size = detailRef.current
+          ? (sizes[id] || { w: BOX_W, h: estimateBox(placedNode ? placedNode.node : {}).h })
+          : oneLineBox(placedNode ? placedNode.node : {});
         return { x: spot.x, y: spot.y, w: size.w, h: size.h };
       };
 
@@ -2127,21 +2204,8 @@ function estimateBox(node) {
 
       // The canvas: k scales, x/y translate, origin at the top-left so the maths stays simple.
       // A local point (lx, ly) lands at viewport (x + k*lx, y + k*ly).
-      // 0.12 rather than 0.4. The floor was set for reading, and the reason to zoom out is not reading — it is
-      // seeing the shape of a large base so it can be reorganised. A thirty-three-node tree needs about 15% to
-      // fit, and at 40% the user could only ever see three or four nodes at once.
-      const MIN_ZOOM = 0.12;
-      const MAX_ZOOM = 2.6;
-
-      /**
-       * Below this zoom, nodes draw their title and nothing else.
-       *
-       * At small scales the bodies are illegible anyway, so drawing them costs paint and buys nothing — and
-       * this is the same trade the user asked for from the other side: they want to zoom out to see the
-       * layout, and the layout is exactly what is left when the text goes. It also makes the zoomed-out view
-       * cheap, which is where a large base is most likely to be judged.
-       */
-      const DETAIL_ZOOM = 0.55;
+      // MIN_ZOOM / MAX_ZOOM / DETAIL_ZOOM live at module scope — see their comment there, and `edgeStroke`,
+      // which needs the same numbers to know how far out the canvas is.
 
       const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 
@@ -2921,8 +2985,11 @@ function estimateBox(node) {
                 + ' Q' + route.control.x.toFixed(1) + ' ' + route.control.y.toFixed(1)
                 + ' ' + route.end.x.toFixed(1) + ' ' + route.end.y.toFixed(1),
               fill: 'none',
-              stroke: 'rgba(128,128,128,0.42)',
+              stroke: edgeStroke(view.k),
               strokeWidth: 1.1,
+              // Screen pixels, not canvas units. Without this the stroke is scaled with everything else and a
+              // zoomed-out canvas draws hairline edges — see edgeStroke.
+              vectorEffect: 'non-scaling-stroke',
               'data-kb-edge': 'true',
               'data-dim': away ? 'true' : undefined,
             });
@@ -2931,8 +2998,11 @@ function estimateBox(node) {
             key: 'l' + index,
             d: path.d,
             fill: 'none',
+            // The links keep their own colour — they are the reader's own associations, not the tree — but they
+            // need the same screen-pixel weight, or at 31% the dashed amber is a dotted ghost.
             stroke: '#c9761b',
             strokeWidth: 1.4,
+            vectorEffect: 'non-scaling-stroke',
             strokeDasharray: path.pending ? '7 4' : '4 3',
             strokeLinejoin: 'round',
             'data-kb-edge': 'true',
@@ -2943,6 +3013,7 @@ function estimateBox(node) {
             fill: 'none',
             stroke: '#c9761b',
             strokeWidth: 1.6,
+            vectorEffect: 'non-scaling-stroke',
             strokeDasharray: '3 3',
           }) : null,
         ),
@@ -2991,7 +3062,10 @@ function estimateBox(node) {
             isArmed: armed === entry.node.id,
             liveWidth: resizing && resizing.id === entry.node.id ? resizing.width : null,
             liveHeight: resizing && resizing.id === entry.node.id ? resizing.height : null,
-            boxHeight: boxOf(widths, nodeWidths, base.id, entry.node.id).h,
+            // The same function the geometry uses, so the box that is drawn and the box the edges attach to
+            // cannot disagree. They did: below `DETAIL_ZOOM` the body is not drawn, and the height came from
+            // here while the edges came from `rectOf` — so at 31% the lines ended in mid-air.
+            boxHeight: sizeOf(entry.node.id).h,
             // Three answers. A session's own label, "你" when the panel wrote it and said so, and nothing
             // when the node predates the field — the absence is not worth a word on every old node, and
             // saying "你" for it would be a claim the panel cannot support.
@@ -4699,6 +4773,7 @@ function estimateBox(node) {
         anchorsOf,
         bestLink,
         edgeFades,
+        edgeStroke,
         centreOf,
         edgePoint,
         routeKeyOf,
