@@ -1,12 +1,12 @@
 # dsh-knowledge-canvas
 
-A tree-shaped knowledge base for DeepSeek Harness: a knowledge base you can edit yourself, with tools the model reads and writes.
+A knowledge base for DeepSeek Harness that the model retrieves from **by judgement, not by similarity**.
 
 ## The problem
 
 **You explain something, and the next conversation still does not know it — or worse, it thinks it does, and the note is stale.**
 
-This is not a context-window problem. Measured in this workspace:
+This is not a context-window problem. Measured in one workspace:
 
 ```
 $ node report-kb-use.mjs
@@ -16,54 +16,57 @@ $ node report-kb-use.mjs
   ⚠ wrote before reading: nothing was read before the first write
 ```
 
-**Thirteen writes, one read** — and that one read was a different base. The knowledge was **recorded** and never **used**. Recording is free: the model writes a note in passing. Using it is the hard part, because using it means first knowing it exists, and then knowing which of it still holds.
+**Thirteen writes, one read** — and that one read was a different base. The knowledge was **recorded** and never **used**. Recording is free: a model writes a note in passing. Using it is the hard part, because using it means first knowing the note exists, and then knowing which notes still hold.
 
-So this plugin does not build better memory. It does two other things:
+## What makes this different
 
-1. **It makes the knowledge a file you can edit** — not something only the model maintains while you watch
-2. **It tells the model when to come and look** — every node ends with a line naming when it applies (see below)
+Not a note app with a search box. Four decisions, and everything else follows from them.
 
-## What it is
+### 1. A trigger line instead of a vector index
+
+The **last line** of every node's body says when the node applies:
 
 ```
-<workspace>/.dsh-knowledge/<base>.json     one base is one tree
+When to recall: <the situation this node is for>
 ```
 
-- **A panel on the right**: the tree drawn on a canvas you can pan and zoom; drag nodes, draw links, edit bodies
-- **Tools for the model**: read, write, link — every change carries an `[added]` / `[modified]` / `[retired]` marker for you to review
-- **Per-session selection**: which bases a conversation uses, without changing the workspace default
+That one line — and only that line — goes into the system prompt. So:
 
-## Features
+- **no embeddings, no vector store, no similarity threshold.** Retrieval is the model deciding, and what it decides on is a sentence a human wrote
+- **a node is only findable if its author said when.** That is the whole bet: the hard part of a knowledge base is not storing, it is being *consulted*, and being consulted is a property of how the note is written
+- **a node without one is marked.** In the index it shows as `（无触发器）` — the index itself is Chinese, since every other line the model reads from this plugin is — and the write tool says so the moment you write it, because a base full of unfindable nodes looks exactly like a healthy one
+
+### 2. The index is a tree, not a list of chunks
+
+Parent and child are information — "this belongs under that". The index is rendered in hierarchy, so the model reads a structure rather than a pile of fragments. A base that is all peers is a fine base; a base where nothing is under anything is usually a mistake.
+
+### 3. Review markers survive every mode
+
+Every change a model makes carries `[added]` / `[modified]` / `[retired]` until you review it. In **full-text** injection too — which is the version most likely to drop them, and did, until a test session noticed it could no longer tell which paragraphs were unreviewed.
+
+### 4. It tells you whether it worked
+
+`report-kb-use.mjs` reads the plugin's `activity.log` and answers: in this session, how many times was a base read, how many times written, and were anything read *before* the first write. That is where the number in "The problem" came from — and it is the reason this plugin does not claim to improve anything it has not measured.
+
+## The mechanics
 
 | | |
 |---|---|
-| Canvas | Nodes laid out as a tree, pan and zoom; drag a node and its position is remembered |
-| Nodes | Title + body (markdown); width follows the content, and you can set it yourself |
-| Links | Right-drag from one node to another to record an association |
-| Search | By title or body; the canvas centres on a hit |
-| Locate | Jump to a node by id (someone says `o14` in chat — you can point at it on screen) |
-| Injection | An index by default (title + trigger line); each base can opt into **full text** |
-| Markers | Nodes the model changed carry a marker until you review them |
+| **Trigger line** | The last line of a body; extracted into the index. The lint above marks it missing |
+| **Freshness** | Every base's heading carries its node count and newest stamp, and every write reports its own timestamp — so "my write is not in the index yet" is answerable instead of guessed (guessing wrong means writing it twice) |
+| **Two injection modes** | An index by default; any base can opt into **full text**. Each base decides, and the mode is per base, not global |
+| **Scope** | Which bases a conversation uses: workspace default, or a per-session override |
+| **Off means off** | Switching a base off means the model can neither read nor write it — not merely "it stays out of the prompt" |
+| **Plain files** | One base is one JSON file under `<workspace>/.dsh-knowledge/`. Grep it, diff it, commit it, copy it |
+| **Seeded tutorial** | The first run in a workspace creates a six-node base explaining all of the above, switched on. Delete it whenever |
 
-## The trigger line
+## The panel
 
-The **last line** of a node's body is written as:
-
-```
-When to recall: <the situation this node applies to>
-```
-
-That line is extracted into the index in the system prompt, so the model knows **when to come and read the node** instead of carrying every body in context. It is the main agreement this plugin makes with the context budget.
+A canvas on the right: nodes laid out as a tree, pan and zoom, drag to move, right-drag to link, per-node colour and width. Search by title or body, and jump to a node by id — so when a conversation mentions `o14`, you can point at it on screen.
 
 ## Install
 
 **npm**: the package is `dsh-knowledge-canvas`. Type it into DSH's "add plugin" dialog.
-
-**The first run seeds a tutorial base.** If the workspace has no `.dsh-knowledge/` at all, this plugin
-creates one containing `welcome.json` — six nodes covering what a base is, how to read and edit one, what is
-worth writing down, and a worked example of a well-written node. It is switched on, so the model reads it
-too. It is also just a base: delete it whenever you like. (Delete the whole `.dsh-knowledge/` directory to
-get the defaults back; the seed only runs when that directory is absent.)
 
 **From source**:
 
@@ -89,12 +92,10 @@ knowledge_select           switch a base on or off (for this session, or the def
 knowledge_remove_base      move a base out (to .removed/, recoverable)
 ```
 
-**Switching a base off means the model can neither read nor write it** — not merely "it stays out of the prompt". (The panel can still edit it: that is you, on a different path.)
-
 ## Development
 
 ```sh
-npm run check:all      # 9 checks + 313 assertions
+npm run check:all      # 9 checks + 326 assertions
 ```
 
 Editing `index.js` / `lib/*` needs a **Harness restart** (the host half is loaded once at process start);
