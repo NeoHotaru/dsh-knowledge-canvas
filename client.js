@@ -3314,27 +3314,98 @@ function estimateBox(node) {
                 },
               }, '关闭'),
             ),
+            // The version on disk, then every version kept. The card used to list times and sessions only,
+            // because that was all the store kept — a local git with commit dates and no contents. It keeps
+            // the contents now, so this shows them.
+            h('div', {
+              style: { paddingBottom: 7, marginBottom: 7, borderBottom: '1px solid ' + HAIRLINE },
+            },
+              h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
+                h('span', { style: { fontWeight: 600, fontSize: 11.5 } }, '当前'),
+                h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, shortWhen(item.node.at)),
+              ),
+              h('div', { style: { fontWeight: 600, marginBottom: 2 } }, item.node.title || historyFor.id),
+              h(VersionBody, { text: item.node.body }),
+            ),
             entries.length === 0
-              ? h('div', { style: { opacity: 0.55 } }, '这条没有记录（写在加历史之前）。')
+              ? h('div', { style: { opacity: 0.55 } }, '没有更早的版本（写在加历史之前）。')
               : entries.map((entry, index) => h('div', {
                 key: index,
                 style: {
-                  display: 'flex', gap: 7, alignItems: 'baseline',
-                  paddingTop: index ? 3 : 0, opacity: index === 0 ? 1 : 0.65,
+                  paddingTop: index ? 7 : 0,
+                  marginTop: index ? 7 : 0,
+                  borderTop: index ? '1px solid ' + HAIRLINE : undefined,
+                  // Older versions fade rather than disappear: the newest kept version is the one being
+                  // compared against the present, and it should not read as less real than the rest.
+                  opacity: index === 0 ? 1 : 0.72,
                 },
               },
-                h('span', {
-                  style: { fontVariantNumeric: 'tabular-nums', opacity: 0.7, minWidth: 74 },
-                }, shortWhen(entry.at)),
-                h('span', null,
-                  entry.by
-                    ? ((names && names[entry.by]) || '一个会话')
-                    : '你'),
-                index === 0 ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '最新') : null,
+                h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
+                  h('span', {
+                    style: { fontVariantNumeric: 'tabular-nums', opacity: 0.7 },
+                  }, shortWhen(entry.at)),
+                  h('span', { style: { opacity: 0.7 } },
+                    entry.by ? ((names && names[entry.by]) || '一个会话') : '你'),
+                  index === 0 ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '上一个版本') : null,
+                ),
+                // Entries written before the store kept contents have neither field. Saying so is the honest
+                // option; showing an empty body would read as "it was blank", which is a different fact.
+                entry.title === undefined && entry.body === undefined
+                  ? h('div', { style: { opacity: 0.5, fontStyle: 'italic' } }, '这一版没有留下内容（写在存内容之前）。')
+                  : h(React.Fragment, null,
+                    entry.title ? h('div', { style: { fontWeight: 600, marginBottom: 2 } }, entry.title) : null,
+                    h(VersionBody, { text: entry.body }),
+                  ),
               )),
           );
         })() : null,
         ),
+      );
+    }
+
+    /**
+     * One version's body inside the history card.
+     *
+     * Folded rather than truncated. `HISTORY_LIMIT` is ten, and ten full bodies printed flat would make the
+     * card unreadable and its scroll useless — but the reason to keep the bodies at all is to read them, so
+     * the rest is one click away rather than cut off. A body with no newlines is long rather than tall, so the
+     * fold is by line count and the clamp is by height.
+     */
+    function VersionBody({ text }) {
+      const [open, setOpen] = React.useState(false);
+      const body = typeof text === 'string' ? text : '';
+      if (!body.trim()) {
+        return h('div', { style: { opacity: 0.45, fontStyle: 'italic' } }, '（这一版没有正文）');
+      }
+      const lines = body.split('\n');
+      const folded = !open && (lines.length > 6 || body.length > 320);
+      return h('div', null,
+        h('div', {
+          style: {
+            whiteSpace: 'pre-wrap', overflowWrap: 'anywhere',
+            maxHeight: folded ? 74 : undefined, overflow: 'hidden',
+            // Fades at the cut rather than ending mid-glyph, so "there is more" reads as a fact of the layout
+            // and not as a rendering accident.
+            maskImage: folded ? 'linear-gradient(to bottom, #000 62%, transparent)' : undefined,
+            WebkitMaskImage: folded ? 'linear-gradient(to bottom, #000 62%, transparent)' : undefined,
+          },
+        }, body),
+        folded ? h('button', {
+          type: 'button',
+          onClick: () => setOpen(true),
+          style: {
+            marginTop: 2, padding: 0, border: 0, background: 'transparent', color: 'inherit',
+            font: 'inherit', fontSize: 10.5, opacity: 0.6, cursor: 'pointer', textDecoration: 'underline',
+          },
+        }, '展开全文（' + lines.length + ' 行）') : null,
+        open && (lines.length > 6 || body.length > 320) ? h('button', {
+          type: 'button',
+          onClick: () => setOpen(false),
+          style: {
+            marginTop: 2, padding: 0, border: 0, background: 'transparent', color: 'inherit',
+            font: 'inherit', fontSize: 10.5, opacity: 0.6, cursor: 'pointer', textDecoration: 'underline',
+          },
+        }, '收起') : null,
       );
     }
 

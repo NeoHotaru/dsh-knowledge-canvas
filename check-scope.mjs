@@ -73,10 +73,26 @@ function localNamesOf(component) {
     if (word !== 'function' && word !== component.name) names.add(word)
   }
   // Locally declared bindings anywhere inside the component.
+  //
+  // Destructuring counts, and that is not a detail: every `useState` in this file is `const [a, setA] = ...`,
+  // so a pattern that only matched `const NAME` could not see a single piece of component state. That is how
+  // `VersionBody`'s `open` was reported as undeclared while it sat declared one line above — and `open` is
+  // also a Body-scoped name, so the false positive looked exactly like the real failure this file exists to
+  // catch. A check that cannot see the most common declaration in the file will keep crying wolf, and the
+  // usual response to a check that cries wolf is to stop reading it.
   for (let i = component.line; i < lines.length; i += 1) {
     const next = components.find((entry) => entry.line === i + 1)
     if (next) break
-    for (const match of lines[i].matchAll(/(?:const|let|var|function)\s+([A-Za-z_$][A-Za-z0-9_$]*)/g)) {
+    for (const match of lines[i].matchAll(/(?:const|let|var|function)\s+([^=;]+?)\s*=/g)) {
+      for (const name of match[1].matchAll(/[A-Za-z_$][A-Za-z0-9_$]*/g)) {
+        // `[a, setA]` and `{ a, b: c }`: take every identifier, which over-collects on an object pattern with
+        // a renamed key. Over-collecting only makes the check quieter, never wrong — and a missed report here
+        // is a crash at runtime, which is why the balance is struck this way round.
+        names.add(name[0])
+      }
+    }
+    // `function name(...)` has no `=`, so it is not covered by the pattern above.
+    for (const match of lines[i].matchAll(/(?:^|\s)function\s+([A-Za-z_$][A-Za-z0-9_$]*)/g)) {
       names.add(match[1])
     }
   }
