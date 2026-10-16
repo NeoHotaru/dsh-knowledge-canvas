@@ -752,6 +752,21 @@ const timedDescribed = describeBase({ id: 'b', name: '测试', nodes: [
 ], links: [] })
 check('the read tells the model when it was written', timedDescribed.includes('2026-01-02'), timedDescribed)
 
+// The read tool's whole job is to hand over the bodies, and it used to share a line with the title, which
+// forced the body to be flattened and cut at 120 characters. A model read `o4` as far as "所以必须重" and
+// then went around the tool to open the JSON — so these two assertions are what was missing.
+const longBody = '这一段很长，'.repeat(60)
+const longRead = describeBase({ id: 'b', name: '测试', nodes: [
+  { id: 'n1', parent: null, title: '测试', body: longBody },
+], links: [] })
+check('the read hands over the whole body, not a prefix', longRead.includes(longBody),
+  'read back ' + longRead.length + ' chars for a ' + longBody.length + '-char body')
+const splitRead = describeBase({ id: 'b', name: '测试', nodes: [
+  { id: 'n1', parent: null, title: '测试', body: '第一行\n第二行' },
+], links: [] })
+check('and it keeps the line breaks instead of flattening them', splitRead.includes('第一行\n'),
+  JSON.stringify(splitRead))
+
 // --- the activity log -----------------------------------------------------------
 console.log('\nthe activity log')
 check('the wrapper keeps every tool', TOOLS.length === 7, String(TOOLS.length))
