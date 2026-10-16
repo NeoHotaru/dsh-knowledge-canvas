@@ -2951,9 +2951,35 @@ function estimateBox(node) {
     function Body({ sessionId, fullscreen }) {
       const [state, setState] = React.useState({ status: 'loading' });
       const [enabled, setEnabled] = React.useState({});
-      // Which list the switches edit: the workspace default, or this session alone. The default is the
-      // starting point because it is what every other session uses.
+      // Which list the switches edit: the workspace default, or this session alone.
+      //
+      // It starts at the default and is corrected once per session below. It used to stay there always, so
+      // a session that had its own switches still opened on the workspace list: you had to notice, and then
+      // switch tabs by hand, before you could see what that conversation actually had on. The panel was
+      // showing the question "what do new sessions get" while the reader was asking "what does this one
+      // have".
       const [scope, setScope] = React.useState('default');
+      // The session whose answer we have already settled. A ref rather than state on purpose: this is a
+      // one-shot decision per session, and it must not re-run when the user picks a tab by hand.
+      const scopeSettledFor = React.useRef(null);
+
+      // Settle the tab once per session: a session that has its own switches opens on them.
+      //
+      // A session that was never given its own switches has no file, and that is not a failure — it means
+      // "no opinion", and the workspace default stands. So the absence is read as `null` and ignored.
+      React.useEffect(() => {
+        if (!sessionId || scopeSettledFor.current === sessionId) return undefined;
+        scopeSettledFor.current = sessionId;
+        let cancelled = false;
+        REMOTE.workspaceFiles.read(
+          sessionId, DIR + '/.sessions/' + sessionFileName(sessionId) + '.json', {})
+          .then((result) => JSON.parse(unwrap(result).text))
+          .then((own) => {
+            if (!cancelled && own && Array.isArray(own.enabled)) setScope('session');
+          })
+          .catch(() => { /* no list of its own: stay on the default */ });
+        return () => { cancelled = true; };
+      }, [sessionId]);
       // The query, the matches, and the node the canvas should centre on once it has been drawn.
       const [query, setQuery] = React.useState('');
       // What the user calls each session. Presentation only: it lives in layout.json and never reaches the
