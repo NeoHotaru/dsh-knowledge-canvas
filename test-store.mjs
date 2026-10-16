@@ -1165,26 +1165,60 @@ check('creating a base is not gated',
   (await attempt('knowledge_create_base', { id: 'fresh', name: '测试', title: '测试' })) === null)
 
 // --- the edit history ---------------------------------------------------------------
-// The node keeps only the latest author and time; the history is what answers "who changed this, and when".
-// Held in the node so it lands in the same write, and capped so a base does not become a log.
+// The node keeps only the latest author and time; the history answers "who changed this, when, **and what it
+// said before**". Held in the node so it lands in the same write, and capped so a base does not become a log.
+//
+// Each entry describes the version it replaced — its content, its author and its own timestamp — so the node
+// plus its history is the whole timeline. Entries used to carry only `{ at, by }`, which made "what did it say
+// before" unanswerable rather than merely unshown: the previous body was never written anywhere.
 console.log('\nthe edit history')
 await saveBase(pathFor(cwd, 'hist'), newBase('hist', '测试', '测试', ''))
 const histBase = (await loadBase(cwd, 'hist')).base
-const histNode = upsertNode(histBase, { title: '涓€测试', by: 'session-one' }).node
+const histNode = upsertNode(histBase, { title: '第一版标题', body: '第一版正文', by: 'session-one' }).node
 check('a created node starts its history', histNode.history.length === 1, JSON.stringify(histNode.history))
 check('and the first entry carries the session', histNode.history[0].by === 'session-one')
 
-upsertNode(histBase, { node: histNode.id, body: '鏀逛竴', by: 'session-two' })
-upsertNode(histBase, { node: histNode.id, body: '鏀逛簩' })
-check('every write appends', histNode.history.length === 3, String(histNode.history.length))
-check('a write with no session is recorded without one',
-  histNode.history[2].by === undefined, JSON.stringify(histNode.history[2]))
+upsertNode(histBase, { node: histNode.id, body: '第二版正文', by: 'session-two' })
+check('every write appends', histNode.history.length === 2, String(histNode.history.length))
+// The entry added by that write describes the version it replaced: what it said, and who wrote it.
+check('an entry carries the body it replaced',
+  histNode.history[1].body === '第一版正文', JSON.stringify(histNode.history[1].body))
+check('and the title it replaced',
+  histNode.history[1].title === '第一版标题', JSON.stringify(histNode.history[1].title))
+check('and the author of that version, not of this write',
+  histNode.history[1].by === 'session-one', JSON.stringify(histNode.history[1].by))
+// The node itself is the current version.
+check('and the node holds the new one', histNode.body === '第二版正文')
+
+// A write with no session. It does **not** clear the author — that is deliberate, and the reason is in the
+// store: `undefined` means "this write is not about authorship", which is what a review passes, and a review
+// must not erase the name of whoever wrote the text being reviewed. So the version a session-less write
+// produces inherits the previous author, and this asserts that rather than hoping otherwise.
+upsertNode(histBase, { node: histNode.id, body: '第三版正文' })
+upsertNode(histBase, { node: histNode.id, body: '第四版正文' })
+check('a fourth write appends', histNode.history.length === 4, String(histNode.history.length))
+check('a session-less version inherits the previous author',
+  histNode.history[3].by === 'session-two', JSON.stringify(histNode.history[3].by))
+check('and its content is still kept, which is the new part',
+  histNode.history[3].body === '第三版正文', JSON.stringify(histNode.history[3].body))
+check('and the version before it kept its own author',
+  histNode.history[2].by === 'session-two', JSON.stringify(histNode.history[2].by))
 check('each entry has a time', histNode.history.every((entry) => typeof entry.at === 'string'))
+// The timestamp belongs to the version, not to the write that replaced it — otherwise every entry would carry
+// the date of the change after it, and the list would read as a list of edits rather than of versions.
+check('and the time describes that version',
+  histNode.history[0].at <= histNode.history[1].at, JSON.stringify([histNode.history[0].at, histNode.history[1].at]))
 
 for (let at = 0; at < 20; at += 1) upsertNode(histBase, { node: histNode.id, body: '测试' + at + '测试' })
 check('the cap holds', histNode.history.length === 10, String(histNode.history.length))
 check('and the newest is kept, not the oldest',
   histNode.history[9].at >= histNode.history[0].at)
+
+// A base written before entries carried content must not break anything: the panel has to read those as "no
+// version recorded" rather than as an empty one.
+const legacyEntry = { at: '2026-01-01 00:00', by: 'session-old' }
+check('an entry with no content is still an entry',
+  typeof legacyEntry.at === 'string' && legacyEntry.body === undefined)
 
 // The two things that must never see it.
 const histDescribed = describeBase(histBase)

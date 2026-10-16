@@ -662,28 +662,6 @@ window.__ModuleLoader__.load({
      * The host has the same function for the same reason — it is the input to the horizontal step between
      * siblings — but the client half cannot import it, so it exists here too.
      */
-    /**
-     * The one-line box a node shrinks to when the canvas is zoomed far out.
-     *
-     * The complaint that produced this was exact: hiding the bodies was not enough, because the boxes kept
-     * their measured size and the layout kept its spacing, so the links stayed as long as they had ever been
-     * and zooming out still showed a handful of nodes. "Compact" has to mean the geometry changes — the
-     * spacing and the link lengths follow whatever `rectOf` returns, so the size is the one lever.
-     *
-     * Height is a single line; width is the title plus its id, capped, so one long title cannot stretch the
-     * whole layout. The node draws its title at a size that does not shrink with the zoom (see NodeBox), so
-     * this box has to be wide enough for real text rather than for a thumbnail.
-     */
-    function compactBox(node) {
-      const title = String((node && node.title) || '');
-      const id = String((node && node.id) || '');
-      const wanted = COMPACT_PADDING + (title.length + id.length + 2) * COMPACT_GLYPH;
-      return {
-        w: Math.max(COMPACT_MIN_W, Math.min(COMPACT_MAX_W, Math.round(wanted))),
-        h: COMPACT_H,
-      };
-    }
-
     function boxOf(widths, nodeWidths, baseId, nodeId, node) {
       // A bare number is what this field used to hold: a width. Reading it as one keeps existing files
       // working, which is why the store does the same.
@@ -745,40 +723,6 @@ const GLYPH_W = 14.5;
 
 /** Padding either side of the text, plus the room the byline needs. */
 const BOX_PADDING = 26;
-
-/**
- * The compact box: what a node shrinks to when the canvas is zoomed far out.
- *
- * Sized for one line of real text — `id` then title — because the title is drawn at a size that does not
- * shrink with the zoom. `COMPACT_GLYPH` is therefore an on-screen glyph width divided by the zoom the mode
- * starts at, with room to spare: too narrow and the titles collide at exactly the scale the mode exists for.
- */
-const COMPACT_H = 34;
-const COMPACT_PADDING = 22;
-const COMPACT_GLYPH = 7.4;
-const COMPACT_MIN_W = 90;
-const COMPACT_MAX_W = 260;
-
-/**
- * The zoom range, and the zoom below which nodes switch to the compact box.
- *
- * `MIN_ZOOM` is 0.12 rather than the 0.4 it started at. That floor was chosen for reading, and the reason to
- * zoom out is not reading — it is seeing the shape of a large base in order to reorganise it. A
- * thirty-three-node tree needs roughly 15% to fit, so at 40% the reader could never see more than three or
- * four nodes at once, and the "fit" button was clamped by the same floor.
- *
- * Below `DETAIL_ZOOM` a node draws its title and id at a size that does not shrink with the zoom, in a
- * one-line box, and the layout measures with that same small box — so the spacing and the link lengths shrink
- * with it. Hiding the bodies alone was not enough: the boxes kept their measured size, the tree kept its
- * spread, and zooming out still showed a handful of nodes.
- *
- * Module scope, not inside `Tree`: the compact flag is published from the view state, which is declared
- * before the constants were, and reading a block-scoped `const` that early is a throw. `check-tdz.mjs` caught
- * that ordering twice.
- */
-const MIN_ZOOM = 0.12;
-const MAX_ZOOM = 2.6;
-const DETAIL_ZOOM = 0.55;
 
 /**
  * The width and height a node wants, from its text alone.
@@ -1414,8 +1358,6 @@ function estimateBox(node) {
       onHistory,
       /** False when the canvas is zoomed out far enough that a body would be illegible. */
       detail,
-      /** The canvas scale, so compact text can undo it and stay legible. */
-      zoom,
     }) {
       const node = entry.node;
       const gone = node.change === 'removed';
@@ -1476,24 +1418,16 @@ function estimateBox(node) {
           position: 'absolute',
           left: x,
           top: y,
-          width: detail === false ? (boxWidth || COMPACT_MIN_W) : (liveWidth || boxWidth || BOX_W),
+          width: liveWidth || boxWidth || BOX_W,
           // A set height fixes the box and its body scrolls. Without a height the box grows with its
-          // text, which is the normal case and not something to override. Compact fixes it at one line.
-          height: detail === false ? COMPACT_H : (liveHeight || boxHeight || undefined),
-          overflow: detail === false ? 'hidden' : ((liveHeight || boxHeight) ? 'hidden' : undefined),
+          // text, which is the normal case and not something to override.
+          height: liveHeight || boxHeight || undefined,
+          overflow: (liveHeight || boxHeight) ? 'hidden' : undefined,
           display: 'flex',
-          flexDirection: detail === false ? 'row' : 'column',
-          alignItems: detail === false ? 'center' : undefined,
-          gap: detail === false ? 6 : undefined,
-          // The scale the whole canvas is under. Compact text divides by it, so the title stays the same size
-          // on screen however far out you are — which is the point of the mode: at 12% a title drawn at 12%
-          // is 1.5px and tells you nothing, while the boxes are what you came to look at.
-          fontSize: detail === false ? (12 / (zoom || 1)) + 'px' : undefined,
-          lineHeight: detail === false ? 1.1 : undefined,
-          whiteSpace: detail === false ? 'nowrap' : undefined,
-          minHeight: detail === false ? COMPACT_H : BOX_H,
+          flexDirection: 'column',
+          minHeight: BOX_H,
           boxSizing: 'border-box',
-          padding: detail === false ? '0 8px' : '9px 11px 9px 13px',
+          padding: '9px 11px 9px 13px',
           border: '1px solid ' + (gone
             ? 'rgba(192,57,43,0.45)'
             : isRoot ? 'rgba(128,128,128,0.55)' : isDeep ? 'rgba(128,128,128,0.14)' : HAIRLINE),
@@ -1546,20 +1480,11 @@ function estimateBox(node) {
         }, '✓') : null,
         h('div', {
           style: {
-            // Divided by the canvas scale in compact mode, so the title stays readable however far out the
-            // canvas is. Without this the container's size is overridden by this line and a title at 12% zoom
-            // renders at 1.5px — legible to nobody, which defeats the point of the mode.
-            fontSize: detail === false
-              ? (12.5 / (zoom || 1)) + 'px'
-              : (isRoot ? 13.5 : 12.5),
+            fontSize: isRoot ? 13.5 : 12.5,
             fontWeight: isRoot ? 700 : 600,
             letterSpacing: isRoot ? 0 : 0.1,
             textDecoration: gone ? 'line-through' : 'none',
-            overflowWrap: detail === false ? 'normal' : 'anywhere',
-            wordBreak: detail === false ? 'normal' : 'break-word',
-            overflow: detail === false ? 'hidden' : undefined,
-            textOverflow: detail === false ? 'ellipsis' : undefined,
-            whiteSpace: detail === false ? 'nowrap' : undefined,
+            overflowWrap: 'anywhere', wordBreak: 'break-word',
           },
         },
           node.title,
@@ -1596,10 +1521,7 @@ function estimateBox(node) {
         }, detail === false ? null : renderMarkdown(node.body, 'md' + node.id)),
         // The stamp, when the file has one. Absent stays absent: a node written before stamps existed has
         // no date, and showing a made-up one would be worse than showing nothing.
-        //
-        // Hidden entirely in compact mode: that mode is for reading the shape of a base, and a date at 12%
-        // zoom is neither readable nor part of the shape.
-        detail === false ? null : node.at || node.by || true ? h('div', {
+        node.at || node.by || true ? h('div', {
           style: {
             marginTop: 5, fontSize: 10.5, opacity: 0.45, fontVariantNumeric: 'tabular-nums',
             display: 'flex', gap: 5, alignItems: 'baseline', flexWrap: 'wrap',
@@ -1716,9 +1638,13 @@ function estimateBox(node) {
        * Two callers used to scan the array instead — the layout's `sizeOf` and the geometry's `rectOf` — and
        * both are called about once per node per edge, which made looking a node up quadratic in the node
        * count. It lives here rather than next to `rectOf` because the layout runs first and needs it too.
+       *
+       * This was briefly part of the compact-mode commit, which was reverted. It is not part of that idea, and
+       * is re-applied on its own.
        */
       const entryById = new Map();
-      for (const entry of ordered) entryById.set(entry.node.id, entry);      const depthOf = {};
+      for (const entry of ordered) entryById.set(entry.node.id, entry);
+      const depthOf = {};
       ordered.forEach((entry) => { depthOf[entry.node.id] = entry.depth; });
 
       const [drag, setDrag] = React.useState(null);
@@ -1739,23 +1665,7 @@ function estimateBox(node) {
       // survives the re-renders the drag itself causes.
       const [resizing, setResizing] = React.useState(null);
 
-      /**
-       * Whether the canvas is zoomed far enough out to use compact boxes.
-       *
-       * A ref rather than reading `view` inside `rectOf`, because `rectOf` is called by code that runs before
-       * `view` is declared in this function — the focus-and-centre effect — and a `const` read that early is
-       * a runtime throw, not a warning. `check-tdz.mjs` exists because that mistake has been made here before,
-       * and it caught this one too, twice.
-       */
-      const compactRef = React.useRef(false);
-
       const [view, setView] = React.useState({ k: 1, x: 0, y: 0 });
-
-      // Published here, immediately, because the layout runs further down this same function and measures with
-      // it. Setting it next to the zoom helpers — where it started — left the layout reading the previous
-      // value, so the render that crossed the threshold drew the old spacing and only the *next* view change
-      // corrected it. One render of lag is invisible in a screenshot and obvious in the hand.
-      compactRef.current = view.k < DETAIL_ZOOM;
 
       // The edge drag. Movement is divided by the zoom, because the width is in canvas units: at 50% a
       // 100px drag is a 200px box, and forgetting that is the difference between the edge tracking the
@@ -1892,10 +1802,6 @@ function estimateBox(node) {
 
       const sizeOf = (id) => {
         const item = entryById.get(id);
-        // Compact when zoomed far out: every arrangement below measures with this, so switching here is what
-        // makes the spacing — and therefore the link lengths — actually shrink. Hiding the bodies alone left
-        // the tree spread over the same area, which is why zooming out still showed a handful of nodes.
-        if (compactRef.current) return compactBox(item ? item.node : {});
         const box = boxOf(widths, nodeWidths, base.id, id, item ? item.node : undefined);
         if (Number.isFinite(box.h)) return { w: box.w, h: box.h };
         const found = sizes[id];
@@ -2213,11 +2119,7 @@ function estimateBox(node) {
         const placedNode = entryById.get(id);
         const spot = placed[id];
         if (!spot) return null;
-        // Compact when zoomed far out: the size is the lever, because the layout, the link lengths and the
-        // routing all follow whatever this returns.
-        const size = compactRef.current
-          ? compactBox(placedNode ? placedNode.node : {})
-          : (sizes[id] || { w: BOX_W, h: estimateBox(placedNode ? placedNode.node : {}).h });
+        const size = sizes[id] || { w: BOX_W, h: estimateBox(placedNode ? placedNode.node : {}).h };
         return { x: spot.x, y: spot.y, w: size.w, h: size.h };
       };
 
@@ -2225,8 +2127,21 @@ function estimateBox(node) {
 
       // The canvas: k scales, x/y translate, origin at the top-left so the maths stays simple.
       // A local point (lx, ly) lands at viewport (x + k*lx, y + k*ly).
+      // 0.12 rather than 0.4. The floor was set for reading, and the reason to zoom out is not reading — it is
+      // seeing the shape of a large base so it can be reorganised. A thirty-three-node tree needs about 15% to
+      // fit, and at 40% the user could only ever see three or four nodes at once.
       const MIN_ZOOM = 0.12;
       const MAX_ZOOM = 2.6;
+
+      /**
+       * Below this zoom, nodes draw their title and nothing else.
+       *
+       * At small scales the bodies are illegible anyway, so drawing them costs paint and buys nothing — and
+       * this is the same trade the user asked for from the other side: they want to zoom out to see the
+       * layout, and the layout is exactly what is left when the text goes. It also makes the zoomed-out view
+       * cheap, which is where a large base is most likely to be judged.
+       */
+      const DETAIL_ZOOM = 0.55;
 
       const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 
@@ -3083,7 +2998,6 @@ function estimateBox(node) {
             // The labels come from Body: they are assigned across every base, and Tree renders one.
             onRename: entry.node.by ? () => renameSession(entry.node.by) : null,
             detail: view.k >= DETAIL_ZOOM,
-            zoom: view.k,
             onHistory: (nodeId, x, y) => setHistoryFor((current) => {
               if (current && current.id === nodeId) return null;
               // The pointer converted once, into the canvas's own coordinates. From then on the card is a
