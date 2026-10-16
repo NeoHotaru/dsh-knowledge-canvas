@@ -78,5 +78,3 @@ npm run check:all      # 9 条检查 + 313 项断言
 
 改 `index.js` / `lib/*` 后**必须重启 Harness**（宿主那一半在进程启动时加载一次）；
 改 `client.js` 后刷新页面即可。
-
-更多实现细节、走过的坑、发布流程：见 [HANDOFF.md](HANDOFF.md)。
