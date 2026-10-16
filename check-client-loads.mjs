@@ -232,6 +232,37 @@ if (client && client.__geometry) {
       problems.push('diff: identical text reports a change')
     }
 
+    // Blank lines: the diff still reports them exactly — a removed empty line *is* a removed line — but the
+    // card must not mark them. The first real use proved why: the only deletion between the two versions of
+    // `o17` was a single empty line, so the card announced "红色是之后被删掉的" and pointed at a red line with
+    // nothing on it. A mark that points at nothing spends the reader's attention and returns nothing.
+    const worthMarking = client.__logic.worthMarking
+    if (typeof worthMarking === 'function') {
+      if (!worthMarking({ kind: 'added', text: 'real' })) problems.push('mark: a real added line is not marked')
+      if (!worthMarking({ kind: 'removed', text: 'real' })) problems.push('mark: a real removed line is not marked')
+      if (worthMarking({ kind: 'added', text: '   ' })) problems.push('mark: a blank line is marked as a change')
+      if (worthMarking({ kind: 'removed', text: '' })) problems.push('mark: an empty line is marked as a change')
+      if (worthMarking({ kind: 'same', text: 'real' })) problems.push('mark: an unchanged line is marked')
+      // The shape that produced the complaint: a blank line added or dropped between two paragraphs. The diff
+      // reports it, and nothing may be coloured for it.
+      for (const [before, after] of [['a\n\nb', 'a\nb'], ['a\nb', 'a\n\n\nb'], ['a\n\n\n', 'a\n']]) {
+        const result = diffLines(before, after)
+        const markedCount = result.old.filter(worthMarking).length + result.next.filter(worthMarking).length
+        if (markedCount !== 0) {
+          problems.push('mark: a whitespace-only edit marks ' + markedCount + ' line(s) for ' + JSON.stringify([before, after]))
+        }
+      }
+    } else {
+      problems.push('worthMarking: missing from __logic, so the blank-line rule cannot be checked')
+    }
+
+    // Whitespace is all that folds — nothing folds, in fact. A line that differs by one visible character is
+    // still a change, and this is the assertion that stops the rule above from becoming "ignore whitespace".
+    const trailing = diffLines('a\nb', 'a\nb ')
+    if (!/added/.test(kinds(trailing.next)) || !/removed/.test(kinds(trailing.old))) {
+      problems.push('diff: a trailing space is treated as no change at all')
+    }
+
     // The invariants, over the shapes a real body takes: a paragraph appended, one removed, edits at both ends
     // at once, and the empty cases.
     const cases = [
@@ -261,8 +292,10 @@ if (client && client.__geometry) {
       if (result.old.some((row) => row.kind === 'added')) problems.push('diff: the old side claims an addition')
       if (result.next.some((row) => row.kind === 'removed')) problems.push('diff: the new side claims a deletion')
       // Whatever stayed must be the same text on both sides, or the two halves cannot be read as one change.
-      if (texts(result.old.filter((row) => row.kind === 'same'))
-        !== texts(result.next.filter((row) => row.kind === 'same'))) {
+      // Compared after trimming, because blank lines fold together whatever their whitespace — the text can
+      // differ by invisible characters and still be the same line.
+      const stable = (rows) => rows.filter((row) => row.kind === 'same').map((row) => row.text.trim()).join('|')
+      if (stable(result.old) !== stable(result.next)) {
         problems.push('diff: the two sides disagree about what stayed the same')
       }
     }

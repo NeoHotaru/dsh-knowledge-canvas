@@ -928,13 +928,18 @@ function estimateBox(node) {
     function diffLines(before, after) {
       const a = (typeof before === 'string' ? before : '').split('\n');
       const b = (typeof after === 'string' ? after : '').split('\n');
+      /**
+       * Whether two non-blank lines are the same line. Kept separate from the walk so the blank-line rule below
+       * stays readable: this is exact string equality and nothing else.
+       */
+      const sameLine = (left, right) => left === right;
       // Lengths of the common suffix/prefix, thrown away before the table is built. Bodies are usually mostly
       // unchanged, so this is what keeps the quadratic part proportional to the edit rather than to the file.
       const table = [];
       for (let i = 0; i <= a.length; i += 1) table.push(new Array(b.length + 1).fill(0));
       for (let i = a.length - 1; i >= 0; i -= 1) {
         for (let j = b.length - 1; j >= 0; j -= 1) {
-          table[i][j] = a[i] === b[j]
+          table[i][j] = sameLine(a[i], b[j])
             ? table[i + 1][j + 1] + 1
             : Math.max(table[i + 1][j], table[i][j + 1]);
         }
@@ -944,7 +949,7 @@ function estimateBox(node) {
       let i = 0;
       let j = 0;
       while (i < a.length && j < b.length) {
-        if (a[i] === b[j]) {
+        if (sameLine(a[i], b[j])) {
           old.push({ kind: 'same', text: a[i] });
           next.push({ kind: 'same', text: b[j] });
           i += 1;
@@ -960,6 +965,23 @@ function estimateBox(node) {
       while (i < a.length) { old.push({ kind: 'removed', text: a[i] }); i += 1; }
       while (j < b.length) { next.push({ kind: 'added', text: b[j] }); j += 1; }
       return { old, next };
+    }
+
+    /**
+     * Whether a diff row is worth colouring.
+     *
+     * A blank line is a real difference — the diff is right to report it — but it is not a content change, and
+     * marking it is worse than useless. The first real use of this card proved it: the only deletion between the
+     * two versions of `o17` was a single empty line, so the card said "红色是之后被删掉的" and then pointed at a
+     * red line that cannot be seen, because there is nothing on it. It spends the reader's attention and returns
+     * nothing.
+     *
+     * So the diff stays exact and the *rendering* decides what deserves a mark. Whitespace-only lines are shown
+     * plain, and the card's count of changes ignores them too — a count is a promise about how much there is to
+     * look at, and it must not promise a blank line.
+     */
+    function worthMarking(row) {
+      return row.kind !== 'same' && row.text.trim() !== '';
     }
 
     function edgeFades(spotlight, fromId, toId) {
@@ -3404,7 +3426,9 @@ function estimateBox(node) {
                   h('span', { style: { fontWeight: 600, fontSize: 11.5 } }, '当前'),
                   h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, shortWhen(item.node.at)),
                   entries.length ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } },
-                    '（绿色是相对上一版新增的）') : null,
+                    lines && lines.some((line) => worthMarking(line))
+                      ? '（绿色是相对上一版新增的，' + lines.filter((line) => worthMarking(line)).length + ' 处）'
+                      : '（与上一版相同）') : null,
                 ),
                 h('div', { style: { fontWeight: 600, marginBottom: 2 } }, item.node.title || historyFor.id),
                 h(VersionBody, { text: item.node.body, lines }),
@@ -3437,8 +3461,9 @@ function estimateBox(node) {
                     h('span', { style: { opacity: 0.7 } },
                       entry.by ? ((names && names[entry.by]) || '一个会话') : '你'),
                     index === 0 ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '上一个版本') : null,
-                    marked && marked.some((line) => line.kind === 'removed')
-                      ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '（红色是之后被删掉的）')
+                    marked && marked.some((line) => worthMarking(line))
+                      ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } },
+                        '（红色是之后被删掉的，' + marked.filter((line) => worthMarking(line)).length + ' 处）')
                       : null,
                   ),
                   // Entries written before the store kept contents have neither field. Saying so is the honest
@@ -3478,7 +3503,7 @@ function estimateBox(node) {
       const marked = Array.isArray(lines) ? lines : null;
       const count = marked ? marked.length : body.split('\n').length;
       const hiddenChanges = marked && !open
-        ? marked.slice(FOLD_LINES).filter((line) => line.kind !== 'same').length
+        ? marked.slice(FOLD_LINES).filter((line) => worthMarking(line)).length
         : 0;
       const folded = !open && (count > FOLD_LINES || body.length > 320);
       const shown = marked ? (open ? marked : marked.slice(0, FOLD_LINES)) : null;
@@ -3498,11 +3523,13 @@ function estimateBox(node) {
               key: index,
               style: {
                 // The two marks the whole diff exists for. Tinted rather than coloured text: these bodies
-                // contain their own emphasis, and recolouring the words would fight it.
-                background: line.kind === 'added' ? 'rgba(46,160,67,0.16)'
-                  : line.kind === 'removed' ? 'rgba(196,60,60,0.14)' : undefined,
-                borderLeft: line.kind === 'added' ? '2px solid rgba(46,160,67,0.7)'
-                  : line.kind === 'removed' ? '2px solid rgba(196,60,60,0.7)' : '2px solid transparent',
+                // contain their own emphasis, and recolouring the words would fight it. A blank line gets
+                // neither, however real its difference — see `worthMarking`.
+                background: line.kind === 'added' && worthMarking(line) ? 'rgba(46,160,67,0.16)'
+                  : line.kind === 'removed' && worthMarking(line) ? 'rgba(196,60,60,0.14)' : undefined,
+                borderLeft: line.kind === 'added' && worthMarking(line) ? '2px solid rgba(46,160,67,0.7)'
+                  : line.kind === 'removed' && worthMarking(line) ? '2px solid rgba(196,60,60,0.7)'
+                    : '2px solid transparent',
                 paddingLeft: 5,
                 // A deleted line is not in this version any more, so it should not read as current text.
                 opacity: line.kind === 'removed' ? 0.75 : 1,
@@ -5076,7 +5103,7 @@ function estimateBox(node) {
       // shows up as a line that looks slightly off rather than as a failure.
       // Pure decisions the panel makes, exposed for the same reason the geometry is: a button cannot
       // be pressed by a check script, but the question the button answers can be asked directly.
-      __logic: { nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines },
+      __logic: { nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines, worthMarking },
       __geometry: {
         segmentHitsBox,
         curveHitsBox,
