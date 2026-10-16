@@ -645,6 +645,12 @@ check('a trailing dash is dropped too',
   JSON.stringify(gistOf('开头。\n\n什么时候该想起它：说明 -')))
 check('an english trigger works too',
   gistOf('Claim first.\n\nWhen to recall: before saying it works.') === 'before saying it works.')
+// A body may quote the phrase earlier than its own trigger — o24 did, while describing a verification — and
+// a first-match regex then handed that quote back as the node's summary. The protocol puts the trigger last,
+// so the last occurrence wins. A wrong summary is worse than none: it still looks like one.
+const quoted = '这一段引用了「什么时候该想起它：」这个短语。\n\n正文在这里。\n\n什么时候该想起它：真正的触发器。'
+check('a quoted trigger earlier in the body does not become the summary',
+  gistOf(quoted) === '真正的触发器。', JSON.stringify(gistOf(quoted)))
 
 // --- timestamps -----------------------------------------------------------------
 console.log('\ntimestamps')
