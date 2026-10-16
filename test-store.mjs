@@ -655,6 +655,29 @@ check('a bold trigger leaves no asterisks',
 check('a trailing dash is dropped too',
   gistOf('开头。\n\n什么时候该想起它：说明 -') === '说明',
   JSON.stringify(gistOf('开头。\n\n什么时候该想起它：说明 -')))
+// A node with a body but no trigger used to look exactly like one with a trigger: the gist falls back to the
+// first sentence. The trigger is what makes a node retrievable in index mode, so an unmarked gap is a base
+// that looks healthy and is not. A test session asked for this lint.
+const untriggered = renderOutline([{ id: 'b', name: 'lint 探针', nodes: [
+  { id: 'n1', parent: null, title: '只有正文', body: '这里没有触发行，所以索引模式下只剩标题能匹配。' },
+], links: [] }], null)
+check('a body without a trigger is marked', /无触发器/.test(untriggered), untriggered)
+check('and a body with one is not', !/无触发器/.test(
+  renderOutline([{ id: 'b', name: 'lint 探针', nodes: [
+    { id: 'n1', parent: null, title: '有触发行', body: '正文。\n\n什么时候该想起它：需要它的时候。' },
+  ], links: [] }], null)))
+check('and a node with no body at all is not marked either', !/无触发器/.test(
+  renderOutline([{ id: 'b', name: 'lint 探针', nodes: [{ id: 'n1', parent: null, title: '只有标题' }], links: [] }], null)))
+
+// Freshness: the base heading carries its size and newest stamp, so a node written just now can be compared
+// against the outline instead of being guessed at — guessing wrong means writing it twice.
+const stamped = renderOutline([{ id: 'b', name: '新鲜度', nodes: [
+  { id: 'n1', parent: null, title: '一条', body: '正文。', at: '2026-01-02 03:04' },
+  { id: 'n2', parent: 'n1', title: '两条', body: '正文。', at: '2026-05-06 07:08' },
+], links: [] }], null)
+check('the base heading says how many nodes', /2 节点/.test(stamped), stamped.split('\n')[2])
+check('and the newest stamp', /最新 2026-05-06 07:08/.test(stamped), stamped.split('\n')[2])
+
 check('an english trigger works too',
   gistOf('Claim first.\n\nWhen to recall: before saying it works.') === 'before saying it works.')
 // A body may quote the phrase earlier than its own trigger — o24 did, while describing a verification — and
