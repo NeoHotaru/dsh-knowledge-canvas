@@ -723,6 +723,16 @@ check('and the root body too', asFull.includes('根节点的正文'))
 check('and says which kind it is', /全文/.test(asFull))
 check('and it is longer than the index', asFull.length > asIndex.length)
 check('and an empty mode map behaves as before', asIndex === renderOutline([wholeBase], null))
+// Full injection carries the bodies, so the one thing the reader still cannot see is which of them the user
+// has not reviewed. Leaving the marker out made the richer mode answer a strictly smaller set of questions
+// than the index does — found by a test session, not by any of these assertions.
+const markedFull = renderOutline([Object.assign(newBase('marked', '标记', '标记', '正文'), {
+  nodes: [{ id: 'n1', parent: null, title: '改过的', body: '正文', change: 'modified' }],
+})], null, { marked: 'full' })
+check('a full injection still shows the review marker', /\[修改\]/.test(markedFull), markedFull)
+check('and the index shows it too', /\[修改\]/.test(renderOutline([Object.assign(newBase('marked', '标记', '标记', '正文'), {
+  nodes: [{ id: 'n1', parent: null, title: '改过的', body: '正文', change: 'modified' }],
+})], null)))
 
 // Removed nodes stay out of a full injection for the same reason they stay out of the index.
 const removedBase = newBase('gone', '测试', '测试', '')
