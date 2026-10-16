@@ -181,6 +181,10 @@ if (client && client.__geometry) {
       ['a node loses its position', routeKeyOf([{ ...two[0], x: null }, two[1]], null, oneLink, [])],
       ['a link is drawn', routeKeyOf(two, null, oneLink.concat([{ from: 'b', to: 'a' }]), [])],
       ['a link is dropped', routeKeyOf(two, null, [], [])],
+      // The note does not move the curve, but the click target carries it into the editor — so a key that
+      // ignored it would hand the editor a stale note. This is the assertion that caught exactly that.
+      ['a note is written', routeKeyOf(two, null, [{ from: 'a', to: 'b', note: 'why' }], [])],
+      ['a note is changed', routeKeyOf(two, null, [{ from: 'a', to: 'b', note: 'other' }], [])],
       ['a drag starts', routeKeyOf(two, { from: 'a', x: 5, y: 5 }, oneLink, [])],
       ['a drag moves', routeKeyOf(two, { from: 'a', x: 6, y: 5 }, oneLink, [])],
       ['a second drag starts', routeKeyOf(two, { from: 'b', x: 5, y: 5 }, oneLink, [])],

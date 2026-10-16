@@ -921,7 +921,7 @@ function estimateBox(node) {
      *
      * @param boxes - one `{ id, parent, x, y, w, h }` per node, in render order. `w`/`h` may be null.
      * @param drag - the drag in flight, or null.
-     * @param links - `[{ from, to }]`, every drawn link.
+     * @param links - `[{ from, to, note }]`, every drawn link.
      * @param unsaved - iterable of `from>to` pairs drawn as pending.
      */
     function routeKeyOf(boxes, drag, links, unsaved) {
@@ -932,7 +932,9 @@ function estimateBox(node) {
             ? 'none'
             : box.x + ',' + box.y + ',' + box.w + ',' + box.h));
       }
-      for (const link of links) parts.push(link.from + '>' + link.to);
+      // The note is an input as well: the drawn curve does not depend on it, but the click target carries it
+      // into the note editor, so a key that omitted it would open the editor holding a stale note.
+      for (const link of links) parts.push(link.from + '>' + link.to + ':' + (link.note || ''));
       for (const id of unsaved) parts.push('unsaved:' + id);
       return parts.join('|');
     }
@@ -1671,6 +1673,14 @@ function estimateBox(node) {
       names,
       labels,
       base, extraLinks, onLink, edits, onEdit, onReview, fullscreen, positions, onMove,
+      /**
+       * `(from, to, note) => void`. Writes one link's note.
+       *
+       * The model is required to write a note when it links two nodes; the user is not, because they are the
+       * only reader of their own panel — but they have to be able to, and that editor lives in this component
+       * rather than in `Tree` because `post` does.
+       */
+      onSetLinkNote,
       colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onCreateNode, onPurgeNode,
       onSendToChat, widths, nodeWidths, onSetWidth,
     }) {
@@ -2100,6 +2110,15 @@ function estimateBox(node) {
       // Which node's edit history is open, and the entries it should show. The entries come from the node
       // itself — it carries its own last ten edits — so this is a lookup, not a fetch.
       const [historyFor, setHistoryFor] = React.useState(null);
+      /**
+       * The link whose note is being edited: `{ from, to, note, x, y }` in canvas coordinates.
+       *
+       * The model must write a note when it links two nodes — the note is what other sessions see in their
+       * outline, and a line with nothing on it cannot be acted on. The user is not required to, because they
+       * are the only reader of their own panel; but they must be able to, and the visible line is 1.4px and
+       * hopeless to hit, so each link gets an invisible fat copy to click.
+       */
+      const [noteFor, setNoteFor] = React.useState(null);
 
       const placedRef = React.useRef({});
       // The positions the nodes are actually drawn at. The bounds shift is baked into their
@@ -2619,6 +2638,8 @@ function estimateBox(node) {
           return {
             from: link.from,
             to: link.to,
+            // Carried through so the click target can open the editor with what is already there.
+            note: link.note || '',
             d: 'M' + a.x.toFixed(1) + ' ' + a.y.toFixed(1)
               + ' Q' + control.x.toFixed(1) + ' ' + control.y.toFixed(1)
               + ' ' + b.x.toFixed(1) + ' ' + b.y.toFixed(1),
@@ -3008,6 +3029,27 @@ function estimateBox(node) {
             'data-kb-edge': 'true',
             'data-dim': edgeFades(spotlight, path.from, path.to) ? 'true' : undefined,
           })),
+          // A fat invisible copy of every link, so there is something to click.
+          //
+          // The visible line is 1.4px and now drawn in screen pixels, which is right for looking at and
+          // hopeless for pointing at. Clicking one opens its note — the model has to write a note when it links
+          // two nodes, and the user should be able to say the same thing about a line they drew themselves,
+          // without being made to.
+          linkPaths.map((path, index) => h('path', {
+            key: 'h' + index,
+            d: path.d,
+            fill: 'none',
+            stroke: 'transparent',
+            strokeWidth: 14,
+            vectorEffect: 'non-scaling-stroke',
+            style: { pointerEvents: 'stroke', cursor: 'pointer' },
+            onPointerDown: (event) => {
+              event.stopPropagation();
+              const spot = localPoint(event);
+              setNoteFor({ from: path.from, to: path.to, note: path.note || '', x: spot.x, y: spot.y });
+            },
+            'data-kb-link-hit': 'true',
+          })),
           band ? h('path', {
             d: band,
             fill: 'none',
@@ -3148,6 +3190,71 @@ function estimateBox(node) {
         // The placement matters as much as the code: this sits between the nodes' `}),` and the layer's `),`,
         // which is the only position that is actually inside. One bracket earlier and the layer has already
         // closed behind it.
+        // The note editor for one link. Same overlay mechanics as the history card, including the layer's
+        // transform applied by hand — the card is the layer's sibling, not its child, so pan and zoom have to
+        // be reproduced here or the card stays put while the canvas moves (see o16).
+        noteFor ? h('div', {
+          'data-kb-link-note': noteFor.from + '>' + noteFor.to,
+          style: {
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            transform: 'translate(' + (view.x + noteFor.x * view.k) + 'px, '
+              + (view.y + noteFor.y * view.k) + 'px) scale(' + view.k + ')',
+            transformOrigin: '0 0',
+            zIndex: 3,
+            width: 280,
+            padding: '9px 11px',
+            borderRadius: 9,
+            border: '1px solid #c9761b',
+            background: 'Canvas',
+            color: 'CanvasText',
+            boxShadow: '0 6px 18px rgba(0,0,0,0.22)',
+            fontSize: 11.5,
+            lineHeight: 1.5,
+          },
+          onPointerDown: (event) => event.stopPropagation(),
+        },
+          h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 6 } },
+            h('div', { style: { fontWeight: 600, fontSize: 12.5 } }, '这条关联的注释'),
+            h('button', {
+              type: 'button',
+              onClick: () => setNoteFor(null),
+              style: {
+                marginLeft: 'auto', padding: '0 6px', border: '1px solid ' + HAIRLINE, borderRadius: 6,
+                background: 'transparent', color: 'inherit', font: 'inherit', fontSize: 11, cursor: 'pointer',
+              },
+            }, '关闭'),
+          ),
+          h('div', { style: { opacity: 0.55, marginBottom: 5 } },
+            noteFor.from + ' <-> ' + noteFor.to),
+          h('textarea', {
+            autoFocus: true,
+            defaultValue: noteFor.note,
+            'data-kb-note-input': 'true',
+            placeholder: '什么时候该顺着这条线走？',
+            onKeyDown: (event) => {
+              if (event.key === 'Escape') {
+                event.preventDefault();
+                setNoteFor(null);
+              }
+              // Enter saves, Shift+Enter is a newline. The note is one line by convention, not by force.
+              if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                event.currentTarget.blur();
+                onSetLinkNote(noteFor.from, noteFor.to, event.currentTarget.value);
+              }
+            },
+            onBlur: (event) => onSetLinkNote(noteFor.from, noteFor.to, event.target.value),
+            style: {
+              width: '100%', boxSizing: 'border-box', minHeight: 52, resize: 'vertical',
+              border: '1px solid ' + HAIRLINE, borderRadius: 6, padding: '5px 7px',
+              background: 'transparent', color: 'inherit', font: 'inherit', fontSize: 11.5, lineHeight: 1.5,
+            },
+          }),
+          h('div', { style: { opacity: 0.5, marginTop: 4 } },
+            '回车保存 · Esc 关闭 · 留空即删除注释'),
+        ) : null,
         historyFor ? (() => {
           const item = ordered.find((entry) => entry.node.id === historyFor.id);
           // A silent `return null` here is the worst outcome: nothing appears, and the reason is invisible.
@@ -4421,6 +4528,19 @@ function estimateBox(node) {
                 [base.id]: (current[base.id] || []).concat([{ from, to }]),
               }));
               post('changes', { base: base.id, links: [{ from, to }] }).catch(() => {});
+            },
+            /**
+             * Write one link's note.
+             *
+             * Reloads afterwards rather than patching in place: an empty note is a deletion, not a blank
+             * string, and that decision belongs to the store — so the host's answer is the truth and the panel
+             * re-reads it. Patching optimistically would have the two sides disagree about what "no note"
+             * looks like, which is exactly the kind of quiet divergence this codebase keeps paying for.
+             */
+            onSetLinkNote: (from, to, note) => {
+              post('linkNote', { base: base.id, from, to, note })
+                .then(() => load())
+                .catch(() => {});
             },
           }),
           // The condition must include `note`, not only the text below. It did not, so every note this
