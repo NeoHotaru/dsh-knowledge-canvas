@@ -1356,6 +1356,8 @@ function estimateBox(node) {
       byline,
       onRename,
       onHistory,
+      /** False when the canvas is zoomed out far enough that a body would be illegible. */
+      detail,
     }) {
       const node = entry.node;
       const gone = node.change === 'removed';
@@ -1516,7 +1518,7 @@ function estimateBox(node) {
             // wanted, but reads as if it were not.
             ...((liveHeight || boxHeight) ? { 'data-kb-scroll': 'true' } : {}),
           },
-        }, renderMarkdown(node.body, 'md' + node.id)),
+        }, detail === false ? null : renderMarkdown(node.body, 'md' + node.id)),
         // The stamp, when the file has one. Absent stays absent: a node written before stamps existed has
         // no date, and showing a made-up one would be worse than showing nothing.
         node.at || node.by || true ? h('div', {
@@ -1612,8 +1614,24 @@ function estimateBox(node) {
       colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onCreateNode, onPurgeNode,
       onSendToChat, widths, nodeWidths, onSetWidth,
     }) {
-      const ordered = layout(base.nodes || []);
-      const depthOf = {};
+      // How long this render took, reported to the host log every couple of seconds.
+      //
+      // Built because "the canvas is heavy with a large base" survived seven theories, all of them argued
+      // from the code and none of them checked against the machine. The number that settles it is a frame
+      // cost, and the only place to read one is here. It reports the average and the worst render, the number
+      // of renders, and the node count — which is enough to tell "too many renders" from "each render too
+      // expensive", and those two have opposite fixes.
+      //
+      // A diagnostic, not a feature. It costs one `performance.now()` pair per render and one request every
+      // two seconds, and it can be deleted the day the answer stops mattering.
+      const renderStart = performance.now();
+      /** Frame accounting for the diag line at the end of this function. A ref, so it survives the renders
+       * it is counting. Declared here rather than next to the diag line because the timer that closes lives
+       * at the other end of the function — and check-tdz.mjs is right to insist on the order. */
+      const renderStats = React.useRef({ frames: 0, total: 0, worst: 0, since: 0 });
+      const stats = renderStats.current;
+      if (stats.since === 0) stats.since = renderStart;
+      const ordered = layout(base.nodes || []);      const depthOf = {};
       ordered.forEach((entry) => { depthOf[entry.node.id] = entry.depth; });
 
       const [drag, setDrag] = React.useState(null);
@@ -2103,8 +2121,21 @@ function estimateBox(node) {
 
       // The canvas: k scales, x/y translate, origin at the top-left so the maths stays simple.
       // A local point (lx, ly) lands at viewport (x + k*lx, y + k*ly).
-      const MIN_ZOOM = 0.4;
+      // 0.12 rather than 0.4. The floor was set for reading, and the reason to zoom out is not reading — it is
+      // seeing the shape of a large base so it can be reorganised. A thirty-three-node tree needs about 15% to
+      // fit, and at 40% the user could only ever see three or four nodes at once.
+      const MIN_ZOOM = 0.12;
       const MAX_ZOOM = 2.6;
+
+      /**
+       * Below this zoom, nodes draw their title and nothing else.
+       *
+       * At small scales the bodies are illegible anyway, so drawing them costs paint and buys nothing — and
+       * this is the same trade the user asked for from the other side: they want to zoom out to see the
+       * layout, and the layout is exactly what is left when the text goes. It also makes the zoomed-out view
+       * cheap, which is where a large base is most likely to be judged.
+       */
+      const DETAIL_ZOOM = 0.55;
 
       const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 
@@ -2122,7 +2153,10 @@ function estimateBox(node) {
        */
       const [movingView, setMovingView] = React.useState(false);
       const settle = React.useRef(null);
+      /** Set while the view is being moved, so the diag line can say whether the sample was during motion. */
+      const viewMovedRef = React.useRef(false);
       const markViewMoving = React.useCallback(() => {
+        viewMovedRef.current = true;
         setMovingView(true);
         if (settle.current) clearTimeout(settle.current);
         settle.current = setTimeout(() => setMovingView(false), 180);
@@ -2571,6 +2605,33 @@ function estimateBox(node) {
           : { display: 'inline-flex', borderLeft: '1px solid ' + HAIRLINE },
       }, child))));
 
+      // Close the frame accounting opened at the top of this function, and report every two seconds.
+      {
+        const dt = performance.now() - renderStart;
+        stats.frames += 1;
+        stats.total += dt;
+        if (dt > stats.worst) stats.worst = dt;
+        const elapsed = performance.now() - stats.since;
+        if (elapsed > 2000 && stats.frames > 0) {
+          const text = 'render avg=' + (stats.total / stats.frames).toFixed(1) + 'ms'
+            + ' worst=' + stats.worst.toFixed(1) + 'ms'
+            + ' frames=' + stats.frames + ' in ' + Math.round(elapsed) + 'ms'
+            + ' nodes=' + ordered.length
+            + ' links=' + allLinks.length
+            + ' moving=' + (viewMovedRef.current ? 'yes' : 'no');
+          viewMovedRef.current = false;
+          stats.frames = 0;
+          stats.total = 0;
+          stats.worst = 0;
+          stats.since = performance.now();
+          fetch(PREFIX + '/diag', {
+            method: 'PUT',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ text }),
+          }).catch(() => {});
+        }
+      }
+
       return h(React.Fragment, null,
         // Component-local styles, rendered as an element so unmounting removes them. The two
         // states below have to live here rather than inline: an inline `outline` would beat
@@ -2930,6 +2991,7 @@ function estimateBox(node) {
             // saying "你" for it would be a claim the panel cannot support.
             // The labels come from Body: they are assigned across every base, and Tree renders one.
             onRename: entry.node.by ? () => renameSession(entry.node.by) : null,
+            detail: view.k >= DETAIL_ZOOM,
             onHistory: (nodeId, x, y) => setHistoryFor((current) => {
               if (current && current.id === nodeId) return null;
               // The pointer converted once, into the canvas's own coordinates. From then on the card is a
