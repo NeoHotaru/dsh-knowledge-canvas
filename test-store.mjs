@@ -173,13 +173,13 @@ const { gistOf, renderOutline, refresh, outlineFor, invalidate } = await import(
 const sample = await loadBase(cwd, 'flow')
 
 const everything = renderOutline([sample.base], null)
-check('mentions the base name and id', everything.includes('鍙戝竷娴佺▼') && everything.includes('flow'))
+check('mentions the base name and id', everything.includes('发布流程') && everything.includes('flow'))
 check('does not dump bodies', !everything.includes('scripts/build.mjs'))
-check('carries the review markers', everything.includes('[测试]') && everything.includes('[测试]'))
+check('carries the review markers', everything.includes('[新增]') || everything.includes('[修改]'))
 check('indents by depth', /\n {4}- n2/.test(everything),
   JSON.stringify(everything.split('\n').slice(3, 6)))
 check('keeps a removed node out of the tree', !/^\s*- n3 /m.test(everything))
-check('but still reports it as retired', /测试n3/.test(everything), everything.split('\n').slice(-2).join(' / '))
+check('but still reports it as retired', /已废弃/.test(everything), everything.split('\n').slice(-2).join(' / '))
 check('tells the model how to get bodies', everything.includes('knowledge_read'))
 check('nothing enabled injects nothing', renderOutline([sample.base], new Set()) === '')
 check('an unrelated selection injects nothing', renderOutline([sample.base], new Set(['nope'])) === '')
@@ -190,7 +190,7 @@ check('a matching selection injects only that base',
 // Links are dropped when a node is removed, so make one here to see the line render.
 const linked = await loadBase(cwd, 'flow')
 addLink(linked.base, { from: 'n2', to: 'n1', note: '测试' })
-check('lists links', renderOutline([linked.base], null).includes('鍏宠仈锛歯2<->n1'),
+check('lists links', renderOutline([linked.base], null).includes('关联：n2<->n1'),
   renderOutline([linked.base], null).split('\n').slice(-1)[0])
 
 await refresh(cwd)
@@ -315,7 +315,7 @@ check('the base is listed before the removal',
 const parked = await removeBase(cwd, 'flow')
 check('it is no longer listed', !(await listNow(cwd)).some((base) => base.id === 'flow'))
 check('but the file still exists where it was parked',
-  parked.includes('.removed') && (await readFile(parked, 'utf8')).includes('鍙戝竷娴佺▼'),
+  parked.includes('.removed') && (await readFile(parked, 'utf8')).includes('发布流程'),
   parked)
 check('the other bases are untouched', (await listNow(cwd)).some((base) => base.id === 'panel'))
 check('removing a base twice fails clearly',
@@ -616,20 +616,20 @@ const outlineBase = {
   id: 'demo',
   name: '演示',
   nodes: [
-    { id: 'n1', parent: null, title: '测试', body: '这是根节点的一句话说明，后面还有别的。' },
-    { id: 'n2', parent: 'n1', title: '测试' },
+    { id: 'n1', parent: null, title: '根节点', body: '这是根节点的一句话说明，后面还有别的。' },
+    { id: 'n2', parent: 'n1', title: '子节点' },
   ],
   links: [],
 }
 const outlineText = renderOutline([outlineBase], null)
 check('the gist appears next to the title',
-  outlineText.includes('杩欐槸鏍硅妭鐐圭殑涓€鍙ヨ测试'), outlineText.split('\n').slice(2).join(' | '))
-check('the title still appears', outlineText.includes('- n1  测试'))
-check('a node with no body still lists', outlineText.includes('- n2  测试'))
+  outlineText.includes('这是根节点的一句话说明，后面还有别的。'), outlineText.split('\n').slice(2).join(' | '))
+check('the title still appears', outlineText.includes('- n1  根节点'))
+check('a node with no body still lists', outlineText.includes('- n2  子节点'))
 check('and gets no dangling dash', !outlineText.includes('测试 测试'))
 check('a long body is cut at a sentence',
   gistOf('第一句话讲清楚这件事。' + '后面还有很多补充说明。'.repeat(40)) === '第一句话讲清楚这件事。')
-check('an unpunctuated body is cut at the limit', gistOf('x'.repeat(200)).endsWith('测试'))
+check('an unpunctuated body is cut at the limit', gistOf('x'.repeat(200)).endsWith('…'))
 check('the gist prefers the trigger over the claim',
   gistOf('这是开头的一句话。\n\n什么时候该想起它：在动手之前，问一句还有谁在用它。')
     === '在动手之前，问一句还有谁在用它。',
@@ -656,13 +656,13 @@ const localToday = () => {
   return now.getFullYear() + '-' + two(now.getMonth() + 1) + '-' + two(now.getDate())
 }
 const today = localToday()
-await saveBase(pathFor(cwd, 'timed'), newBase('timed', '鏃堕棿', '测试', ''))
+await saveBase(pathFor(cwd, 'timed'), newBase('timed', '时间', '测试', ''))
 const timedOpened = await loadBase(cwd, 'timed')
 const timedRoot = timedOpened.base.nodes[0]
 check('a new node carries a timestamp', /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(timedRoot.at || ''), String(timedRoot.at))
 check('and it is today', String(timedRoot.at).slice(0, 10) === today, String(timedRoot.at))
 
-const timedChild = upsertNode(timedOpened.base, { title: '瀛╁瓙', body: 'x', parent: timedRoot.id }).node
+const timedChild = upsertNode(timedOpened.base, { title: '孩子', body: 'x', parent: timedRoot.id }).node
 check('a created node carries one too', /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(timedChild.at || ''), String(timedChild.at))
 
 // Written yesterday, then rewritten: the date has to move.
@@ -676,8 +676,8 @@ check('the date survives a reload',
 
 // A file written before this existed has no dates, and inventing one would be worse than not knowing.
 await saveBase(pathFor(cwd, 'legacy'), {
-  version: 1, id: 'legacy', name: '鏃у簱',
-  nodes: [{ id: 'n1', parent: null, title: '鏃х殑', body: '' }], links: [],
+  version: 1, id: 'legacy', name: '旧库',
+  nodes: [{ id: 'n1', parent: null, title: '旧的', body: '' }], links: [],
 })
 check('a node without a date stays without one',
   (await loadBase(cwd, 'legacy')).base.nodes[0].at === undefined)
@@ -685,9 +685,9 @@ check('a node without a date stays without one',
 // The outline: one today line, and dates only where they are recent enough to matter.
 const old = '2000-01-01'
 const timedOutline = renderOutline([{ id: 'b', name: '测试', nodes: [
-  { id: 'n1', parent: null, title: '浠婂ぉ测试', body: '', at: today + ' 09:30' },
-  { id: 'n2', parent: null, title: '涓夊懆鍓嶇殑', body: '', at: old },
-  { id: 'n3', parent: null, title: '娌℃湁鏃ユ湡', body: '' },
+  { id: 'n1', parent: null, title: '今天的节点', body: '', at: today + ' 09:30' },
+  { id: 'n2', parent: null, title: '很久以前的', body: '', at: old },
+  { id: 'n3', parent: null, title: '没有日期的', body: '' },
 ], links: [] }], null)
 // The instruction lives in its own early section so it is read where attention is strongest. It is a
 // constant injected verbatim, so asserting on its text is asserting on what the model receives.
@@ -698,7 +698,7 @@ check('and the trigger convention', /什么时候该想起它/.test(protocolSour
 check('and it asks for a look before acting', /先看/.test(protocolSource))
 // And the outline states the other half: when not to read. An index that is always pulled is noise.
 // The words moved when full injection arrived; the point did not.
-check('the outline says when not to read', /不用读/.test(timedOutline))
+check('the outline says when not to read', /比不读更糟/.test(timedOutline))
 
 // --- full injection ------------------------------------------------------------------
 // A base the user marked for full injection carries its bodies, so the model does not have to decide to
@@ -711,7 +711,7 @@ const asIndex = renderOutline([wholeBase], null, {})
 const asFull = renderOutline([wholeBase], null, { whole: 'full' })
 // The index carries the trigger line's content — '整库注入时' — not the marker that introduces it, and
 // not the body's first line.
-check('an index base shows its gists', /整库注入时/.test(asIndex) && !/根节点的正文/.test(asIndex))
+check('an index base shows its gists', /整库注入时/.test(asIndex) && !/正文写着/.test(asIndex))
 check('a full base carries the bodies', asFull.includes('整库注入时'))
 check('and the root body too', asFull.includes('根节点的正文'))
 check('and says which kind it is', /全文/.test(asFull))
@@ -720,24 +720,31 @@ check('and an empty mode map behaves as before', asIndex === renderOutline([whol
 
 // Removed nodes stay out of a full injection for the same reason they stay out of the index.
 const removedBase = newBase('gone', '测试', '测试', '')
-upsertNode(removedBase, { title: '瑕佽蛋', body: '测试', parent: 'n1' })
-const goneNode = removedBase.nodes.find((node) => node.title === '瑕佽蛋')
+upsertNode(removedBase, { title: '要走', body: '会被删掉的正文', parent: 'n1' })
+const goneNode = removedBase.nodes.find((node) => node.title === '要走')
 goneNode.change = 'removed'
 check('a removed node is not injected in full',
-  !renderOutline([removedBase], null, { gone: 'full' }).includes('测试'))
+  !renderOutline([removedBase], null, { gone: 'full' }).includes('会被删掉的正文'))
 
 // And the guard: a base past the limit falls back rather than crowding everything else out.
 const hugeBase = newBase('huge', '测试', '测试', 'x'.repeat(30000))
 const huge = renderOutline([hugeBase], null, { huge: 'full' })
-check('an oversized full base falls back to the index', /瓒呰繃/.test(huge), huge.slice(0, 120))
+check('an oversized full base falls back to the index', /超过/.test(huge), huge.slice(0, 120))
 check('and it does not carry the whole body', huge.length < 30000)
-check('the outline says what today is', timedOutline.includes('浠婂ぉ测试' + today),
-  timedOutline.split('\n').find((line) => line.includes('浠婂ぉ')) || '(no today line)')
-check('a recent node shows when it was written', /浠婂ぉ鐨刐^\n]*浠婂ぉ \d{2}:\d{2}/.test(timedOutline), timedOutline)
-check('a date-only stamp still reads, without a time',
-  /涓夊懆鍓嶇殑/.test(timedOutline) && !/涓夊懆鍓嶇殑[^\n]*\d/.test(timedOutline))
-check('an old node does not clutter the line', !/涓夊懆鍓嶇殑[^\n]*\d{4}-\d{2}-\d{2}/.test(timedOutline), timedOutline)
-check('a node with no date is not given one', !/娌℃湁鏃ユ湡[^\n]*\d{4}-\d{2}-\d{2}/.test(timedOutline), timedOutline)
+check('the outline says what today is', timedOutline.includes('今天：' + today),
+  timedOutline.split('\n').find((line) => line.includes('今天')) || '(no today line)')
+// `describeBase` is what the model reads when it asks for bodies, so a stamp there is printed in full —
+// it is the place where "when was this written" decides whether the note is still true.
+check('a recent node shows when it was written', describeBase({ id: 'b', name: '测试', nodes: [
+  { id: 'n1', parent: null, title: '今天的节点', body: '', at: today + ' 09:30' },
+], links: [] }).includes(today + ' 09:30'), 'describeBase carries the full stamp')
+check('and an old one carries its date too', describeBase({ id: 'b', name: '测试', nodes: [
+  { id: 'n1', parent: null, title: '很久以前的', body: '', at: old },
+], links: [] }).includes(old), 'an old stamp is still printed here')
+// The index is the other way round: it is a map, so only the header carries today's date and the node lines
+// stay clean.
+check('and the index node lines carry no dates', !/^ {2,}- n\d.*\d{4}-\d{2}-\d{2}/m.test(timedOutline),
+  timedOutline)
 
 // The model-facing read is where a date matters most: it is where the bodies are read.
 const timedDescribed = describeBase({ id: 'b', name: '测试', nodes: [
