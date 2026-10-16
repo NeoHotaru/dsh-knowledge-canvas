@@ -62,7 +62,15 @@ Every change a model makes carries `[added]` / `[modified]` / `[retired]` until 
 
 ## The panel
 
-A canvas on the right: nodes laid out as a tree, pan and zoom, drag to move, right-drag to link, per-node colour and width. Search by title or body, and jump to a node by id — so when a conversation mentions `o14`, you can point at it on screen.
+A canvas on the right: nodes laid out as a tree, pan and zoom (12%–260%), drag to move, right-drag to link, per-node colour and width. Search by title or body, and jump to a node by id — so when a conversation mentions `o14`, you can point at it on screen.
+
+**Reading a large base**: below 55% zoom a node draws its title only, and the spacing tightens with it — at that scale you came for the shape, not the words.
+
+**Edit history**: right-click a node to see the **contents** of every version it kept, with the lines this
+version added marked green and the lines the version before it lost marked red. Ten versions per node.
+
+**Link notes**: click an orange link to write a note on it — when following it is worth doing. The model is
+**required** to write one when it links two nodes, because that note is what other sessions see in their outline.
 
 ## Install
 
@@ -83,10 +91,10 @@ A canvas on the right: nodes laid out as a tree, pan and zoom, drag to move, rig
 ## Tools the model gets
 
 ```
-knowledge_read             read one base, or list them all
+knowledge_read             read one base, read a single node (with its neighbours), or list them all
 knowledge_create_base      create a base
 knowledge_write_node       create or edit a node
-knowledge_link             record an association between two nodes
+knowledge_link             record an association between two nodes (a one-line note is required)
 knowledge_remove_node      retire a node (kept in the file, marked)
 knowledge_select           switch a base on or off (for this session, or the default)
 knowledge_remove_base      move a base out (to .removed/, recoverable)

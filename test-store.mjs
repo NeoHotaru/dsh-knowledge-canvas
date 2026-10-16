@@ -851,6 +851,53 @@ check('a log line was written for it',
   logBody.includes('knowledge_read') && logBody.includes('FAILED'),
   logBody ? logBody.trim().slice(0, 90) : 'no log file at all')
 
+// --- reading one node, and the note on a link ----------------------------------------
+// Both exist for the same reason: the outline tells a reader that things are connected, and the note plus the
+// single-node read are what let it act on that. A link without a note is visible and unusable, and reading a
+// node's neighbour used to cost the whole base.
+console.log('\nreading one node, and link notes')
+const linkCwd = await mkdtemp(join(tmpdir(), 'kblink-'))
+await saveBase(pathFor(linkCwd, 'linked'), {
+  version: 1, id: 'linked', name: '关联', nodes: [
+    { id: 'n1', parent: null, title: '安装流程', body: '正文一。\n\n什么时候该想起它：装插件时。' },
+    { id: 'n2', parent: 'n1', title: '故障排查', body: '正文二。\n\n什么时候该想起它：装不上时。' },
+    { id: 'n3', parent: null, title: '环境', body: '正文三。' },
+  ],
+  links: [{ from: 'n1', to: 'n3', note: '换环境就是换解释器' }],
+})
+const linkExec = { agent: { session: { header: { cwd: linkCwd } } } }
+const linkTool = TOOLS.find((tool) => tool.name === 'knowledge_link')
+const writeTool = TOOLS.find((tool) => tool.name === 'knowledge_write_node')
+
+const one = await readTool.execute({ base: 'linked', node: 'n1' }, linkExec)
+check('reading one node gives its body', one.includes('正文一。'), one.slice(0, 120))
+check('and does not include the whole base', !one.includes('正文二。') || one.includes('故障排查'))
+check('and names its children as neighbours', /child\s+n2\s+故障排查/.test(one), one)
+check('and names its links, with the note',
+  /link\s+n3\s+环境[^\n]*—\s*换环境就是换解释器/.test(one), one)
+check('and a node that is not there fails loudly',
+  await readTool.execute({ base: 'linked', node: 'nope' }, linkExec)
+    .then(() => 'did not fail', (error) => /no node "nope"/.test(error.message) ? 'ok' : 'other: ' + error.message))
+
+check('a link with no note is refused',
+  await linkTool.execute({ base: 'linked', from: 'n2', to: 'n3' }, linkExec)
+    .then(() => 'did not fail', (error) => /needs a note/.test(error.message) ? 'ok' : 'other: ' + error.message))
+check('and one that is only whitespace is refused too',
+  await linkTool.execute({ base: 'linked', from: 'n2', to: 'n3', note: '   ' }, linkExec)
+    .then(() => 'did not fail', (error) => /needs a note/.test(error.message) ? 'ok' : 'other: ' + error.message))
+
+// Every link the model makes goes through that tool; the panel's own drag is a different path, and the user is
+// not asked to write a note for a line they drew. So this has to be a rule of the tool, not of the store.
+const linkedBase = (await loadBase(linkCwd, 'linked')).base
+const linkedOutline = renderOutline([linkedBase], null)
+check('the outline carries the note', linkedOutline.includes('换环境就是换解释器'), linkedOutline.slice(-160))
+check('and marks a link that has none',
+  renderOutline([{ id: 'x', name: 'x', nodes: [
+    { id: 'n1', parent: null, title: 'a', body: '正文。' },
+    { id: 'n2', parent: null, title: 'b', body: '正文。' },
+  ], links: [{ from: 'n1', to: 'n2' }] }], null).includes('无注释'))
+check('the write tool still works without one, for the panel side', typeof writeTool.execute === 'function')
+
 // --- per-session selection -------------------------------------------------------
 console.log('\nper-session selection')
 const selCwd = await mkdtemp(join(tmpdir(), 'kbsel-'))
