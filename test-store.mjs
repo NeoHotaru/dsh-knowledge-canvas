@@ -898,6 +898,37 @@ check('and marks a link that has none',
   ], links: [{ from: 'n1', to: 'n2' }] }], null).includes('无注释'))
 check('the write tool still works without one, for the panel side', typeof writeTool.execute === 'function')
 
+// Rewriting a note. A note is a sentence about *when* to follow the link, and those get rewritten as
+// understanding improves. It used to be write-once: a second call on the same pair threw `already linked`, and
+// since the tool has no unlink, a wrong note could not be corrected at all — the only route left was editing the
+// JSON by hand. Two sessions hit that before it was fixed.
+//
+// Placed after the assertions above on purpose: those read the note written by the fixture, and this rewrites
+// it, so running this first would have made them fail for a reason that has nothing to do with what they check.
+console.log('\nrewriting a link note')
+// Anything that throws is turned into the assertion's own message. A positive case that rejects would otherwise
+// take down the whole run — the regression would show up as a stack trace with no FAIL line, which is worse than
+// useless when the point of the assertion is to name what broke.
+const noteAttempt = (args) => linkTool.execute(args, linkExec)
+  .then((text) => text, (error) => 'THREW: ' + ((error && error.message) || error))
+
+const noteUpdated = await noteAttempt({ base: 'linked', from: 'n1', to: 'n3', note: '改过的措辞' })
+check('a second call on the same pair updates the note instead of refusing',
+  /Updated the note/.test(noteUpdated), noteUpdated)
+const rewritten = (await loadBase(linkCwd, 'linked')).base.links.find((entry) => entry.from === 'n1')
+check('and the file carries the new wording', rewritten.note === '改过的措辞', JSON.stringify(rewritten))
+check('and the pair was not duplicated', (await loadBase(linkCwd, 'linked')).base.links.length === 1)
+const noteReversed = await noteAttempt({ base: 'linked', from: 'n3', to: 'n1', note: '第三次' })
+check('the reverse direction is the same pair', /Updated the note/.test(noteReversed), noteReversed)
+check('the outline shows the rewording, not the old sentence',
+  renderOutline([(await loadBase(linkCwd, 'linked')).base], null).includes('第三次'))
+const noteAgain = await noteAttempt({ base: 'linked', from: 'n1', to: 'n3', note: '第三次' })
+check('saying the same thing again says so instead of writing',
+  /already carries exactly that note/.test(noteAgain), noteAgain)
+check('and an update still refuses an empty note',
+  await linkTool.execute({ base: 'linked', from: 'n1', to: 'n3', note: ' ' }, linkExec)
+    .then(() => 'did not fail', (error) => /needs a note/.test(error.message) ? 'ok' : 'other: ' + error.message))
+
 // --- per-session selection -------------------------------------------------------
 console.log('\nper-session selection')
 const selCwd = await mkdtemp(join(tmpdir(), 'kbsel-'))
