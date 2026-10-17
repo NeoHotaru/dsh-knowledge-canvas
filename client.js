@@ -4080,6 +4080,8 @@ function estimateBox(node) {
       // Bumped to re-read the files: the tools write to disk, and this panel has no way to be
       // told about it, so the user asks for the re-read.
       const [tick, setTick] = React.useState(0);
+      // A destructive action that is one stray click away is a bug in the affordance: the first click only arms it.
+      const [revertArmed, setRevertArmed] = React.useState(false);
       // Links drawn by hand. Held here, not in the file: the client has no write path.
       const [drafts, setDrafts] = React.useState({});
       // Node bodies the user retyped, same story: shown at once, saved nowhere yet.
@@ -4766,24 +4768,6 @@ function estimateBox(node) {
               cursor: 'pointer',
             },
           }, '全部已读 ' + totalUnreviewed()) : null,
-          // One button for the whole workspace. Undoing unreviewed changes is the same set the read counters describe, so it
-          // sits next to them rather than in a menu.
-          totalUnreviewed() > 0 ? h('button', {
-            type: 'button',
-            'data-kb-revert': 'all',
-            onClick: () => post('revert', {}).then(() => setTick((current) => current + 1)).catch(() => {}),
-            title: '把还没看过的改动全部撤回：新增的删掉、改过的回到上一版、标记移除的恢复',
-            style: {
-              padding: '2px 8px',
-              border: '1px solid ' + HAIRLINE,
-              borderRadius: 7,
-              background: 'transparent',
-              color: 'inherit',
-              font: 'inherit',
-              fontSize: 11.5,
-              cursor: 'pointer',
-            },
-          }, '撤销改动 ' + totalUnreviewed()) : null,
           totalUnreviewed() > 0 ? h('button', {
             type: 'button',
             title: '跳到下一个还没读的节点（会展开它所在的库并把它移到画面中间）',
@@ -4799,6 +4783,32 @@ function estimateBox(node) {
               cursor: 'pointer',
             },
           }, walk ? '下一个 ›  还剩 ' + totalUnreviewed() : '看未读 ' + totalUnreviewed()) : null,
+          // Last, and two-step. It undoes every unreviewed change in the workspace — the blunt tool — so it does not sit
+          // between the two read buttons, and it does not fire on the first click.
+          totalUnreviewed() > 0 ? h('button', {
+            type: 'button',
+            'data-kb-revert': revertArmed ? 'armed' : 'idle',
+            onClick: () => {
+              if (!revertArmed) {
+                setRevertArmed(true);
+                window.setTimeout(() => setRevertArmed(false), 4000);
+                return;
+              }
+              setRevertArmed(false);
+              post('revert', {}).then(() => setTick((current) => current + 1)).catch(() => {});
+            },
+            title: revertArmed ? '再点一次就真的撤回了' : '把还没看过的改动全部撤回：新增的删掉、改过的回到上一版、标记移除的恢复',
+            style: {
+              padding: '2px 8px',
+              border: '1px solid ' + (revertArmed ? '#c0392b' : HAIRLINE),
+              borderRadius: 7,
+              background: revertArmed ? 'rgba(192,57,43,0.10)' : 'transparent',
+              color: revertArmed ? '#c0392b' : 'inherit',
+              font: 'inherit',
+              fontSize: 11.5,
+              cursor: 'pointer',
+            },
+          }, (revertArmed ? '确定撤回 ' : '撤销改动 ') + totalUnreviewed()) : null,
           // Only while walking: a way out that is always there would be a control with nothing to do.
           walk ? h('button', {
             type: 'button',
