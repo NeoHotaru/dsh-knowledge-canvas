@@ -53,5 +53,6 @@ if (problems.length === 0) {
   process.exit(0)
 }
 console.log("  FAIL these do not belong in a public repository:")
-for (const problem of problems) console.log('    ' + problem)
+for (const problem of problems) 
+console.log('    ' + problem)
 process.exit(1)
