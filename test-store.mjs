@@ -332,6 +332,22 @@ check('undo one node leaves the others', settled.base.nodes.length === 2
 check('and that node is back to its previous text',
   settled.base.nodes[0].body === '甲的原文。' && !settled.base.nodes[0].change, settled.base.nodes[0].body)
 
+// A revival says so: "Updated" for a node the panel draws as removed hid what had actually happened.
+const reviveCwd = await mkdtemp(join(tmpdir(), 'kbrevive-'))
+await saveBase(pathFor(reviveCwd, 'rv'), newBase('rv', '复活', '根', '正文。'))
+const reviveExec = { agent: { session: { header: { cwd: reviveCwd, id: 'rv-session' } } } }
+const built = await loadBase(reviveCwd, 'rv')
+upsertNode(built.base, { title: '第二个', body: '正文。' })
+const second = built.base.nodes[built.base.nodes.length - 1].id
+await saveBase(built.path, built.base)
+await activityWriteTool.execute({ base: 'rv', node: second, title: '第二个', session_name: '测试' }, reviveExec)
+const removal = await loadBase(reviveCwd, 'rv')
+removeNode(removal.base, second)
+await saveBase(removal.path, removal.base)
+check('a write into a removed node says Restored',
+  await activityWriteTool.execute({ base: 'rv', node: second, body: '复活后。' }, reviveExec)
+    .then((value) => /Restored/.test(String(value)), (error) => 'refused: ' + error.message))
+
 const bothCwd = await mkdtemp(join(tmpdir(), 'kbboth-'))
 await state.writeDiary(bothCwd, true, 'keeper')
 const keepCreate = TOOLS.find((tool) => tool.name === 'knowledge_create_base')
