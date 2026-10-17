@@ -1,5 +1,5 @@
 {
-  "name": "dsh-knowledge-tree",
+  "name": "dsh-knowledge-canvas",
   "version": "0.2.3",
   "type": "module",
   "description": "Tree-shaped knowledge bases for DeepSeek Harness: per-session activation, a node graph view, and review markers for model edits.",
@@ -20,7 +20,7 @@
   "scripts": {
     "test": "node test-store.mjs",
     "check": "node check-client-loads.mjs && node check-scope.mjs && node check-actions.mjs && node check-identifiers.mjs && node check-tdz.mjs && node check-props.mjs && node check-promise.mjs && node check-duplicate-keys.mjs && node check-placement.mjs",
-    "check:all": "npm run check && node check-sprites.mjs && npm test",
+    "check:all": "npm run check && node check-sprites.mjs && node check-public.mjs && npm test",
     "prepublishOnly": "npm run check:all"
   },
   "dsh": {
