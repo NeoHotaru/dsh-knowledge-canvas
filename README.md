@@ -29,7 +29,7 @@ Every node ends with a line beginning 「什么时候该想起它：」 — "whe
 | Where | What |
 | --- | --- |
 | Top row | search, read counters, refresh |
-| One row per base | title, read progress, index/full switches, `⋯` menu (rename, delete, colour, export) |
+| One row per base | title, read progress, one switch (does this conversation read it), `⋯` menu (rename, delete, colour, export) |
 | Canvas toolbar | zoom, fit, **width** (the whole base's default width, not one node), shape, colour, layout |
 | 「定位到…」 at the bottom | type an id to jump to that node |
 
@@ -61,7 +61,7 @@ Restart DSH once after installing; the 「知识库」 panel appears in the side
 
 The first time you open a workspace, a base called 「怎么用这个知识库」 is seeded with everything the panel can do. It upgrades with each release, and nodes you edited are never overwritten.
 
-## Tools the model gets
+## Tools the model gets (eight)
 
 | Tool | What it does |
 | --- | --- |
@@ -70,7 +70,9 @@ The first time you open a workspace, a base called 「怎么用这个知识库�
 | `knowledge_write_node` | write or edit a node. The return carries the id it just created, ready to use as `parent` |
 | `knowledge_link` | connect two nodes, and say in one line why they are related |
 | `knowledge_remove_node` | mark a node removed (recoverable, not deleted) |
+| `knowledge_unlink` | remove an association; the nodes stay, the dashed line goes |
 | `knowledge_select` | switch a base on or off for this conversation |
+| `knowledge_remove_base` | mark a base removed (recoverable; the file is not deleted) |
 
 ## Settings, per workspace
 
@@ -113,14 +115,14 @@ With it on, that conversation writes an entry of its own when a stretch of talk 
 
 ### For contributors
 
-- `npm run check:all` runs four things: identifiers, sprite aspect ratios, a public-tree check (no local paths, addresses or private ids), and 472 assertions over store/routes/tools.
+- `npm run check:all` runs four things: identifiers, sprite aspect ratios, a public-tree check (no local paths, addresses or private ids), and 475 assertions over store/routes/tools.
 - **Change a gesture, change the tutorial line that describes it** (`lib/seed.js`, the table at the top), or the tutorial describes something that does not exist.
 - The tutorial is recognised **by content** (whichever base shares most of the seed's node ids), not by file name — that rule came from three workspaces keeping it under three different names.
 
 ## Development
 
 ```bash
-npm run check:all     # identifiers + sprites + public tree + 472 assertions
+npm run check:all     # identifiers + sprites + public tree + 475 assertions
 npm test              # assertions only
 ```
 
