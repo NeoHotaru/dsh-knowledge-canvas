@@ -289,6 +289,24 @@ const bothCwd = await mkdtemp(join(tmpdir(), 'kbboth-'))
 await state.writeDiary(bothCwd, true, 'keeper')
 const keepCreate = TOOLS.find((tool) => tool.name === 'knowledge_create_base')
 await keepCreate.execute({ id: 'fresh', name: '新库' }, { agent: { session: { header: { cwd: bothCwd, id: 'keeper' } } } })
+// From a live session: a base that does not exist was reported as "switched off", which sends the model to a switch that is
+// not there either. Missing and switched-off are different answers.
+check('a missing base says it is missing, not that it is switched off',
+  await activityWriteTool.execute({ base: 'no-such-base', title: 'x', body: 'y' },
+    { agent: { session: { header: { cwd: bothCwd, id: 'keeper' } } } })
+    .then(() => false, (error) => /no knowledge base/.test(error.message) && !/switched off/.test(error.message)))
+
+// And: a session that inherits the workspace list must get the base it just created. It used to be added only to a session's
+// own list, so the common case — no session file, a workspace list that does not name it — was refused on the next call.
+const inheritCwd = await mkdtemp(join(tmpdir(), 'kbinherit-'))
+await saveBase(pathFor(inheritCwd, 'existing'), newBase('existing', '旧库', '根', '正文。'))
+await state.writeSelection(inheritCwd, ['existing'])
+await keepCreate.execute({ id: 'brand-new-2', name: '新库' }, { agent: { session: { header: { cwd: inheritCwd, id: 'inheritor' } } } })
+check('a created base joins the list the session inherits',
+  await activityWriteTool.execute({ base: 'brand-new-2', title: '第一篇', body: '正文。', session_name: '测试' },
+    { agent: { session: { header: { cwd: inheritCwd, id: 'inheritor' } } } })
+    .then((value) => String(value).includes('第一篇'), (error) => 'refused: ' + error.message))
+
 check('creating a base keeps the diary switch on', (await state.readDiary(bothCwd, 'keeper')) === true)
 check('and turning it off does not invent a base list',
   (await state.writeDiary(bothCwd, false, 'keeper')) === false
