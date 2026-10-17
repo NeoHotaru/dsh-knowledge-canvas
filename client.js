@@ -3641,7 +3641,13 @@ function estimateBox(node) {
       );
 
       if (!node) {
-        return h('div', { style: { height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', padding: '14px 16px' } },
+        return h('div', {
+          style: {
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 6,
+            boxSizing: 'border-box', display: 'flex', flexDirection: 'column', padding: '14px 16px',
+            background: 'Canvas', color: 'CanvasText', font: 'inherit',
+          },
+        },
           header,
           h('div', { style: { opacity: 0.7 } },
             '这个节点在 ' + baseId + ' 里已经找不到了 —— 它可能被彻底删除了。'),
@@ -3674,8 +3680,15 @@ function estimateBox(node) {
       return h('div', {
         'data-kb-history': nodeId,
         style: {
-          height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+          // A layer over the panel, not a replacement for it: the list underneath stays mounted so every
+          // canvas keeps its pan and zoom. `top/left/right/bottom` rather than `inset` — the shorthand is
+          // fine in a browser but this is written as a React style object, where the longhand is what every
+          // other overlay in this file uses.
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 6,
+          boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
           padding: '14px 16px 18px', font: 'inherit', color: 'inherit',
+          // Opaque, so the panel underneath does not show through — it is still there, and still laid out.
+          background: 'Canvas',
         },
       },
         header,
@@ -4305,12 +4318,23 @@ function estimateBox(node) {
       const bases = state.bases;
       const open = bases.find((base) => base.id === openId);
 
-      // The history takes the whole panel instead of floating over the canvas.
-      //
-      // Placed after every hook, so the early return cannot change the hook order. The node is looked up here
-      // rather than inside the view so that "the base is gone" and "the node is gone" stay distinguishable
-      // facts rather than one blank screen.
-      if (historyFor) {
+      /**
+       * The history, when it is open, as a layer over the panel rather than a replacement for it.
+       *
+       * It was an early `return` first, and that quietly destroyed the canvas: unmounting the list unmounts every
+       * `Tree`, and each `Tree` holds its own pan and zoom. Coming back therefore landed on the default view —
+       * the position the canvas has when it is first opened — which is what "位置直接重置" was. Nothing about the
+       * history needs the canvas gone; it only needs to be on top of it.
+       *
+       * Keeping the list mounted also keeps the accordion's open state and each canvas's scroll, and it leaves
+       * the node measurements valid: hiding a subtree with `display: none` would make every box measure zero, and
+       * the sizes feed the layout and the edge routing.
+       *
+       * It also means no wheel conflict to reason about. The canvas binds `wheel` to its own element, and this
+       * layer is its sibling, so a wheel here never reaches that listener.
+       */
+      const historyLayer = (() => {
+        if (!historyFor) return null;
         const owner = bases.find((base) => base.id === historyFor.baseId) || null;
         const target = owner
           ? (owner.nodes || []).find((item) => item.id === historyFor.nodeId) || null
@@ -4323,12 +4347,14 @@ function estimateBox(node) {
           names,
           onBack: () => setHistoryFor(null),
         });
-      }
+      })();
 
       return h('div', {
         style: {
           height: '100%',
           boxSizing: 'border-box',
+          // A positioning context for the history layer, which covers the panel rather than replacing it.
+          position: 'relative',
           // A column so the canvas can take the leftover height instead of a fixed box floating
           // in empty space.
           display: 'flex',
@@ -5003,6 +5029,9 @@ function estimateBox(node) {
           h('br'),
           '编辑、连线、挪位置、开关都会立刻写进 .dsh-knowledge/，不需要保存按钮。')
           : null,
+        // Last child, so it paints over everything above it. The panel underneath stays mounted — see
+        // `historyLayer` for why that matters.
+        historyLayer,
       );
     }
 
