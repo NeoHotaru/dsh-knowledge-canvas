@@ -1,6 +1,6 @@
 # dsh-knowledge-canvas
 
-[English](README.md) · **简体中文**
+[English](README.md) · **简体中文** · [使用手册](MANUAL.md)
 
 给 DeepSeek Harness 的知识库：模型**靠判断去取，而不是靠相似度**。
 

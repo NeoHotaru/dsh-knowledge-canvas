@@ -14,6 +14,7 @@
     "lib/",
     "check-*.mjs",
     "test-store.mjs",
+    "MANUAL.md",
     "README.md",
     "assets/",
     "CHANGELOG.md",
