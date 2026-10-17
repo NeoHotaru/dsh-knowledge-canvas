@@ -1569,9 +1569,9 @@ function estimateBox(node) {
           // fires after the gesture has ended, which makes this the place to ask whether a link was drawn.
           event.preventDefault();
           event.stopPropagation();
-          // Just the node id now. The card used to be placed at the pointer, so this passed the coordinates
-          // too; the history is a whole-panel view, which has no use for where the click happened.
-          if (onHistory) onHistory(node.id);
+          // The pointer's own position, which is where this gesture happened and therefore where the reader is
+          // looking. The card opens here; the button on that card is what expands it to the whole panel.
+          if (onHistory) onHistory(node.id, event.clientX, event.clientY);
         },
         tabIndex: 0,
         role: 'button',
@@ -2219,6 +2219,9 @@ function estimateBox(node) {
         }));
       }, [focusId, placed, sizes]);
 
+      // Which node's edit history is open, and the entries it should show. The entries come from the node
+      // itself — it carries its own last ten edits — so this is a lookup, not a fetch.
+      const [historyFor, setHistoryFor] = React.useState(null);
       /**
        * The link whose note is being edited: `{ from, to, note, x, y }` in canvas coordinates.
        *
@@ -3226,13 +3229,43 @@ function estimateBox(node) {
             // The labels come from Body: they are assigned across every base, and Tree renders one.
             onRename: entry.node.by ? () => renameSession(entry.node.by) : null,
             detail: view.k >= DETAIL_ZOOM,
-            // Bubbled to Body, which swaps the whole panel for the history view — see `HistoryView`.
-            //
-            // This used to open a card on the canvas, and everything the card needed lived here: the pointer
-            // converted into canvas coordinates, the canvas rectangle measured, the placement clamped in canvas
-            // units against the current pan. All of that was the cost of putting a readable panel inside a
-            // transformed, clipped, moving scene. Off the canvas, none of it is needed.
-            onHistory: (nodeId) => onShowHistory(nodeId),
+            onHistory: (nodeId, x, y) => setHistoryFor((current) => {
+              if (current && current.id === nodeId) return null;
+              // The pointer converted once, into the canvas's own coordinates. From then on the card is a
+              // thing on the canvas: it takes the same transform the nodes do, so panning and zooming carry
+              // it along. The one measurement that is right here is the canvas's own rectangle — that is what
+              // turns a screen point into a canvas point, and it is a fact rather than a calculation.
+              //
+              // No clamping against the window — that was right while the card was pinned to it, and wrong
+              // now. But the canvas clips its own children, so a card opened near an edge came out cut.
+              //
+              // The clamp has to be in canvas units *and* relative to the pan. `0` is the canvas's origin,
+              // not its visible edge: once the view has been panned, the top-left of what you can see is
+              // `-view / k`. Clamping to 0 therefore pushed the card hundreds of pixels off the top of the
+              // canvas — which is what made it appear somewhere else entirely, and what every earlier
+              // version got wrong in one way or another.
+              const frame = boxRef.current ? boxRef.current.getBoundingClientRect() : null;
+              if (!frame || !view.k) return { id: nodeId, x: 0, y: 0 };
+              const spot = {
+                x: (x - frame.left - view.x) / view.k,
+                y: (y - frame.top - view.y) / view.k,
+              };
+              const CARD_W = 300;
+              const CARD_MAX_H = 380;
+              // What is visible, in canvas units.
+              const left = -view.x / view.k;
+              const top = -view.y / view.k;
+              const right = (frame.width - view.x) / view.k;
+              const bottom = (frame.height - view.y) / view.k;
+              return {
+                id: nodeId,
+                // Placed at the pointer when it fits, pulled inside only when it would not. The lower bound
+                // is never allowed past the upper one, so a canvas smaller than the card still puts the card
+                // at its top-left rather than somewhere off it.
+                x: Math.max(left, Math.min(spot.x, Math.max(left, right - CARD_W))),
+                y: Math.max(top, Math.min(spot.y, Math.max(top, bottom - CARD_MAX_H))),
+              };
+            }),
             byline: entry.node.by
               ? (labels.get(entry.node.by) || { label: '', hue: 0 })
               : (('by' in entry.node) ? { label: '你', hue: 145 } : null),
@@ -3337,6 +3370,164 @@ function estimateBox(node) {
           h('div', { style: { opacity: 0.5, marginTop: 4 } },
             '回车保存 · Esc 关闭 · 留空即删除注释'),
         ) : null,
+        historyFor ? (() => {
+          const item = ordered.find((entry) => entry.node.id === historyFor.id);
+          // A silent `return null` here is the worst outcome: nothing appears, and the reason is invisible.
+          // Both failure modes now say what they are, so the next look at the screen is the diagnosis.
+          if (!item) {
+            return h('div', {
+              'data-kb-history': 'missing',
+              style: {
+                position: 'absolute', left: historyFor.x, top: historyFor.y, zIndex: 3,
+                padding: '6px 9px', borderRadius: 8, border: '1px solid #c0392b',
+                background: 'Canvas', color: '#c0392b', fontSize: 11.5,
+              },
+            }, '历史：找不到节点 ' + historyFor.id);
+          }
+          const entries = Array.isArray(item.node.history) ? item.node.history.slice().reverse() : [];
+          // Computed once here rather than per row, and by a function a check can reach — see `historyMarks`.
+          const marks = historyMarks(entries, item.node.body);
+          return h('div', {
+            'data-kb-history': historyFor.id,
+            // The canvas leaves the wheel alone over this card.
+            //
+            // The card scrolls (`maxHeight` below) and the wheel is bound to zoom, so without this the reader
+            // cannot scroll the history at all — they zoom instead, which is what "展开全文以后滚不动" was.
+            //
+            // It went unnoticed because the card used to hold a few lines of times and session names and never
+            // reached its own height limit; nothing about it scrolled, so nothing about it needed the wheel.
+            // Bodies made it long enough to scroll for the first time.
+            //
+            // The same mark the node boxes use, and it carries the same trade: while the pointer is over a card
+            // that happens to have nothing to scroll, the wheel does nothing rather than zooming. That is the
+            // behaviour already established for a fixed-height node, and moving the pointer off restores
+            // zooming — which is a smaller surprise than a scroll gesture that zooms.
+            'data-kb-scroll': 'true',
+            style: {
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              // The layer's own transform, applied by hand because the card is its sibling rather than its
+              // child. `historyFor.x/y` are canvas coordinates, so this maps them the same way the layer maps
+              // its children: pan and zoom now carry the card exactly as they carry a node.
+              //
+              // Without it the card sat at a canvas coordinate inside a box that is not transformed — so it
+              // never moved when the canvas was panned, which is what "钉死" was: a fixed card in a moving
+              // scene, whose right-hand end could be pushed off the canvas with no way to reach it.
+              transform: 'translate(' + (view.x + historyFor.x * view.k) + 'px, '
+                + (view.y + historyFor.y * view.k) + 'px) scale(' + view.k + ')',
+              transformOrigin: '0 0',
+              zIndex: 3,
+              width: 300,
+              maxHeight: 360,
+              overflowY: 'auto',
+              padding: '9px 11px',
+              borderRadius: 9,
+              border: '1px solid ' + HAIRLINE,
+              // An opaque colour from the system palette. The translucent surface used elsewhere is right
+              // for an overlay meant to be seen through; this one has to be read.
+              background: 'Canvas',
+              color: 'CanvasText',
+              boxShadow: '0 6px 18px rgba(0,0,0,0.22)',
+              fontSize: 11.5,
+              lineHeight: 1.5,
+            },
+          },
+            h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 6 } },
+              h('div', { style: { fontWeight: 600, fontSize: 12.5 } }, '修改历史'),
+              h('div', { style: { opacity: 0.5, fontSize: 11 } }, item.node.title || historyFor.id),
+              // Two steps on purpose: the card is for a quick look where you are already looking, and this
+              // hands the same history to the whole panel when the box is too small to read in. Ten versions of
+              // a long body is exactly that case, and so is wanting to compare against the canvas while reading.
+              h('button', {
+                type: 'button',
+                title: '在面板里展开（整块的宽和高）',
+                onClick: () => {
+                  setHistoryFor(null);
+                  onShowHistory(item.node.id);
+                },
+                style: {
+                  marginLeft: 'auto', padding: '0 6px', border: '1px solid ' + HAIRLINE, borderRadius: 6,
+                  background: 'transparent', color: 'inherit', font: 'inherit', fontSize: 11, cursor: 'pointer',
+                },
+              }, '展开 ⤢'),
+              h('button', {
+                type: 'button',
+                onClick: () => setHistoryFor(null),
+                style: {
+                  padding: '0 6px', border: '1px solid ' + HAIRLINE, borderRadius: 6,
+                  background: 'transparent', color: 'inherit', font: 'inherit', fontSize: 11, cursor: 'pointer',
+                },
+              }, '关闭'),
+            ),
+            // The version on disk, then every version kept. The card used to list times and sessions only,
+            // because that was all the store kept — a local git with commit dates and no contents. It keeps
+            // the contents now, so this shows them, and shows what changed between them.
+            //
+            // Each side carries one half of the change: the current version marks what it added relative to the
+            // one before it, and each older version marks what was deleted after it. Together the two halves
+            // are the whole edit, and neither has to display both kinds at once — which on a reworded paragraph
+            // would be a page of confetti.
+            (() => {
+              const after = entries.length ? (entries[0].body || '') : ''
+              const lines = entries.length ? diffLines(after, item.node.body || '').next : null
+              return h('div', {
+                style: { paddingBottom: 7, marginBottom: 7, borderBottom: '1px solid ' + HAIRLINE },
+              },
+                h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
+                  h('span', { style: { fontWeight: 600, fontSize: 11.5 } }, '当前'),
+                  h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, shortWhen(item.node.at)),
+                  entries.length ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } },
+                    lines && lines.some((line) => worthMarking(line))
+                      ? '（绿色是相对上一版新增的，' + lines.filter((line) => worthMarking(line)).length + ' 处）'
+                      : '（与上一版相同）') : null,
+                ),
+                h('div', { style: { fontWeight: 600, marginBottom: 2 } }, item.node.title || historyFor.id),
+                h(VersionBody, { text: item.node.body, lines }),
+              );
+            })(),
+            entries.length === 0
+              ? h('div', { style: { opacity: 0.55 } }, '没有更早的版本（写在加历史之前）。')
+              : entries.map((entry, index) => {
+                // What this version lost, which is defined by what replaced it: the current node for the newest
+                // kept version, and the entry above it for every older one. See `historyMarks` for what went
+                // wrong when that rule was written inline as "the entry below it".
+                const marked = marks[index] ? marks[index].lines : null;
+                return h('div', {
+                  key: index,
+                  style: {
+                    paddingTop: index ? 7 : 0,
+                    marginTop: index ? 7 : 0,
+                    borderTop: index ? '1px solid ' + HAIRLINE : undefined,
+                    // Older versions fade rather than disappear: the newest kept version is the one being
+                    // compared against the present, and it should not read as less real than the rest.
+                    opacity: index === 0 ? 1 : 0.72,
+                  },
+                },
+                  h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
+                    h('span', {
+                      style: { fontVariantNumeric: 'tabular-nums', opacity: 0.7 },
+                    }, shortWhen(entry.at)),
+                    h('span', { style: { opacity: 0.7 } },
+                      entry.by ? ((names && names[entry.by]) || '一个会话') : '你'),
+                    index === 0 ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '上一个版本') : null,
+                    marked && marked.some((line) => worthMarking(line))
+                      ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } },
+                        '（红色是之后被删掉的，' + marked.filter((line) => worthMarking(line)).length + ' 处）')
+                      : null,
+                  ),
+                  // Entries written before the store kept contents have neither field. Saying so is the honest
+                  // option; showing an empty body would read as "it was blank", which is a different fact.
+                  entry.title === undefined && entry.body === undefined
+                    ? h('div', { style: { opacity: 0.5, fontStyle: 'italic' } }, '这一版没有留下内容（写在存内容之前）。')
+                    : h(React.Fragment, null,
+                      entry.title ? h('div', { style: { fontWeight: 600, marginBottom: 2 } }, entry.title) : null,
+                      h(VersionBody, { text: entry.body, lines: marked }),
+                    ),
+                );
+              }),
+          );
+        })() : null,
         ),
       );
     }
