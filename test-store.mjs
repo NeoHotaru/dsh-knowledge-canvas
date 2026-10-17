@@ -348,6 +348,20 @@ check('a write into a removed node says Restored',
   await activityWriteTool.execute({ base: 'rv', node: second, body: '复活后。' }, reviveExec)
     .then((value) => /Restored/.test(String(value)), (error) => 'refused: ' + error.message))
 
+// The two writers that rebuild selection.json must not drop what they do not own.
+const flagCwd = await mkdtemp(join(tmpdir(), 'kbflag-'))
+await saveBase(pathFor(flagCwd, 'one'), newBase('one', '一', '根', '正文。'))
+await saveBase(pathFor(flagCwd, 'two'), newBase('two', '二', '根', '正文。'))
+await state.writeSelection(flagCwd, ['one', 'two'])
+await state.writeLive(flagCwd, true)
+await state.writeOrder(flagCwd, ['two', 'one'])
+check('live survives reordering', await state.readLive(flagCwd) === true)
+
+await state.writeInject(flagCwd, 'one', 'full')
+check('live survives a change to one base injection mode', await state.readLive(flagCwd) === true)
+check('and the injection mode is the one that was asked for',
+  (await state.readInject(flagCwd)).one === 'full')
+
 const bothCwd = await mkdtemp(join(tmpdir(), 'kbboth-'))
 await state.writeDiary(bothCwd, true, 'keeper')
 const keepCreate = TOOLS.find((tool) => tool.name === 'knowledge_create_base')
