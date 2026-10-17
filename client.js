@@ -4759,6 +4759,24 @@ function estimateBox(node) {
               cursor: 'pointer',
             },
           }, '全部已读 ' + totalUnreviewed()) : null,
+          // One button for the whole workspace. Undoing unreviewed changes is the same set the read counters describe, so it
+          // sits next to them rather than in a menu.
+          totalUnreviewed() > 0 ? h('button', {
+            type: 'button',
+            'data-kb-revert': 'all',
+            onClick: () => post('revert', {}).then(() => setTick((current) => current + 1)).catch(() => {}),
+            title: '把还没看过的改动全部撤回：新增的删掉、改过的回到上一版、标记移除的恢复',
+            style: {
+              padding: '2px 8px',
+              border: '1px solid ' + HAIRLINE,
+              borderRadius: 7,
+              background: 'transparent',
+              color: 'inherit',
+              font: 'inherit',
+              fontSize: 11.5,
+              cursor: 'pointer',
+            },
+          }, '撤销改动 ' + totalUnreviewed()) : null,
           totalUnreviewed() > 0 ? h('button', {
             type: 'button',
             title: '跳到下一个还没读的节点（会展开它所在的库并把它移到画面中间）',

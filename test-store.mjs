@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  addLink, assertId, describeBase, listBases, loadBase, newBase, pathFor, removeNode, saveBase, upsertNode,
+  addLink, assertId, describeBase, listBases, loadBase, newBase, pathFor, revertUnreviewed, removeNode, saveBase, upsertNode,
 } from './lib/store.js'
 import { TOOLS, parseActivity } from './lib/tools.js'
 // As a namespace as well as by name: the cache tests drive refresh/needsRefresh/outlineFor as a sequence,
@@ -285,6 +285,36 @@ await createTool.execute({ id: 'brand-new', name: '新库' }, freshExec)
 const afterCreate = await state.readSelection(freshCwd, 'sess-c')
 // The two-writer bug: `writeSessionSelection` owns `enabled`, `writeDiary` owns `diary`, and each rebuilt the file from
 // scratch. Turning the diary on, then creating a base, then writing was a three-step race the conversation always lost.
+// revert undo: one call puts a base back to the state the user last accepted.
+const revertCwd = await mkdtemp(join(tmpdir(), 'kbrevert-'))
+await saveBase(pathFor(revertCwd, 'bag'), newBase('bag', '袋子', '根', '原来那句。'))
+
+// Modify the root, exactly as a model edit does.
+const working = await loadBase(revertCwd, 'bag')
+// `node` is what makes this an edit rather than an append: without it upsertNode creates a new node.
+upsertNode(working.base, { node: working.base.nodes[0].id, title: '改过的标题', body: '改后的句子。' })
+await saveBase(working.path, working.base)
+
+// Add one node, without touching it again afterwards.
+const adding = await loadBase(revertCwd, 'bag')
+upsertNode(adding.base, { title: '新加的', body: '新的。' })
+await saveBase(adding.path, adding.base)
+
+const pending = await loadBase(revertCwd, 'bag')
+const counts = revertUnreviewed(pending.base)
+await saveBase(pending.path, pending.base)
+const revertedBase = await loadBase(revertCwd, 'bag')
+check('revert undo takes back exactly what it says',
+  counts.added === 1 && counts.modified === 1, JSON.stringify(counts))
+check('and the modified node is back to its previous text',
+  revertedBase.base.nodes[0].body === '原来那句。' && revertedBase.base.nodes[0].title === '根',
+  revertedBase.base.nodes[0].title + ' / ' + revertedBase.base.nodes[0].body)
+check('and the added node is gone, leaving only the root',
+  revertedBase.base.nodes.length === 1, revertedBase.base.nodes.map((node) => node.id).join())
+check('and nothing is left marked unreviewed',
+  revertedBase.base.nodes.every((node) => !node.change),
+  revertedBase.base.nodes.map((node) => node.change).join())
+
 const bothCwd = await mkdtemp(join(tmpdir(), 'kbboth-'))
 await state.writeDiary(bothCwd, true, 'keeper')
 const keepCreate = TOOLS.find((tool) => tool.name === 'knowledge_create_base')
