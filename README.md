@@ -62,7 +62,7 @@ Every change a model makes carries `[added]` / `[modified]` / `[retired]` until 
 
 ## The panel
 
-A canvas on the right: nodes laid out as a tree, pan and zoom (12%–260%), drag to move, right-drag to link, per-node colour and width. Search by title or body, and jump to a node by id — so when a conversation mentions `o14`, you can point at it on screen.
+A canvas on the right: nodes laid out as a tree, pan and zoom (12%–260%), drag to move, right-drag to link, per-node colour and width. Search by title or body, and jump to a node by id — so when a conversation mentions a node id (say `n3`), you can point at it on screen.
 
 **Reading a large base**: below 55% zoom a node draws its title only, and the spacing tightens with it — at that scale you came for the shape, not the words.
 
