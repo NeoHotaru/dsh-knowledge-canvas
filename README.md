@@ -115,14 +115,14 @@ With it on, that conversation writes an entry of its own when a stretch of talk 
 
 ### For contributors
 
-- `npm run check:all` runs four things: identifiers, sprite aspect ratios, a public-tree check (no local paths, addresses or private ids), and 475 assertions over store/routes/tools.
+- `npm run check:all` runs four things: identifiers, sprite aspect ratios, a public-tree check (no local paths, addresses or private ids), and 482 assertions over store/routes/tools.
 - **Change a gesture, change the tutorial line that describes it** (`lib/seed.js`, the table at the top), or the tutorial describes something that does not exist.
 - The tutorial is recognised **by content** (whichever base shares most of the seed's node ids), not by file name — that rule came from three workspaces keeping it under three different names.
 
 ## Development
 
 ```bash
-npm run check:all     # identifiers + sprites + public tree + 475 assertions
+npm run check:all     # identifiers + sprites + public tree + 482 assertions
 npm test              # assertions only
 ```
 
