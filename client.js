@@ -3250,9 +3250,10 @@ function estimateBox(node) {
           nodeMenu ? h('div', {
             'data-kb-node-menu': nodeMenu.id,
             style: {
-              position: 'absolute',
-              left: Math.max(0, nodeMenu.sx),
-              top: Math.max(0, nodeMenu.sy),
+              // Fixed, and clamped: the canvas can be panned and zoomed, the menu cannot.
+              position: 'fixed',
+              left: Math.min(Math.max(0, (nodeMenu.clientX || 0) + 4), Math.max(0, window.innerWidth - 172)),
+              top: Math.min(Math.max(0, (nodeMenu.clientY || 0) + 4), Math.max(0, window.innerHeight - 132)),
               zIndex: 5,
               minWidth: 148,
               padding: 4,
@@ -3490,6 +3491,9 @@ function estimateBox(node) {
               setNodeMenu({
                 // Which base this node is in: the undo item needs it, and the menu is the only place that knows.
                 base: base.id,
+                // Screen coordinates too: the menu is positioned against the viewport, not against the zooming canvas.
+                clientX: event.clientX,
+                clientY: event.clientY,
                 id,
                 sx: event.clientX - rect.left,
                 sy: event.clientY - rect.top,
