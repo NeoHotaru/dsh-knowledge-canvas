@@ -1168,6 +1168,22 @@ check('and every seed link carries a note',
   seededBases[0].links.every((link) => typeof link.note === 'string' && link.note.trim().length > 0),
   JSON.stringify(seededBases[0].links))
 
+// The tutorial's text is replaced wholesale when the plugin updates, and nothing else in its outline heading
+// moves: the node count stays, and the stamps are preserved on purpose so the user's colours and positions keep
+// applying. So without a version in the heading, a session that read the tutorial earlier in the conversation
+// has no way to learn that the text underneath it changed. That is not hypothetical — a session concluded
+// "no change" from an identical heading, and only found out because the user said so.
+check('the outline names the tutorial and its version',
+  seededOutline.includes('内置教程 v' + seed.SEED_VERSION), seededOutline.slice(0, 220))
+check('and tells the reader not to trust its memory of it', seededOutline.includes('别凭印象'))
+check('a base that is not the tutorial carries no such line',
+  !renderOutline([{ id: 'mine', name: '我的库', nodes: [{ id: 'n1', title: 'a', body: '正文。' }], links: [] }],
+    null).includes('内置教程'))
+check('and the version is a fact in the file, not a rendering detail',
+  seededBases[0].seed && Number.isInteger(seededBases[0].seed.version)
+    && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(seededBases[0].seed.at || ''),
+  JSON.stringify(seededBases[0].seed))
+
 // --- upgrading an existing tutorial ---------------------------------------------------
 // The seed creates once, but a tutorial that never changes is worse than none: ship a feature and every
 // workspace that already ran the plugin keeps a description of what it did not have — and the outline is what
@@ -1223,6 +1239,57 @@ check('a workspace with no tutorial gets none back', (await seed.upgradeTutorial
 check('and nothing was created', (await listBases(goneCwd)).length === 0)
 check('a workspace with no directory at all is creation\u2019s job, not the upgrade\u2019s',
   (await seed.upgradeTutorial(await mkdtemp(join(tmpdir(), 'kbnone-')))) === null)
+
+// A version that adds a chapter has to reach existing workspaces, or "the tutorial updates with the plugin" is
+// only true for its wording. Structure is added only when nothing in the tutorial has been edited — putting our
+// chapters next to somebody's edits and calling it a tutorial would be wrong, and a node whose parent they
+// deleted would arrive orphaned.
+console.log('\nadding chapters to an existing tutorial')
+const growCwd = await mkdtemp(join(tmpdir(), 'kbgrow-'))
+await seed.seedIfFirstTime(growCwd)
+const growPath = join(growCwd, '.dsh-knowledge', 'welcome.json')
+const grown = JSON.parse(await readFile(growPath, 'utf8'))
+// Pretend this base predates the newest nodes. Named explicitly rather than sliced: array order is display
+// order in the outline (n7/n8/n9 sit between n3 and n4 there), so a slice would keep the wrong six.
+const OLD_IDS = ['n1', 'n2', 'n3', 'n4', 'n5', 'n6']
+const NEW_IDS = seed.SEED_NODE_IDS.filter((id) => !OLD_IDS.includes(id))
+const keepIds = new Set(OLD_IDS)
+grown.nodes = grown.nodes.filter((node) => keepIds.has(node.id))
+grown.links = []
+grown.seed = { version: 0 }
+await writeFile(growPath, JSON.stringify(grown, null, 2))
+
+const grew = await seed.upgradeTutorial(growCwd)
+check('an untouched tutorial gains the chapters it is missing',
+  grew !== null && grew.added.length === NEW_IDS.length, JSON.stringify(grew))
+const grewBase = JSON.parse(await readFile(growPath, 'utf8'))
+check('and every seed id is present afterwards',
+  seed.SEED_NODE_IDS.every((id) => grewBase.nodes.some((node) => node.id === id)),
+  grewBase.nodes.map((node) => node.id).join())
+check('and each added node knows its parent',
+  grewBase.nodes.every((node) => node.parent === null || grewBase.nodes.some((other) => other.id === node.parent)),
+  grewBase.nodes.map((node) => node.id + '←' + node.parent).join(' '))
+check('and the pair that comes with them is linked',
+  grewBase.links.some((link) => link.from === 'n4' && link.to === 'n5'), JSON.stringify(grewBase.links))
+check('and the added ones carry a digest, so a later run knows they are ours',
+  grewBase.nodes.every((node) => typeof node.seedSum === 'string'))
+
+const shrinkCwd = await mkdtemp(join(tmpdir(), 'kbshrink-'))
+await seed.seedIfFirstTime(shrinkCwd)
+const shrinkPath = join(shrinkCwd, '.dsh-knowledge', 'welcome.json')
+const shrunk = JSON.parse(await readFile(shrinkPath, 'utf8'))
+shrunk.nodes = shrunk.nodes.filter((node) => node.id === 'n1' || node.id === 'n6')
+// Somebody has edited n6: its digest no longer matches, so the base is not wholly ours.
+shrunk.nodes.find((node) => node.id === 'n6').body += '\n\n我自己加的一段。'
+shrunk.seed = { version: 0 }
+await writeFile(shrinkPath, JSON.stringify(shrunk, null, 2))
+const shrank = await seed.upgradeTutorial(shrinkCwd)
+const shrankBase = JSON.parse(await readFile(shrinkPath, 'utf8'))
+check('a tutorial somebody edited gains no chapters',
+  shrank !== null && shrank.added.length === 0, JSON.stringify(shrank))
+check('and the edited node keeps what was added to it',
+  shrankBase.nodes.find((node) => node.id === 'n6').body.includes('我自己加的一段。'),
+  shrankBase.nodes.find((node) => node.id === 'n6').body.slice(-40))
 
 // The rule that matters: a workspace where the user deleted the bases must not get them back.
 await rm(join(fresh, '.dsh-knowledge'), { recursive: true, force: true })
