@@ -1,5 +1,7 @@
 # dsh-knowledge-canvas
 
+**English** · [简体中文](README.zh.md)
+
 A knowledge base for DeepSeek Harness that the model retrieves from **by judgement, not by similarity** — and that you edit on a canvas in the sidebar.
 
 ## The problem
