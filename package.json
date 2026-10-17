@@ -18,7 +18,7 @@
   ],
   "scripts": {
     "test": "node test-store.mjs",
-    "check": "node check-client-loads.mjs && node check-scope.mjs && node check-actions.mjs && node check-identifiers.mjs && node check-tdz.mjs && node check-props.mjs && node check-promise.mjs && node check-duplicate-keys.mjs && node check-placement.mjs",
+    "check": "node check-client-loads.mjs && node check-scope.mjs && node check-actions.mjs && node check-identifiers.mjs && node check-tdz.mjs && node check-props.mjs && node check-promise.mjs && node check-duplicate-keys.mjs",
     "check:all": "npm run check && npm test",
     "prepublishOnly": "npm run check:all"
   },

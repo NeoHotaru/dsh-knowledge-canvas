@@ -1123,6 +1123,20 @@ check('every node carries a stamp',
 check('a second call does nothing', (await seed.seedIfFirstTime(fresh)) === null)
 check('and nothing is duplicated', (await listBases(fresh)).length === 1)
 
+// The seed teaches by example — it is the one base whose whole purpose is to show how a node should be
+// written. So the convention it teaches has to hold inside it, and nothing else was checking that: a seed
+// whose nodes lost their trigger lines would be demonstrating the opposite of what the outline expects.
+//
+// Asserted through the outline renderer rather than by matching the text here, because the outline is what
+// the model actually receives, and its `（无触发器）` mark is the thing a reader would see.
+const seededOutline = renderOutline(seededBases, null)
+check('no seed node is missing its trigger line',
+  !seededOutline.includes('无触发器'),
+  seededOutline.split('\n').filter((line) => line.includes('无触发器')).join(' | ') || 'none')
+check('and every seed link carries a note',
+  seededBases[0].links.every((link) => typeof link.note === 'string' && link.note.trim().length > 0),
+  JSON.stringify(seededBases[0].links))
+
 // The rule that matters: a workspace where the user deleted the bases must not get them back.
 await rm(join(fresh, '.dsh-knowledge'), { recursive: true, force: true })
 await mkdir(join(fresh, '.dsh-knowledge'), { recursive: true })

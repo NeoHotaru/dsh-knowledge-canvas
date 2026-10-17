@@ -1569,9 +1569,9 @@ function estimateBox(node) {
           // fires after the gesture has ended, which makes this the place to ask whether a link was drawn.
           event.preventDefault();
           event.stopPropagation();
-          // The pointer's own position, which is where this gesture happened and therefore where the reader is
-          // looking. Passing it is cheaper and more accurate than working out where the node is.
-          if (onHistory) onHistory(node.id, event.clientX, event.clientY);
+          // Just the node id now. The card used to be placed at the pointer, so this passed the coordinates
+          // too; the history is a whole-panel view, which has no use for where the click happened.
+          if (onHistory) onHistory(node.id);
         },
         tabIndex: 0,
         role: 'button',
@@ -1778,6 +1778,13 @@ function estimateBox(node) {
       names,
       labels,
       base, extraLinks, onLink, edits, onEdit, onReview, fullscreen, positions, onMove,
+      /**
+       * `(nodeId) => void`. Swaps the panel over to that node's edit history.
+       *
+       * It goes up to Body because the history is a whole-panel view: a 300×360 card inside the canvas forced a
+       * 1,900-character body into a keyhole, and covered the canvas it was opened to compare against.
+       */
+      onShowHistory,
       /**
        * `(from, to, note) => void`. Writes one link's note.
        *
@@ -2212,9 +2219,6 @@ function estimateBox(node) {
         }));
       }, [focusId, placed, sizes]);
 
-      // Which node's edit history is open, and the entries it should show. The entries come from the node
-      // itself — it carries its own last ten edits — so this is a lookup, not a fetch.
-      const [historyFor, setHistoryFor] = React.useState(null);
       /**
        * The link whose note is being edited: `{ from, to, note, x, y }` in canvas coordinates.
        *
@@ -2222,6 +2226,9 @@ function estimateBox(node) {
        * outline, and a line with nothing on it cannot be acted on. The user is not required to, because they
        * are the only reader of their own panel; but they must be able to, and the visible line is 1.4px and
        * hopeless to hit, so each link gets an invisible fat copy to click.
+       */
+      /**
+       * The node whose edit history is being edited: ...
        */
       const [noteFor, setNoteFor] = React.useState(null);
 
@@ -3219,43 +3226,13 @@ function estimateBox(node) {
             // The labels come from Body: they are assigned across every base, and Tree renders one.
             onRename: entry.node.by ? () => renameSession(entry.node.by) : null,
             detail: view.k >= DETAIL_ZOOM,
-            onHistory: (nodeId, x, y) => setHistoryFor((current) => {
-              if (current && current.id === nodeId) return null;
-              // The pointer converted once, into the canvas's own coordinates. From then on the card is a
-              // thing on the canvas: it takes the same transform the nodes do, so panning and zooming carry
-              // it along. The one measurement that is right here is the canvas's own rectangle — that is what
-              // turns a screen point into a canvas point, and it is a fact rather than a calculation.
-              //
-              // No clamping against the window — that was right while the card was pinned to it, and wrong
-              // now. But the canvas clips its own children, so a card opened near an edge came out cut.
-              //
-              // The clamp has to be in canvas units *and* relative to the pan. `0` is the canvas's origin,
-              // not its visible edge: once the view has been panned, the top-left of what you can see is
-              // `-view / k`. Clamping to 0 therefore pushed the card hundreds of pixels off the top of the
-              // canvas — which is what made it appear somewhere else entirely, and what every earlier
-              // version got wrong in one way or another.
-              const frame = boxRef.current ? boxRef.current.getBoundingClientRect() : null;
-              if (!frame || !view.k) return { id: nodeId, x: 0, y: 0 };
-              const spot = {
-                x: (x - frame.left - view.x) / view.k,
-                y: (y - frame.top - view.y) / view.k,
-              };
-              const CARD_W = 300;
-              const CARD_MAX_H = 380;
-              // What is visible, in canvas units.
-              const left = -view.x / view.k;
-              const top = -view.y / view.k;
-              const right = (frame.width - view.x) / view.k;
-              const bottom = (frame.height - view.y) / view.k;
-              return {
-                id: nodeId,
-                // Placed at the pointer when it fits, pulled inside only when it would not. The lower bound
-                // is never allowed past the upper one, so a canvas smaller than the card still puts the card
-                // at its top-left rather than somewhere off it.
-                x: Math.max(left, Math.min(spot.x, Math.max(left, right - CARD_W))),
-                y: Math.max(top, Math.min(spot.y, Math.max(top, bottom - CARD_MAX_H))),
-              };
-            }),
+            // Bubbled to Body, which swaps the whole panel for the history view — see `HistoryView`.
+            //
+            // This used to open a card on the canvas, and everything the card needed lived here: the pointer
+            // converted into canvas coordinates, the canvas rectangle measured, the placement clamped in canvas
+            // units against the current pan. All of that was the cost of putting a readable panel inside a
+            // transformed, clipped, moving scene. Off the canvas, none of it is needed.
+            onHistory: (nodeId) => onShowHistory(nodeId),
             byline: entry.node.by
               ? (labels.get(entry.node.by) || { label: '', hue: 0 })
               : (('by' in entry.node) ? { label: '你', hue: 145 } : null),
@@ -3360,149 +3337,6 @@ function estimateBox(node) {
           h('div', { style: { opacity: 0.5, marginTop: 4 } },
             '回车保存 · Esc 关闭 · 留空即删除注释'),
         ) : null,
-        historyFor ? (() => {
-          const item = ordered.find((entry) => entry.node.id === historyFor.id);
-          // A silent `return null` here is the worst outcome: nothing appears, and the reason is invisible.
-          // Both failure modes now say what they are, so the next look at the screen is the diagnosis.
-          if (!item) {
-            return h('div', {
-              'data-kb-history': 'missing',
-              style: {
-                position: 'absolute', left: historyFor.x, top: historyFor.y, zIndex: 3,
-                padding: '6px 9px', borderRadius: 8, border: '1px solid #c0392b',
-                background: 'Canvas', color: '#c0392b', fontSize: 11.5,
-              },
-            }, '历史：找不到节点 ' + historyFor.id);
-          }
-          const entries = Array.isArray(item.node.history) ? item.node.history.slice().reverse() : [];
-          // Computed once here rather than per row, and by a function a check can reach — see `historyMarks`.
-          const marks = historyMarks(entries, item.node.body);
-          return h('div', {
-            'data-kb-history': historyFor.id,
-            // The canvas leaves the wheel alone over this card.
-            //
-            // The card scrolls (`maxHeight` below) and the wheel is bound to zoom, so without this the reader
-            // cannot scroll the history at all — they zoom instead, which is what "展开全文以后滚不动" was.
-            //
-            // It went unnoticed because the card used to hold a few lines of times and session names and never
-            // reached its own height limit; nothing about it scrolled, so nothing about it needed the wheel.
-            // Bodies made it long enough to scroll for the first time.
-            //
-            // The same mark the node boxes use, and it carries the same trade: while the pointer is over a card
-            // that happens to have nothing to scroll, the wheel does nothing rather than zooming. That is the
-            // behaviour already established for a fixed-height node, and moving the pointer off restores
-            // zooming — which is a smaller surprise than a scroll gesture that zooms.
-            'data-kb-scroll': 'true',
-            style: {
-              position: 'absolute',
-              left: 0,
-              top: 0,
-              // The layer's own transform, applied by hand because the card is its sibling rather than its
-              // child. `historyFor.x/y` are canvas coordinates, so this maps them the same way the layer maps
-              // its children: pan and zoom now carry the card exactly as they carry a node.
-              //
-              // Without it the card sat at a canvas coordinate inside a box that is not transformed — so it
-              // never moved when the canvas was panned, which is what "钉死" was: a fixed card in a moving
-              // scene, whose right-hand end could be pushed off the canvas with no way to reach it.
-              transform: 'translate(' + (view.x + historyFor.x * view.k) + 'px, '
-                + (view.y + historyFor.y * view.k) + 'px) scale(' + view.k + ')',
-              transformOrigin: '0 0',
-              zIndex: 3,
-              width: 300,
-              maxHeight: 360,
-              overflowY: 'auto',
-              padding: '9px 11px',
-              borderRadius: 9,
-              border: '1px solid ' + HAIRLINE,
-              // An opaque colour from the system palette. The translucent surface used elsewhere is right
-              // for an overlay meant to be seen through; this one has to be read.
-              background: 'Canvas',
-              color: 'CanvasText',
-              boxShadow: '0 6px 18px rgba(0,0,0,0.22)',
-              fontSize: 11.5,
-              lineHeight: 1.5,
-            },
-          },
-            h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 6 } },
-              h('div', { style: { fontWeight: 600, fontSize: 12.5 } }, '修改历史'),
-              h('div', { style: { opacity: 0.5, fontSize: 11 } }, item.node.title || historyFor.id),
-              h('button', {
-                type: 'button',
-                onClick: () => setHistoryFor(null),
-                style: {
-                  marginLeft: 'auto', padding: '0 6px', border: '1px solid ' + HAIRLINE, borderRadius: 6,
-                  background: 'transparent', color: 'inherit', font: 'inherit', fontSize: 11, cursor: 'pointer',
-                },
-              }, '关闭'),
-            ),
-            // The version on disk, then every version kept. The card used to list times and sessions only,
-            // because that was all the store kept — a local git with commit dates and no contents. It keeps
-            // the contents now, so this shows them, and shows what changed between them.
-            //
-            // Each side carries one half of the change: the current version marks what it added relative to the
-            // one before it, and each older version marks what was deleted after it. Together the two halves
-            // are the whole edit, and neither has to display both kinds at once — which on a reworded paragraph
-            // would be a page of confetti.
-            (() => {
-              const after = entries.length ? (entries[0].body || '') : ''
-              const lines = entries.length ? diffLines(after, item.node.body || '').next : null
-              return h('div', {
-                style: { paddingBottom: 7, marginBottom: 7, borderBottom: '1px solid ' + HAIRLINE },
-              },
-                h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
-                  h('span', { style: { fontWeight: 600, fontSize: 11.5 } }, '当前'),
-                  h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, shortWhen(item.node.at)),
-                  entries.length ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } },
-                    lines && lines.some((line) => worthMarking(line))
-                      ? '（绿色是相对上一版新增的，' + lines.filter((line) => worthMarking(line)).length + ' 处）'
-                      : '（与上一版相同）') : null,
-                ),
-                h('div', { style: { fontWeight: 600, marginBottom: 2 } }, item.node.title || historyFor.id),
-                h(VersionBody, { text: item.node.body, lines }),
-              );
-            })(),
-            entries.length === 0
-              ? h('div', { style: { opacity: 0.55 } }, '没有更早的版本（写在加历史之前）。')
-              : entries.map((entry, index) => {
-                // What this version lost, which is defined by what replaced it: the current node for the newest
-                // kept version, and the entry above it for every older one. See `historyMarks` for what went
-                // wrong when that rule was written inline as "the entry below it".
-                const marked = marks[index] ? marks[index].lines : null;
-                return h('div', {
-                  key: index,
-                  style: {
-                    paddingTop: index ? 7 : 0,
-                    marginTop: index ? 7 : 0,
-                    borderTop: index ? '1px solid ' + HAIRLINE : undefined,
-                    // Older versions fade rather than disappear: the newest kept version is the one being
-                    // compared against the present, and it should not read as less real than the rest.
-                    opacity: index === 0 ? 1 : 0.72,
-                  },
-                },
-                  h('div', { style: { display: 'flex', gap: 7, alignItems: 'baseline', marginBottom: 3 } },
-                    h('span', {
-                      style: { fontVariantNumeric: 'tabular-nums', opacity: 0.7 },
-                    }, shortWhen(entry.at)),
-                    h('span', { style: { opacity: 0.7 } },
-                      entry.by ? ((names && names[entry.by]) || '一个会话') : '你'),
-                    index === 0 ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, '上一个版本') : null,
-                    marked && marked.some((line) => worthMarking(line))
-                      ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } },
-                        '（红色是之后被删掉的，' + marked.filter((line) => worthMarking(line)).length + ' 处）')
-                      : null,
-                  ),
-                  // Entries written before the store kept contents have neither field. Saying so is the honest
-                  // option; showing an empty body would read as "it was blank", which is a different fact.
-                  entry.title === undefined && entry.body === undefined
-                    ? h('div', { style: { opacity: 0.5, fontStyle: 'italic' } }, '这一版没有留下内容（写在存内容之前）。')
-                    : h(React.Fragment, null,
-                      entry.title ? h('div', { style: { fontWeight: 600, marginBottom: 2 } }, entry.title) : null,
-                      h(VersionBody, { text: entry.body, lines: marked }),
-                    ),
-                );
-              }),
-          );
-        })() : null,
         ),
       );
     }
@@ -3582,6 +3416,113 @@ function estimateBox(node) {
       );
     }
 
+    /**
+     * One node's edit history, taking the whole panel.
+     *
+     * It used to be a 300×360 card floating inside the canvas, and that had three problems at once: a
+     * 1,900-character body had to be scrolled inside a box that size, ten versions turned it into a long
+     * crawl, and the card covered the canvas you had opened it to compare against. Here it gets the panel's
+     * full width and height, the canvas keeps its scroll position while you are away, and the transform
+     * gymnastics the card needed (`o16`) do not apply — this is not on the canvas at all.
+     *
+     * `node` is the node as the panel last read it, or null when the base or the node is gone. Both cases say
+     * which one is missing rather than rendering nothing.
+     */
+    function HistoryView({ baseName, baseId, node, nodeId, names, onBack }) {
+      const header = h('div', {
+        style: {
+          display: 'flex', alignItems: 'baseline', gap: 8,
+          padding: '0 0 10px', borderBottom: '1px solid ' + HAIRLINE, marginBottom: 11,
+        },
+      },
+        h('button', {
+          type: 'button',
+          onClick: onBack,
+          style: {
+            padding: '1px 8px', border: '1px solid ' + HAIRLINE, borderRadius: 6,
+            background: 'transparent', color: 'inherit', font: 'inherit', fontSize: 11.5, cursor: 'pointer',
+          },
+        }, '← 返回'),
+        h('div', { style: { fontSize: 13, fontWeight: 600, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+          node ? (node.title || nodeId) : nodeId),
+        h('div', { style: { opacity: 0.45, fontSize: 11, whiteSpace: 'nowrap' } },
+          baseName ? baseName + ' · ' + nodeId : nodeId),
+      );
+
+      if (!node) {
+        return h('div', { style: { height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', padding: '14px 16px' } },
+          header,
+          h('div', { style: { opacity: 0.7 } },
+            '这个节点在 ' + baseId + ' 里已经找不到了 —— 它可能被彻底删除了。'),
+        );
+      }
+
+      const entries = Array.isArray(node.history) ? node.history.slice().reverse() : [];
+      // Computed once, by a function a check can reach — see `historyMarks`. Every kept version is compared
+      // against the version that replaced it: the node itself for the newest, the entry above for the rest.
+      const marks = historyMarks(entries, node.body);
+
+      /** One block of the list: a header line, a title, and a body that may carry diff marks. */
+      const version = ({ key, label, when, who, title, body, lines, hint }) => h('div', {
+        key,
+        style: {
+          paddingTop: key === 'current' ? 0 : 11, marginTop: key === 'current' ? 0 : 11,
+          borderTop: key === 'current' ? undefined : '1px solid ' + HAIRLINE,
+        },
+      },
+        h('div', { style: { display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4, flexWrap: 'wrap' } },
+          h('span', { style: { fontWeight: 600, fontSize: 11.5 } }, label),
+          when ? h('span', { style: { opacity: 0.55, fontVariantNumeric: 'tabular-nums', fontSize: 11 } }, when) : null,
+          who ? h('span', { style: { opacity: 0.55, fontSize: 11 } }, who) : null,
+          hint ? h('span', { style: { opacity: 0.45, fontSize: 10.5 } }, hint) : null,
+        ),
+        title ? h('div', { style: { fontWeight: 600, marginBottom: 3 } }, title) : null,
+        h(VersionBody, { text: body, lines }),
+      );
+
+      return h('div', {
+        'data-kb-history': nodeId,
+        style: {
+          height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column',
+          padding: '14px 16px 18px', font: 'inherit', color: 'inherit',
+        },
+      },
+        header,
+        h('div', { style: { flex: 1, minHeight: 0, overflowY: 'auto', paddingRight: 4 } },
+          version({
+            key: 'current',
+            label: '当前',
+            when: shortWhen(node.at),
+            who: '你看到的这一版',
+            title: entries.length ? null : undefined,
+            body: node.body,
+            lines: entries.length ? diffLines(entries[0].body || '', node.body || '').next : null,
+            hint: entries.length && (marks[0].lines || []).some((row) => worthMarking(row))
+              ? null
+              : (entries.length ? '（与上一版相同）' : null),
+          }),
+          entries.length === 0
+            ? h('div', { style: { opacity: 0.55, marginTop: 12, paddingTop: 11, borderTop: '1px solid ' + HAIRLINE } },
+              '没有更早的版本。这一版之前的历史要么没写过，要么写在"存内容"这个功能之前。')
+            : entries.map((entry, index) => {
+              const marked = marks[index] ? marks[index].lines : null;
+              const changed = marked ? marked.filter((row) => worthMarking(row)).length : 0;
+              return version({
+                key: 'v' + index,
+                label: index === 0 ? '上一个版本' : '更早',
+                when: shortWhen(entry.at),
+                who: entry.by ? ((names && names[entry.by]) || '一个会话') : '你',
+                title: entry.title === undefined && entry.body === undefined
+                  ? '（这一版没有留下内容）' : entry.title,
+                body: entry.body,
+                lines: marked,
+                hint: changed ? '（红色是之后被删掉的，' + changed + ' 处）' : null,
+              });
+            }),
+        ),
+      );
+    }
+
     function Note({ children }) {
       return h('div', { style: { marginTop: 10, fontSize: 11.5, opacity: 0.55, lineHeight: 1.65 } }, children);
     }
@@ -3625,6 +3566,13 @@ function estimateBox(node) {
       const [names, setNames] = React.useState({});
 
       const [focusNode, setFocusNode] = React.useState(null);
+      /**
+       * The node whose edit history is on screen: `{ baseId, nodeId }`, or null for the normal panel.
+       *
+       * Body owns it rather than the canvas, because the history takes the whole panel — see `HistoryView`.
+       * Right-clicking a node sets it; the view's back button clears it.
+       */
+      const [historyFor, setHistoryFor] = React.useState(null);
       // The outcome of the last locate request, shown so a request that lands nowhere is not silent.
       const [lastFocus, setLastFocus] = React.useState(null);
       // Whether this session has a list of its own. Only used to say so; absence means inherit, which is
@@ -4165,6 +4113,26 @@ function estimateBox(node) {
 
       const bases = state.bases;
       const open = bases.find((base) => base.id === openId);
+
+      // The history takes the whole panel instead of floating over the canvas.
+      //
+      // Placed after every hook, so the early return cannot change the hook order. The node is looked up here
+      // rather than inside the view so that "the base is gone" and "the node is gone" stay distinguishable
+      // facts rather than one blank screen.
+      if (historyFor) {
+        const owner = bases.find((base) => base.id === historyFor.baseId) || null;
+        const target = owner
+          ? (owner.nodes || []).find((item) => item.id === historyFor.nodeId) || null
+          : null;
+        return h(HistoryView, {
+          baseId: historyFor.baseId,
+          baseName: owner ? owner.name : null,
+          node: target,
+          nodeId: historyFor.nodeId,
+          names,
+          onBack: () => setHistoryFor(null),
+        });
+      }
 
       return h('div', {
         style: {
@@ -4715,6 +4683,8 @@ function estimateBox(node) {
                 },
                 base,
             fullscreen,
+            // Body owns which view is on screen, so the canvas only asks.
+            onShowHistory: (nodeId) => setHistoryFor({ baseId: base.id, nodeId }),
             positions: positions[base.id] || {},
             onMove: (nodeId, x, y) => {
               const updated = {
