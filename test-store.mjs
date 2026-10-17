@@ -5,7 +5,7 @@ import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promis
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
-  addLink, assertId, describeBase, listBases, loadBase, newBase, pathFor, revertUnreviewed, removeNode, saveBase, upsertNode,
+  addLink, assertId, describeBase, listBases, loadBase, newBase, pathFor, revertNode, revertUnreviewed, removeNode, saveBase, upsertNode,
 } from './lib/store.js'
 import { TOOLS, parseActivity } from './lib/tools.js'
 // As a namespace as well as by name: the cache tests drive refresh/needsRefresh/outlineFor as a sequence,
@@ -314,6 +314,23 @@ check('and the added node is gone, leaving only the root',
 check('and nothing is left marked unreviewed',
   revertedBase.base.nodes.every((node) => !node.change),
   revertedBase.base.nodes.map((node) => node.change).join())
+
+// One node at a time: the report asked for this, and the header button is the blunt version of it.
+const singleCwd = await mkdtemp(join(tmpdir(), 'kbsingle-'))
+await saveBase(pathFor(singleCwd, 'pair'), newBase('pair', '一对', '甲', '甲的原文。'))
+const singleLoad = await loadBase(singleCwd, 'pair')
+upsertNode(singleLoad.base, { node: singleLoad.base.nodes[0].id, title: '甲改过', body: '甲改后的。' })
+upsertNode(singleLoad.base, { title: '乙', body: '乙的原文。' })
+await saveBase(singleLoad.path, singleLoad.base)
+const flagged = await loadBase(singleCwd, 'pair')
+const what = revertNode(flagged.base, flagged.base.nodes[0].id)
+await saveBase(flagged.path, flagged.base)
+const settled = await loadBase(singleCwd, 'pair')
+check('undo one node reports what it undid', what === 'modified', String(what))
+check('undo one node leaves the others', settled.base.nodes.length === 2
+  && settled.base.nodes[1].change === 'added', settled.base.nodes.map((n) => n.change).join())
+check('and that node is back to its previous text',
+  settled.base.nodes[0].body === '甲的原文。' && !settled.base.nodes[0].change, settled.base.nodes[0].body)
 
 const bothCwd = await mkdtemp(join(tmpdir(), 'kbboth-'))
 await state.writeDiary(bothCwd, true, 'keeper')

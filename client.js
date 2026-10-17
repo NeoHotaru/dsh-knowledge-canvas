@@ -3271,6 +3271,11 @@ function estimateBox(node) {
                 setNodeMenu(null);
                 openHistoryCard(target.id, { x: target.x, y: target.y });
               }],
+              ['撤销这个节点', '把这个节点还没看过的改动撤回：新增的删掉、改过的回到上一版、移除的恢复', () => {
+                const target = nodeMenu;
+                setNodeMenu(null);
+                post('revert', { base: target.base || nodeMenu.base, node: target.id }).catch(() => {});
+              }],
             ].map(([label, hint, run]) => h('button', {
               key: label,
               type: 'button',
@@ -3471,6 +3476,8 @@ function estimateBox(node) {
               const spot = localPoint(event);
               setCanvasMenu(null);
               setNodeMenu({
+                // Which base this node is in: the undo item needs it, and the menu is the only place that knows.
+                base: base.id,
                 id,
                 sx: event.clientX - rect.left,
                 sy: event.clientY - rect.top,
