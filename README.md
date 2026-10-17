@@ -1,6 +1,6 @@
 # dsh-knowledge-canvas
 
-A knowledge base for DeepSeek Harness that the model retrieves from **by judgement, not by similarity**.
+A knowledge base for DeepSeek Harness that the model retrieves from **by judgement, not by similarity** — and that you edit on a canvas in the sidebar.
 
 ## The problem
 
@@ -11,103 +11,125 @@ This is not a context-window problem. Measured in one workspace:
 ```
 $ node report-kb-use.mjs
 50 tool call(s) in the log, 1 session(s)
-  wrote 13 times (ops / …)
-  read  1 time  (read-animation)
-  ⚠ wrote before reading: nothing was read before the first write
+  写 13 次（ops / …）
+  读 1 次（read-animation）
+  ⚠ 先写后读：第一次写入之前没有读过
 ```
 
-**Thirteen writes, one read** — and that one read was a different base. The knowledge was **recorded** and never **used**. Recording is free: a model writes a note in passing. Using it is the hard part, because using it means first knowing the note exists, and then knowing which notes still hold.
+**13 writes, 1 read** — and that read was from a different base. Knowledge was *recorded* and never *used*. Recording is free: the model does it in passing. Using is the hard part: you have to know the entry exists, and which one still holds.
 
 ## What makes this different
 
-Not a note app with a search box. Four decisions, and everything else follows from them.
+Every node ends with a line beginning 「什么时候该想起它：」 — "when should this come to mind". That line is what the outline shows, so the model matches a situation rather than an embedding. When it picks wrong, you see the wrong node on the canvas and fix the sentence that misled it.
 
-### 1. A trigger line instead of a vector index
+## On the panel
 
-The **last line** of every node's body says when the node applies:
+| Where | What |
+| --- | --- |
+| Top row | search, read counters, refresh |
+| One row per base | title, read progress, index/full switches, `⋯` menu (rename, delete, colour, export) |
+| Canvas toolbar | zoom, fit, **width** (the whole base's default width, not one node), shape, colour, layout |
+| 「定位到…」 at the bottom | type an id to jump to that node |
 
-```
-When to recall: <the situation this node is for>
-```
+| Gesture | Result |
+| --- | --- |
+| click a node | opens the editor; click again to close |
+| Enter / Space (focused) | same, from the keyboard |
+| Shift+Enter | start a link; Enter on the target finishes it |
+| drag a node | moves it; the drop is written to `layout.json` |
+| hold ~0.26 s then drag | draws a **link** (orange), not a re-parent |
+| right-drag from a node | same link |
+| **Alt + drag a node** | makes the target its parent (grey line) |
+| right-click a node | menu: new child / change history |
+| right-click empty canvas | menu: new top-level node |
+| drag a node out to the input box | hands that node to the conversation |
+| the three handles | width, height, both |
 
-That one line — and only that line — goes into the system prompt. So:
+Node size means three things in order: this node → the base's default → the canvas zoom. The toolbar's 「宽度」 is the second one.
 
-- **no embeddings, no vector store, no similarity threshold.** Retrieval is the model deciding, and what it decides on is a sentence a human wrote
-- **a node is only findable if its author said when.** That is the whole bet: the hard part of a knowledge base is not storing, it is being *consulted*, and being consulted is a property of how the note is written
-- **a node without one is marked.** In the index it shows as `（无触发器）` — the index itself is Chinese, since every other line the model reads from this plugin is — and the write tool says so the moment you write it, because a base full of unfindable nodes looks exactly like a healthy one
-
-### 2. The index is a tree, not a list of chunks
-
-Parent and child are information — "this belongs under that". The index is rendered in hierarchy, so the model reads a structure rather than a pile of fragments. A base that is all peers is a fine base; a base where nothing is under anything is usually a mistake.
-
-### 3. Review markers survive every mode
-
-Every change a model makes carries `[added]` / `[modified]` / `[retired]` until you review it. In **full-text** injection too — which is the version most likely to drop them, and did, until a test session noticed it could no longer tell which paragraphs were unreviewed.
-
-### 4. It tells you whether it worked
-
-`report-kb-use.mjs` reads the plugin's `activity.log` and answers: in this session, how many times was a base read, how many times written, and were anything read *before* the first write. That is where the number in "The problem" came from — and it is the reason this plugin does not claim to improve anything it has not measured.
-
-## The mechanics
-
-| | |
-|---|---|
-| **Trigger line** | The last line of a body; extracted into the index. The lint above marks it missing |
-| **Freshness** | Every base's heading carries its node count and newest stamp, and every write reports its own timestamp — so "my write is not in the index yet" is answerable instead of guessed (guessing wrong means writing it twice) |
-| **Two injection modes** | An index by default; any base can opt into **full text**. Each base decides, and the mode is per base, not global |
-| **Scope** | Which bases a conversation uses: workspace default, or a per-session override |
-| **Off means off** | Switching a base off means the model can neither read nor write it — not merely "it stays out of the prompt" |
-| **Plain files** | One base is one JSON file under `<workspace>/.dsh-knowledge/`. Grep it, diff it, commit it, copy it |
-| **Seeded tutorial** | The first run in a workspace creates a six-node base explaining all of the above, switched on. Delete it whenever |
-
-## The panel
-
-A canvas on the right: nodes laid out as a tree, pan and zoom (12%–260%), drag to move, right-drag to link, per-node colour and width. Search by title or body, and jump to a node by id — so when a conversation mentions a node id (say `n3`), you can point at it on screen.
-
-**Reading a large base**: below 55% zoom a node draws its title only, and the spacing tightens with it — at that scale you came for the shape, not the words.
-
-**Edit history**: right-click a node to see the **contents** of every version it kept, with the lines this
-version added marked green and the lines the version before it lost marked red. Ten versions per node.
-
-**Link notes**: click an orange link to write a note on it — when following it is worth doing. The model is
-**required** to write one when it links two nodes, because that note is what other sessions see in their outline.
+Four layouts: layers, radial, staircase, compact. Switching only recomputes the default placement.
 
 ## Install
 
-**npm**: the package is `dsh-knowledge-canvas`. Type it into DSH's "add plugin" dialog.
-
-**From source**:
-
-```json
-// profiles/desktop/package.json
-"dependencies": { "dsh-knowledge-tree": "link:<path to the checkout>" },
-"dsh": { "profile": { "bundles": [ ..., "dsh-knowledge-tree" ] } }
+```bash
+npm install dsh-knowledge-canvas
 ```
 
-> Linking from source uses the `name` **inside that checkout's package.json**.
-> The published package is `dsh-knowledge-canvas` (`dsh-knowledge-tree` was taken on npm),
-> while the local checkout still calls itself `dsh-knowledge-tree`.
+Restart DSH once after installing; the 「知识库」 panel appears in the sidebar. Panel-side changes need only a page reload; host-side changes (`index.js`, `lib/*`) need a restart — that distinction decides what you do after editing.
+
+The first time you open a workspace, a base called 「怎么用这个知识库」 is seeded with everything the panel can do. It upgrades with each release, and nodes you edited are never overwritten.
 
 ## Tools the model gets
 
+| Tool | What it does |
+| --- | --- |
+| `knowledge_read` | read a base or a node; without `base`, list the bases |
+| `knowledge_create_base` | create a base with a root node. **Usable immediately** — no `knowledge_select` needed |
+| `knowledge_write_node` | write or edit a node. The return carries the id it just created, ready to use as `parent` |
+| `knowledge_link` | connect two nodes, and say in one line why they are related |
+| `knowledge_remove_node` | mark a node removed (recoverable, not deleted) |
+| `knowledge_select` | switch a base on or off for this conversation |
+
+## Settings, per workspace
+
+Settings → 知识库, one block per workspace: the workspace's path, a **记录调用过程** switch (off by default; when on, every tool call is logged and the panel shows 「正在检索 n3（…）」), and per-base index/full switches.
+
+The workspace list is **the directories in the session list ∪ the directories on disk that have `.dsh-knowledge/`** — the second set is recovered from `$DSH_HOME/sessions/`, where each session has a directory named after its workspace path with separators turned into `-`.
+
+## Diary mode (optional)
+
+For people who do not want to organise notes — they want something to remember. A switch at the top of the panel, **per conversation**.
+
+With it on, that conversation writes an entry of its own when a stretch of talk reaches a place worth keeping. Not daily. Not in other conversations.
+
+- **One per conversation**: `diary-<hash>.json`. The switch is per conversation and so is the data — another conversation in the same workspace neither sees it nor can read it.
+- **Stored sealed** (AES-256-GCM). A model that `cat`s the file gets base64.
+- **The prompt gives conventions, not a voice.** The persona is yours; the plugin does not write letters on your behalf.
+
+## What it will not do
+
+- **It is not a chat log.** Nothing is captured automatically; only what you or the model explicitly write.
+- **It does not sync anywhere.** Everything is under `<workspace>/.dsh-knowledge/`, plain JSON: open it in Notepad, commit it, copy the folder. No account, no server.
+- **The diary's sealing stops accidents, not readers.** The key is derived from the base name, so anyone who reads this source can decrypt. Stopping a model that goes looking needs a key that never touches the disk — a password or an OS credential — which is a different design.
+- **It does not write a persona.** Diary mode injects writing conventions, not a tone.
+- **No full-text search.** The box does substring matching over titles and bodies; no index, no embeddings.
+
+## Where the files are
+
 ```
-knowledge_read             read one base, read a single node (with its neighbours), or list them all
-knowledge_create_base      create a base
-knowledge_write_node       create or edit a node
-knowledge_link             record an association between two nodes (a one-line note is required)
-knowledge_remove_node      retire a node (kept in the file, marked)
-knowledge_select           switch a base on or off (for this session, or the default)
-knowledge_remove_base      move a base out (to .removed/, recoverable)
+<workspace>/.dsh-knowledge/
+├── <base id>.json        one file per base: nodes, links, seed fingerprint
+├── selection.json        which bases this workspace reads, how they are injected, call logging
+├── layout.json           positions, widths, shapes, colours
+├── .sessions/<id>.json   this conversation's own switches (including the diary)
+└── activity.log          tool-call records, only while call logging is on
 ```
+
+- **Host** (`index.js`, `lib/*`): injection, tools, routes, the seeded tutorial, the diary conventions.
+- **Panel** (`client.js`): canvas, gestures, editor, settings. **It reads those JSON files directly**, not through the host — so when the panel "cannot see a base", check what it read, not what the host answered.
+- The outline is assembled before every model call and holds titles, summaries and trigger lines; bodies need an explicit `knowledge_read`.
+
+### For contributors
+
+- `npm run check:all` runs four things: identifiers, sprite aspect ratios, a public-tree check (no local paths, addresses or private ids), and 472 assertions over store/routes/tools.
+- **Change a gesture, change the tutorial line that describes it** (`lib/seed.js`, the table at the top), or the tutorial describes something that does not exist.
+- The tutorial is recognised **by content** (whichever base shares most of the seed's node ids), not by file name — that rule came from three workspaces keeping it under three different names.
 
 ## Development
 
-```sh
-npm run check:all      # 9 checks + 326 assertions
+```bash
+npm run check:all     # identifiers + sprites + public tree + 472 assertions
+npm test              # assertions only
 ```
 
-Editing `index.js` / `lib/*` needs a **Harness restart** (the host half is loaded once at process start);
-editing `client.js` needs a page refresh.
+Publishing needs a real terminal (2FA needs a TTY), and after publishing the version stays `Validating` until npm's automated review finishes:
+
+```bash
+cd <this repo>
+npm publish --registry https://registry.npmjs.org
+```
+
+While it is `Validating`, `registry.npmjs.org/.../<version>.tgz` returns 404 — that is not a failed publish.
 
 ## License
 
