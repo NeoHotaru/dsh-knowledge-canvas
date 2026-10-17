@@ -1523,6 +1523,19 @@ async function call(method, path, body) {
   return { status: res.held.status, payload: parsed }
 }
 
+// A write may name its workspace, but only one this process knows. The refusal is asserted here; the acceptance is checked
+// against the running app, because it needs a workspace that actually exists in DSH_HOME or in a resident session.
+const strangeWorkspace = await call('PUT', '/dsh-knowledge-tree/selection', {
+  session: 'no-such-session',
+  workspace: 'C:/definitely/not/a/known/workspace',
+  scope: 'workspace',
+  enabled: ['solo'],
+  live: true,
+})
+check('a write naming an unknown workspace is refused',
+  strangeWorkspace.status !== 200 && /unknown workspace/.test(String(strangeWorkspace.payload && strangeWorkspace.payload.error)),
+  JSON.stringify(strangeWorkspace).slice(0, 140))
+
 const wsAnswer = await call('GET', '/dsh-knowledge-tree/workspaces?session=me')
 check('GET /workspaces is routed', wsAnswer.status === 200, JSON.stringify(wsAnswer).slice(0, 120))
 check('and answers with a list', Array.isArray(wsAnswer.payload && wsAnswer.payload.workspaces),

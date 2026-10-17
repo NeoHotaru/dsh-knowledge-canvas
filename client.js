@@ -5802,6 +5802,9 @@ function estimateBox(node) {
                   method: 'PUT',
                   headers: { 'content-type': 'application/json' },
                   body: JSON.stringify({
+                    // The cwd as well as the session: this page edits workspaces the user is not sitting in, and those have no
+                    // session in this process. Without it the host answered "a Session id is required" for every other workspace.
+                    workspace: workspace.cwd,
                     session: workspace.sessionId,
                     scope: 'workspace',
                     enabled: workspace.enabled === null
