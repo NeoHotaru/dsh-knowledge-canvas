@@ -1,5 +1,5 @@
 {
-  "name": "dsh-knowledge-tree",
+  "name": "dsh-knowledge-canvas",
   "version": "0.2.2",
   "type": "module",
   "description": "Tree-shaped knowledge bases for DeepSeek Harness: per-session activation, a node graph view, and review markers for model edits.",
