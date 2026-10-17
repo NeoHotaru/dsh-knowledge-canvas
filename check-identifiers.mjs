@@ -194,13 +194,28 @@ for (const file of FILES) {
   for (const match of code.matchAll(/(^|[^.\w$])([A-Za-z_$][\w$]*)/g)) {
     const name = match[2]
     if (KEYWORDS.has(name)) continue
-    const rest = code.slice(match.index + match[0].length)
+    // Bounded windows, and this is a correctness-of-the-instrument fix rather than a micro-optimisation: the previous
+    // version sliced the whole remaining file for every identifier (and the whole leading part as well), so on a
+    // 350 KB client.js it copied tens of thousands of characters tens of thousands of times. The check did not fail —
+    // it hung, and a check that hangs is worse than one that reports nothing, because it looks like it is still
+    // working. Sixty-four characters is enough to see a `:` or a `(` past whitespace; thirty-two behind is enough to
+    // see what ends the previous token.
+    const at = match.index + match[0].length
+    const rest = code.slice(at, at + 64)
+    // What precedes the NAME, not what precedes the end of the whole match. The difference is one space and it decides
+    // both syntax rules below: with the name included, `before` ends in `get installed` and neither rule can match, so
+    // every accessor and every method shorthand is reported as an undeclared name.
+    const nameAt = match.index + match[1].length
     // A name followed by `:` is an object key or a label, not a use. This also skips a ternary's middle
     // branch — a miss rather than a false alarm.
     if (/^\s*:/.test(rest)) continue
     // Method shorthand: `apply(ctx) {` in an object or class. A method follows `{`, `,` or `async`; a call
     // follows an operator or a name.
-    const before = code.slice(0, match.index + match[1].length).replace(/\s+$/, '')
+    // A hundred and twenty-eight characters back, then trailing whitespace removed. The window has to be wider than
+    // the indentation plus the newline before it — at thirty-two, `remove() {` on a deeply indented line left nothing
+    // but whitespace, so stripping it produced an empty string and the shorthand rule could not see the `}` or `,`
+    // that actually precedes the name.
+    const before = code.slice(Math.max(0, nameAt - 128), nameAt).replace(/\s+$/, '')
     if (/^\s*\(/.test(rest) && /(?:[{,]|async)$/.test(before)) continue
     // An accessor: `get installed() {` and `set x(v) {`. The name follows `get` or `set` rather than `{` or
     // `,`, so the rule above does not catch it, and the name of an accessor is syntax rather than a use —

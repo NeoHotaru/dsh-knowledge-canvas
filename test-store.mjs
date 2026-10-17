@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import {
   addLink, assertId, describeBase, listBases, loadBase, newBase, pathFor, removeNode, saveBase, upsertNode,
 } from './lib/store.js'
-import { TOOLS } from './lib/tools.js'
+import { TOOLS, parseActivity } from './lib/tools.js'
 // As a namespace as well as by name: the cache tests drive refresh/needsRefresh/outlineFor as a sequence,
 // and reading them from one object makes that sequence obvious.
 import * as outline from './lib/outline.js'
@@ -208,6 +208,7 @@ check('the rebuilt outline is still there', outlineFor(cwd).includes('flow'))
 // --- the panel's write path ---------------------------------------------------
 console.log('\nwrite path')
 const routes = await import('./lib/routes.js')
+const workspacesModule = await import('./lib/workspaces.js')
 const state = await import('./lib/state.js')
 
 // A base of its own, so these checks do not depend on what the earlier ones left behind.
@@ -229,6 +230,284 @@ check('a malformed base id is rejected', await routes.setSelection(cwd, ['../etc
   .then(() => false, () => true))
 check('a non-array is rejected', await routes.setSelection(cwd, 'panel')
   .then(() => false, () => true))
+
+// --- the activity log, read back ------------------------------------------------------
+// The panel asks for this while a base is open, so "did the model ever come in here" stops requiring the user to
+// open a log file after the fact. The parser lives next to the writer on purpose: they are two halves of one
+// format, and the failure this guards against is a field list drifting apart.
+console.log('\nthe activity log, read back')
+const parsed = parseActivity([
+  '2026-10-16 18:57:38  |  session-a  |  knowledge_read  |  ops / o36  |  3ms 2495 chars',
+  '2026-10-16 19:18:41  |  session-a  |  knowledge_link  |  ops  |  14ms 75 chars',
+  '',
+  'this line is not a record',
+].join('\n'))
+check('a record with a node is split into its parts',
+  parsed.length === 2 && parsed[0].tool === 'knowledge_read' && parsed[0].what === 'ops / o36'
+    && parsed[0].took === '3ms 2495 chars', JSON.stringify(parsed[0]))
+// A link names its base, and nothing else — so the four-field shape is exercised by a call that names no base
+  // at all, which the parser reads from the end for exactly that reason.
+  check('a link records only the base', parsed[1] && parsed[1].what === 'ops' && parsed[1].took === '14ms 75 chars',
+  JSON.stringify(parsed[1]))
+check('and a line that is not a record is dropped', !parsed.some((entry) => entry.tool.includes('not a record')))
+
+const actCwd = await mkdtemp(join(tmpdir(), 'kbact-'))
+await mkdir(join(actCwd, '.dsh-knowledge'), { recursive: true })
+await writeFile(join(actCwd, '.dsh-knowledge', 'activity.log'), [
+  '2026-10-16 10:00:00  |  session-a  |  knowledge_read  |  ops / o1  |  2ms 100 chars',
+  '2026-10-16 10:00:05  |  session-b  |  knowledge_read  |  ops / o2  |  2ms 100 chars',
+  '2026-10-16 10:00:09  |  session-a  |  knowledge_write_node  |  ops / 三  |  8ms 40 chars',
+].join('\n') + '\n')
+const ownSession = await routes.readActivity(actCwd, { session: 'session-a' })
+check('the panel sees only its own session',
+  ownSession.entries.length === 2 && ownSession.entries.every((entry) => entry.session === 'session-a'),
+  JSON.stringify(ownSession.entries))
+check('newest last, so the panel can read the tail',
+  ownSession.entries[1] && ownSession.entries[1].tool === 'knowledge_write_node', JSON.stringify(ownSession.entries.at(-1)))
+check('and the limit keeps only the end', (await routes.readActivity(actCwd, { limit: 1 })).entries.length === 1)
+// A read names its node; a write used to name only the title, because a new node has no id until it has been written.
+// The panel line is meant to be usable — you should be able to take the id from it and look the node up.
+const writeCwd = await mkdtemp(join(tmpdir(), 'kbactwrite-'))
+await saveBase(pathFor(writeCwd, 'notes'), newBase('notes', '笔记', '根', '正文。'))
+const activityWriteTool = TOOLS.find((tool) => tool.name === 'knowledge_write_node')
+const activityWriteExec = { agent: { session: { header: { cwd: writeCwd, id: 'sess-w' } } } }
+await activityWriteTool.execute({ base: 'notes', title: '一篇', body: '正文。', session_name: '测试' }, activityWriteExec)
+const writeLog = await readFile(join(writeCwd, '.dsh-knowledge', 'activity.log'), 'utf8')
+const writeLine = parseActivity(writeLog).filter((entry) => entry.tool === 'knowledge_write_node').pop()
+// The bug the diary test surfaced: the session's enabled list is a snapshot from when it started, so a base the model
+// creates is missing from it — and the next write is refused as "switched off". The user had to flip it by hand.
+const freshCwd = await mkdtemp(join(tmpdir(), 'kbcreate-'))
+await saveBase(pathFor(freshCwd, 'keep'), newBase('keep', '保留', '根', '正文。'))
+await state.writeSelection(freshCwd, ['keep'], 'sess-c')
+const createTool = TOOLS.find((tool) => tool.name === 'knowledge_create_base')
+const freshExec = { agent: { session: { header: { cwd: freshCwd, id: 'sess-c' } } } }
+await createTool.execute({ id: 'brand-new', name: '新库' }, freshExec)
+const afterCreate = await state.readSelection(freshCwd, 'sess-c')
+// The two-writer bug: `writeSessionSelection` owns `enabled`, `writeDiary` owns `diary`, and each rebuilt the file from
+// scratch. Turning the diary on, then creating a base, then writing was a three-step race the conversation always lost.
+const bothCwd = await mkdtemp(join(tmpdir(), 'kbboth-'))
+await state.writeDiary(bothCwd, true, 'keeper')
+const keepCreate = TOOLS.find((tool) => tool.name === 'knowledge_create_base')
+await keepCreate.execute({ id: 'fresh', name: '新库' }, { agent: { session: { header: { cwd: bothCwd, id: 'keeper' } } } })
+check('creating a base keeps the diary switch on', (await state.readDiary(bothCwd, 'keeper')) === true)
+check('and turning it off does not invent a base list',
+  (await state.writeDiary(bothCwd, false, 'keeper')) === false
+    && (await state.readSelection(bothCwd, 'keeper')) === null)
+
+check('a base created mid-conversation is usable at once',
+  Boolean(afterCreate) && afterCreate.has('brand-new') && afterCreate.has('keep'),
+  afterCreate ? [...afterCreate].join() : 'no list')
+check('and the write tool accepts it',
+  await activityWriteTool.execute(
+    { base: 'brand-new', title: '第一篇', body: '正文。', session_name: '测试' }, freshExec,
+  ).then((value) => String(value).includes('第一篇'), (error) => 'refused: ' + error.message))
+
+check('the record of a write names the node it wrote',
+  Boolean(writeLine) && writeLine.what.includes('notes')
+    && /(^|[^A-Za-z0-9])n[0-9]+([^0-9]|$)/.test(writeLine.what), writeLine && writeLine.what)
+
+check('a workspace with no log yet is empty, not an error',
+  (await routes.readActivity(await mkdtemp(join(tmpdir(), 'kbnolog-')), {})).entries.length === 0)
+
+// The live switch lives in selection.json next to `enabled`. That file is rebuilt whole on every toggle, so the one
+// thing worth testing is that it survives — a setting that disappears when you flip an unrelated switch is worse than
+// no setting, because nobody would connect the two.
+const liveCwd = await mkdtemp(join(tmpdir(), 'kblive-'))
+for (const id of ['one', 'two']) await saveBase(pathFor(liveCwd, id), newBase(id, id, '测试', ''))
+check('the live switch starts off', (await state.readLive(liveCwd)) === false)
+check('turning it on sticks', (await state.writeLive(liveCwd, true)) === true && (await state.readLive(liveCwd)))
+await state.writeSelection(liveCwd, ['one'])
+check('and toggling a base keeps it', (await state.readLive(liveCwd)) === true,
+  JSON.stringify([...(await state.readSelection(liveCwd))]))
+check('the base switch still took effect', [...(await state.readSelection(liveCwd))].join() === 'one')
+await state.writeLive(liveCwd, false)
+check('turning it off drops the field rather than storing false',
+  (await state.readLive(liveCwd)) === false
+    && !JSON.stringify(await state.readSelection(liveCwd)).includes('live'))
+check('and the bases are still there', [...(await state.readSelection(liveCwd))].join() === 'one')
+// The diary belongs to a conversation. There is no workspace default for it — that fallback is exactly what made one
+// session's diary show up in all of them — so the tests state the two halves of that rule.
+check('a session with no diary flag is not keeping one', (await state.readDiary(liveCwd, 'nobody')) === false)
+check('and asking without a session is false too, not a guess at a default', (await state.readDiary(liveCwd)) === false)
+check('turning it on without a session is refused',
+  await state.writeDiary(liveCwd, true).then(() => false, (error) => /belongs to a conversation/.test(error.message)))
+await state.writeDiary(liveCwd, true, 'keeper')
+check('turning it on for one session sticks', (await state.readDiary(liveCwd, 'keeper')) === true)
+check('and it does not leak into the workspace', (await state.readDiary(liveCwd)) === false
+  && (await state.readDiary(liveCwd, 'other')) === false)
+await state.writeDiary(liveCwd, false, 'keeper')
+check('turning it off drops the field rather than storing false',
+  (await state.readDiary(liveCwd, 'keeper')) === false
+    && !JSON.stringify(await state.readSelection(liveCwd, 'keeper')).includes('diary'))
+// Scoped per session. The thing that must not happen is "one session writes, every session writes".
+check('a session starts off', (await state.readDiary(liveCwd, 's-1')) === false)
+await state.writeDiary(liveCwd, true, 's-1')
+check('turning it on for one session leaves the other session off',
+  (await state.readDiary(liveCwd, 's-1')) === true && (await state.readDiary(liveCwd, 's-2')) === false)
+check('and it does not become the workspace default',
+  (await state.readDiary(liveCwd)) === false && (await state.readDiary(liveCwd, 's-3')) === false)
+// A session with its own answer must keep it even when the workspace default changes underneath.
+await state.writeDiary(liveCwd, false, 's-2')
+check('one session keeping a diary leaves the others alone',
+  (await state.readDiary(liveCwd, 's-1')) === true
+    && (await state.readDiary(liveCwd, 's-2')) === false
+    && (await state.readDiary(liveCwd, 's-3')) === false)
+check('and a session file that exists for its base list keeps that list',
+  await (async () => {
+    await state.writeSelection(liveCwd, ['two'], 's-4')
+    await state.writeDiary(liveCwd, true, 's-4')
+    const list = await state.readSelection(liveCwd, 's-4')
+    return Boolean(list) && [...list].join() === 'two' && (await state.readDiary(liveCwd, 's-4')) === true
+  })())
+
+// `parent` used to be reachable only from the model's tool. So a base the user built alone stayed flat, and
+// "these two are parent and child" was a thing only one of the two writers could say.
+console.log('\nbuilding structure from the panel')
+// The diary is private to the session that keeps one, even though it lives in the same workspace. Without this, a work
+// session's outline carries someone's diary — same workspace, same base list.
+const diaryCwd = await mkdtemp(join(tmpdir(), 'kbdiary-'))
+await saveBase(pathFor(diaryCwd, 'ops'), newBase('ops', '运维', '工作', '正文。'))
+// The base belongs to one conversation: its name is a hash of that conversation's id.
+const diaryBase = state.diaryBaseFor('diary-session')
+await saveBase(pathFor(diaryCwd, diaryBase), newBase(diaryBase, '日记', '今天', '正文。'))
+const diaryOutlineOf = async (session) => {
+  await outline.refresh(diaryCwd, session)
+  return outline.outlineFor(diaryCwd, session)
+}
+const workOutline = await diaryOutlineOf('work-session')
+check('a work session does not see the diary base', !workOutline.includes('日记'),
+  workOutline.slice(0, 120))
+check('but it still sees the work base', workOutline.includes('运维'))
+await state.writeDiary(diaryCwd, true, 'diary-session')
+const diaryOutline = await diaryOutlineOf('diary-session')
+check('the diary base is in the outline only for the session that keeps one',
+  diaryOutline.includes('日记') && diaryOutline.includes('运维'), diaryOutline.slice(0, 160))
+check('and the other session is untouched by that switch', !(await diaryOutlineOf('another-session')).includes('日记'))
+const workPanel = await routes.readPanelState(diaryCwd, 'work-session')
+check('the panel list hides the diary base',
+  !workPanel.bases.some((id) => id.startsWith('diary-')) && workPanel.bases.includes('ops'), JSON.stringify(workPanel.bases))
+const diaryPanel = await routes.readPanelState(diaryCwd, 'diary-session')
+// A tool that guesses the id must get the same answer as a session that never saw it — which is the whole point of
+// hiding it in the first two layers.
+const diaryReadTool = TOOLS.find((tool) => tool.name === 'knowledge_read')
+const diaryExecFor = (session) => ({ agent: { session: { header: { cwd: diaryCwd, id: session } } } })
+check('the read tool refuses the diary from a session that is not keeping one',
+  await diaryReadTool.execute({ base: diaryBase }, diaryExecFor('work-session')).then(() => false, (error) => /no knowledge base/.test(error.message)))
+await state.writeDiary(diaryCwd, true, 'diary-session')
+check('and allows it for a session that is',
+  await diaryReadTool.execute({ base: diaryBase }, diaryExecFor('diary-session')).then((value) => String(value).includes('日记'), () => false))
+
+// The case that surfaced in a live session: the diary base already exists (someone made it earlier), the session turns
+// the diary on, but that session's enabled list was written before the base existed — so the base is not in it. Writing
+// has to work anyway: keeping a diary means being able to write it.
+await state.writeSelection(diaryCwd, ['ops'], 'diary-session')
+await state.writeDiary(diaryCwd, true, 'diary-session')
+check('a diary written by a session whose list predates the base still works',
+  await diaryReadTool.execute({ base: diaryBase }, diaryExecFor('diary-session'))
+    .then((value) => String(value).includes('日记'), (error) => false))
+
+// o47's four judgements, in one place: two conversations keeping diaries must not see each other's, and each must see its
+// own. The name is a hash of the conversation id, so the two are different by construction — what needs asserting is that
+// every layer agrees on which one is whose.
+const twoCwd = await mkdtemp(join(tmpdir(), 'kbtwo-'))
+const firstBase = state.diaryBaseFor('conv-a')
+const secondBase = state.diaryBaseFor('conv-b')
+await saveBase(pathFor(twoCwd, firstBase), newBase(firstBase, '甲', '今天', '正文。'))
+await saveBase(pathFor(twoCwd, secondBase), newBase(secondBase, '乙', '今天', '正文。'))
+check('two conversations get two diaries', firstBase !== secondBase)
+await state.writeDiary(twoCwd, true, 'conv-a')
+
+const twoTool = TOOLS.find((tool) => tool.name === 'knowledge_read')
+const twoExec = (session) => ({ agent: { session: { header: { cwd: twoCwd, id: session } } } })
+check('a conversation reads its own diary',
+  await twoTool.execute({ base: firstBase }, twoExec('conv-a'))
+    .then((value) => String(value).includes('甲'), () => false))
+check('and not the other conversation\'s',
+  await twoTool.execute({ base: secondBase }, twoExec('conv-a')).then(() => false, () => true))
+check('the other conversation cannot read it either',
+  await twoTool.execute({ base: firstBase }, twoExec('conv-b')).then(() => false, () => true))
+const twoPanel = await routes.readPanelState(twoCwd, 'conv-a')
+// Sealing: the point is that a file read outside the plugin yields nothing, while the plugin itself is unaware of it.
+const sealedCwd = await mkdtemp(join(tmpdir(), 'kbseal-'))
+const sealedId = state.diaryBaseFor('conv-sealed')
+const sealedBase = newBase(sealedId, '日记', '今天', '这句话不该出现在磁盘上。')
+await saveBase(pathFor(sealedCwd, sealedId), sealedBase)
+const sealedText = await readFile(pathFor(sealedCwd, sealedId), 'utf8')
+check('a diary is not stored as plain text',
+  !sealedText.includes('这句话不该出现在磁盘上') && sealedText.includes('aes-256-gcm'), sealedText.slice(0, 40))
+check('and reads back through the normal path',
+  (await loadBase(sealedCwd, sealedId)).base.nodes[0].body === '这句话不该出现在磁盘上。')
+check('and is listed with its content, not as an empty base',
+  (await listBases(sealedCwd)).some((base) => base.id === sealedId && base.nodes.length > 0))
+check('a tampered file is refused rather than silently empty',
+  await (async () => {
+    const path = pathFor(sealedCwd, sealedId)
+    const broken = JSON.parse(sealedText)
+    broken.data = broken.data.slice(0, 8)
+    await saveBase(pathFor(sealedCwd, 'other'), newBase('other', 'other', 'x', 'y'))
+    const { writeFile } = await import('node:fs/promises')
+    await writeFile(path, JSON.stringify(broken), 'utf8')
+    return loadBase(sealedCwd, sealedId).then(() => false, () => true)
+  })())
+
+check('the panel shows only its own diary',
+  twoPanel.bases.includes(firstBase) && !twoPanel.bases.includes(secondBase),
+  JSON.stringify(twoPanel.bases))
+
+check('and shows it to the session that keeps one',
+  diaryPanel.bases.includes(diaryBase) && diaryPanel.bases.includes('ops'), JSON.stringify(diaryPanel.bases))
+
+const treeCwd = await mkdtemp(join(tmpdir(), 'kbtree-'))
+await saveBase(pathFor(treeCwd, 'tree'), {
+  version: 1, id: 'tree', name: 'tree',
+  nodes: [
+    { id: 'r', parent: null, title: '根', body: '正文。' },
+    { id: 'a', parent: 'r', title: '甲', body: '正文。' },
+    { id: 'b', parent: null, title: '乙', body: '正文。' },
+  ],
+  links: [],
+})
+const readTree = async () => (await loadBase(treeCwd, 'tree')).base
+const byId = (bases, id) => bases.nodes.find((node) => node.id === id)
+
+const childMade = await routes.createNodeFromPanel(treeCwd, 'tree', { title: '子', parent: 'a' })
+check('a child is created under the node it names',
+  byId(await readTree(), childMade.node).parent === 'a', childMade.node)
+
+// A parent is not created above an existing node — it is created at the top level from the canvas menu and given
+// children afterwards. Inserting one above would either give the target two parents (impossible: one `parent`
+// field) or reroute it out of its branch as a side effect. So there is no `above` on this path at all.
+const afterChild = await readTree()
+const knownIds = new Set(afterChild.nodes.map((node) => node.id))
+check('creating from the panel leaves every parent pointer resolvable',
+  afterChild.nodes.every((node) => node.parent === null || knownIds.has(node.parent)),
+  JSON.stringify(afterChild.nodes.map((node) => node.id + '<' + node.parent)))
+
+const moved = await routes.setParent(treeCwd, 'tree', { node: 'b', parent: 'r' })
+check('a node can be moved under another', moved.parent === 'r', JSON.stringify(moved))
+const lifted = await routes.setParent(treeCwd, 'tree', { node: 'b', parent: null })
+check('and lifted back to the top level', lifted.parent === null && byId(await readTree(), 'b').parent === null,
+  JSON.stringify(lifted))
+
+check('a node cannot be its own parent', await routes.setParent(treeCwd, 'tree', { node: 'b', parent: 'b' })
+  .then(() => false, (error) => /its own parent/.test(error.message)))
+// The loop case is the one that matters: without it a tree becomes a cycle, and everything downstream — the
+// outline walk, the edge routing — has to defend itself against a shape it was never written for.
+//
+// `b` is put back under `r` first, deliberately: at this point the previous assertion has left `b` at the top
+// level, and moving `r` under a root is not a loop at all. A test that "passes" for that reason would be checking
+// nothing.
+await routes.setParent(treeCwd, 'tree', { node: 'b', parent: 'r' })
+check('and moving a node under its own descendant is refused',
+  await routes.setParent(treeCwd, 'tree', { node: 'r', parent: 'b' })
+    .then(() => false, (error) => /loop/.test(error.message)))
+check('a move to a node that is not there is refused',
+  await routes.setParent(treeCwd, 'tree', { node: 'b', parent: 'ghost' })
+    .then(() => false, (error) => /is not in this base/.test(error.message)))
+check('and the tree is unchanged after every refusal',
+  JSON.stringify((await readTree()).nodes.map((node) => node.id + '<' + node.parent))
+    === JSON.stringify(['r<null', 'a<r', 'b<r', childMade.node + '<a']),
+  JSON.stringify((await readTree()).nodes.map((node) => node.id + '<' + node.parent)))
 
 const saved = await routes.setSelection(cwd, ['panel'])
 check('selection is written and read back',
@@ -1027,8 +1306,8 @@ const fakeCtx = (ids) => ({
 const routeModule = await import('./lib/routes.js')
 
 check('every session is listed once per workspace',
-  (await routeModule.listWorkspaces(fakeCtx({ a: wsCwd, b: wsCwd, c: 'D:/other' }), 'a')).length === 2)
-const listed = await routeModule.listWorkspaces(fakeCtx({ a: wsCwd }), 'a')
+  (await routeModule.listWorkspaces(fakeCtx({ a: wsCwd, b: wsCwd, c: 'D:/other' }), 'a', null)).length === 2)
+const listed = await routeModule.listWorkspaces(fakeCtx({ a: wsCwd }), 'a', null)
 const mine = listed.find((entry) => entry.cwd === wsCwd)
 check('a workspace carries its bases', mine && mine.bases.length === 2, JSON.stringify(mine && mine.bases))
 check('and which are on', mine && mine.enabled.join() === 'one', JSON.stringify(mine && mine.enabled))
@@ -1039,7 +1318,7 @@ check('the name is the last path segment', mine && mine.name === wsCwd.split(/[\
 // A service that cannot enumerate still answers with the session that asked.
 const blind = { sessions: { get: (id) => (id === 'a' ? { header: { id: 'a', cwd: wsCwd } } : undefined) } }
 check('without an enumerator, the asking session is still listed',
-  (await routeModule.listWorkspaces(blind, 'a')).length === 1)
+  (await routeModule.listWorkspaces(blind, 'a', null)).length === 1)
 
 // A service whose list() throws must not take the route down.
 const angry = {
@@ -1049,13 +1328,55 @@ const angry = {
   },
 }
 check('a throwing enumerator falls back rather than failing',
-  (await routeModule.listWorkspaces(angry, 'a')).length === 1)
+  (await routeModule.listWorkspaces(angry, 'a', null)).length === 1)
+// The settings page's list also comes from the session store on disk, because the sessions enumeration only answers for
+// what the process is holding. Reconstructing a path from a store directory name is the fiddly half: both `\\` and a
+// literal `-` become `-`, so the two readings are tried and the filesystem decides. Injected here, so the case is exact
+// rather than borrowed from this machine's temp paths.
+// Every intermediate directory has to be in the set: the resolver prunes a branch whose parent is missing.
+const fakeDirs = new Set(['D:\\', 'D:\\work', 'D:\\anime-scene-builder', 'D:\\my-project', 'D:\\my-project\\deep-name'])
+const fakeExists = (path) => fakeDirs.has(path)
+check('a slug with no dashes in its names resolves',
+  workspacesModule.resolveSlug('--D-work--', fakeExists) === 'D:\\work',
+  workspacesModule.resolveSlug('--D-work--', fakeExists))
+check('and one whose directory names contain dashes still resolves',
+  workspacesModule.resolveSlug('--D-anime-scene-builder--', fakeExists) === 'D:\\anime-scene-builder',
+  workspacesModule.resolveSlug('--D-anime-scene-builder--', fakeExists))
+check('and a nested path with a dash in both parts resolves',
+  workspacesModule.resolveSlug('--D-my-project-deep-name--', fakeExists) === 'D:\\my-project\\deep-name',
+  workspacesModule.resolveSlug('--D-my-project-deep-name--', fakeExists))
+check('a slug naming nothing real is refused',
+  workspacesModule.resolveSlug('--Z-nope-nothing-here--', fakeExists) === null)
 
 // A workspace with no selection file means every base, which is null rather than an empty list.
 const bare = await mkdtemp(join(tmpdir(), 'kbws2-'))
 await saveBase(pathFor(bare, 'solo'), newBase('solo', '测试', '测试', ''))
-const bareListed = await routeModule.listWorkspaces(fakeCtx({ z: bare }), 'z')
+const bareListed = await routeModule.listWorkspaces(fakeCtx({ z: bare }), 'z', null)
 check('no selection file means null, not empty', bareListed[0].enabled === null, JSON.stringify(bareListed[0].enabled))
+
+// --- the sprite route -----------------------------------------------------------------
+// Not clickable, so not verifiable by eye: a broken image and a missing route look identical in a screenshot. This
+// drives the handler with a fake response and looks at the bytes.
+let spriteStatus = 0
+let spriteHeaders = {}
+let spriteBytes = null
+const fakeRes = {
+  writeHead(code, headers) { spriteStatus = code; spriteHeaders = headers || {} },
+  end(body) { spriteBytes = body },
+  setHeader() {},
+  write() {},
+}
+await routes.createHandler({ sessions: {} })(
+  { method: 'GET', url: (routes.PREFIX || '/dsh-knowledge-tree') + '/whale.png' },
+  fakeRes,
+)
+check('the sprite route answers 200 with image/png',
+  spriteStatus === 200 && (spriteHeaders['content-type'] || '').startsWith('image/png'),
+  spriteStatus + ' ' + JSON.stringify(spriteHeaders))
+check('and the body really is a PNG',
+  Boolean(spriteBytes) && spriteBytes.length > 1000
+    && spriteBytes[0] === 0x89 && spriteBytes[1] === 0x50 && spriteBytes[2] === 0x4e && spriteBytes[3] === 0x47,
+  spriteBytes ? spriteBytes.length + ' bytes' : 'no body')
 
 // --- the route handler ------------------------------------------------------------
 // The wiring, not the functions: a branch can be written correctly and placed where it never runs, which is
@@ -1176,6 +1497,25 @@ check('and every seed link carries a note',
 check('the outline names the tutorial and its version',
   seededOutline.includes('内置教程 v' + seed.SEED_VERSION), seededOutline.slice(0, 220))
 check('and tells the reader not to trust its memory of it', seededOutline.includes('别凭印象'))
+
+// A trigger must fit on one line, because `triggerOf` reads to the end of the line and nothing further. A trigger
+// wrapped onto a second line therefore reaches the outline as a sentence cut in half — "……是什么的 id；" with the
+// rest gone — and the source looks perfectly fine while it happens. This is not hypothetical: the tutorial's own
+// "找到某个节点" node did it, and it was found by reading the outline, not the file.
+for (const node of seededBases[0].nodes) {
+  const lines = String(node.body || '').split('\n').map((line) => line.trim()).filter(Boolean)
+  const last = lines[lines.length - 1] || ''
+  const found = outline.triggerOf(node.body)
+  check('node ' + node.id + ' has a trigger', found.found, JSON.stringify(found))
+  check('and it is the last line, unwrapped',
+    /^[*\s]*什么时候该想起它/.test(last), last.slice(0, 60))
+  // What a wrapped trigger *looks* like after extraction: a sentence stopped at its first line, so it ends on a
+  // joining mark rather than a full stop. This is the shape of the failure, checked at the layer the reader sees.
+  // The check above catches wrapping by looking at the source; this one catches it — and any other way of losing
+  // the tail — by looking at the extracted text.
+  check('and the extracted trigger is a finished sentence',
+    found.found && !/[；，、：,;:]$/.test(found.text), JSON.stringify(found.text))
+}
 check('a base that is not the tutorial carries no such line',
   !renderOutline([{ id: 'mine', name: '我的库', nodes: [{ id: 'n1', title: 'a', body: '正文。' }], links: [] }],
     null).includes('内置教程'))

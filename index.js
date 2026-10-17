@@ -29,6 +29,7 @@ import { needsRefresh, outlineFor, refresh } from './lib/outline.js'
 import { sessionIdOf } from './lib/session.js'
 import { seedIfFirstTime, upgradeTutorial } from './lib/seed.js'
 import { PREFIX, createHandler } from './lib/routes.js'
+import { diaryBaseFor, readDiary } from './lib/state.js'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { LOG_PATH, describeError, log } from './lib/log.js'
@@ -308,6 +309,7 @@ export function apply(ctx) {
       const agent = payload?.agent
       const cwd = agent?.session?.header?.cwd
       warmFor(cwd, sessionIdOf(agent), 'agent/pre-step')
+      void warmDiary(cwd, sessionIdOf(agent))
       if (needsRefresh(cwd, sessionIdOf(agent))) await refresh(cwd, sessionIdOf(agent))
       return next()
     }), 'knowledge-tree: warm before the step')
@@ -315,6 +317,63 @@ export function apply(ctx) {
     log('registered the outline warmers')
   } catch (error) {
     log(`FAIL registering the outline warmers: ${describeError(error)}`)
+  }
+
+  // Diary mode: a cache, because the provider below is synchronous.
+  //
+  // The switch is per session — turning it on in one conversation must not make every other conversation start
+  // writing. `diaryCache` holds the last answer per (cwd, session); it is refreshed on `agent/pre-step`, which fires
+  // before each step and therefore before each assembly.
+  const diaryCache = new Map()
+  const diaryKey = (cwd, sessionId) => String(cwd || '') + '\u0000' + String(sessionId || '')
+  async function warmDiary(cwd, sessionId) {
+    if (!cwd) return
+    try {
+      // The name of this conversation's own diary goes in the cache too: the prompt has to tell the model which base to
+      // write to, and a model that guesses `diary` will be refused by the tools.
+      const keeping = await readDiary(cwd, sessionId)
+      diaryCache.set(diaryKey(cwd, sessionId), keeping ? diaryBaseFor(sessionId) : null)
+    } catch (error) {
+      log('FAIL reading the diary switch: ' + describeError(error))
+    }
+  }
+
+  // What the model is told when the switch is on. Conventions only, never a voice: the persona belongs to the user's
+  // preset, and a plugin that writes its own would be putting words in someone else's character.
+  const DIARY = [
+    '## 日记',
+    '',
+    '这个会话开了日记。**不用等你被提醒，也不用按天** —— 当一段交流走到了一个值得留下的地方，就写一篇。',
+    '写多写少都行，没人会嫌多；但同一件事不要写第二遍。',
+    '',
+    '怎么写：',
+    '- 标题自己拟一句短的，不要用日期当标题',
+    '- 一篇只写一件事：今天发生了什么、你怎么想的、想对这个人说什么',
+    '- 写完继续正常对话，不要专门宣告"我去写日记了"',
+    '- 口吻用你平时说话的样子 —— 不要写成工作报告',
+    '',
+    '写到哪：这个工作区里名为 `{base}` 的库（就只有这一个名字，别自己另起）。没有就先建一个',
+  '（`knowledge_create_base`，id 用 `{base}`），根节点写清楚"按月分组"',
+    '—— 每个月一个节点，日记挂在它下面，这样大纲里不会长出几百行。',
+  ].join('\n')
+
+  try {
+    ctx.effect(() => ctx.systemPrompt.context({
+      name: 'knowledge-tree.diary',
+      // Just after the outline: it is an instruction about how to write, and it should not sit in front of the
+      // protocol that decides whether any of this is read at all.
+      order: 9500,
+      text: ({ agent }) => {
+        const cwd = agent?.session?.header?.cwd
+        // The cached value is this conversation's diary base name, or null when it keeps none — the name is part of
+        // the text because a model that has to guess it writes to a base the tools will refuse.
+        const base = diaryCache.get(diaryKey(cwd, sessionIdOf(agent)))
+        return base ? DIARY.split('{base}').join(base) : ''
+      },
+    }), 'knowledge-tree: the diary conventions')
+    log('registered the diary context')
+  } catch (error) {
+    log('FAIL registering the diary context: ' + describeError(error))
   }
 
   // A runtime context, not a prompt section.

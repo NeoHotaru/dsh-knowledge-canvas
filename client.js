@@ -215,6 +215,64 @@ window.__ModuleLoader__.load({
       removed: { glyph: '−', color: '#c0392b', text: '已废弃' },
     };
 
+    /**
+       * The whale, as one strip of seven frames: idle, thinking, working, happy, sleeping, running, failed.
+       *
+       * A sprite strip rather than seven images because the panel picks a frame by index and shifts
+       * `background-position` — no per-frame element, no extra requests. Inlined as a data URI because this plugin
+       * has no asset loader of its own: `assets/icon.svg` is a repository file that nothing references at runtime,
+       * so a path would simply 404.
+       */
+      const WHALE_VERSION = '2026-10-16'
+      /** Where the grid lives. A function, not a constant: `PREFIX` is declared further down this file, so
+       *  a const initialiser here would read it before it exists and take the plugin down at load. */
+      const whaleSheet = (which) => PREFIX + '/whale' + (which ? '-' + which : '') + '.png?v=' + WHALE_VERSION
+      const WHALE_COLS = 5
+      const WHALE_ROWS = 3
+      /**
+       * Where each state sits in the sheet, and how many frames it has.
+       *
+       * Row 0 is the artist's walk cycle, so `idle` loops all five of its frames. The other rows are single
+       * expressions, and one frame is the honest description of an expression — animating it would be inventing
+       * motion the art does not have.
+       */
+      const WHALE_FRAMES = {
+        idle: { col: 0, row: 0, frames: 5, ms: 780 },
+        working: { col: 3, row: 1, frames: 1 },
+        happy: { col: 2, row: 1, frames: 1 },
+        sleeping: { col: 4, row: 1, frames: 1 },
+        running: { col: 0, row: 2, frames: 1 },
+        failed: { col: 1, row: 2, frames: 1 },
+        thinking: { col: 4, row: 2, frames: 1 },
+      }
+      /**
+       * The loops the mascot can play, and what each one costs to describe.
+       *
+       * `grid: true` means the sheet is the 3x5 grid rather than a single row, so the background size covers both axes and
+       * the frame walk only moves along x. Everything else is one row of frames.
+       */
+      const WHALE_LOOPS = [
+        { loop: 'walk', sheet: '', frames: 5, ms: 780, grid: true, anim: 'kb-whale-idle' },
+        { loop: 'wave', sheet: 'wave', frames: 6, ms: 960, grid: false, anim: 'kb-whale-wave' },
+        { loop: 'doze', sheet: 'doze', frames: 6, ms: 960, grid: false, anim: 'kb-whale-doze' },
+        { loop: 'work', sheet: 'work', frames: 6, ms: 900, grid: false, anim: 'kb-whale-work' },
+        { loop: 'eat', sheet: 'eat', frames: 6, ms: 950, grid: false, anim: 'kb-whale-eat' },
+      ]
+      const WHALE_IDLE_LOOPS = WHALE_LOOPS.filter((entry) => entry.loop !== 'work')
+      const WHALE_WORK = WHALE_LOOPS.find((entry) => entry.loop === 'work')
+
+      /** The one animation in the sheet, as CSS. `steps` is what keeps pixel art on its own pixels. */
+      // 240 = five frames of the walk cycle at the 48 px they are drawn at.
+      // Distances are frames times the display size: the walk cycle is 5 * 72, the three strips are 6 * 72. Written out
+      // rather than computed because CSS needs a literal, and a wrong number makes the loop skip frames instead of
+      // failing.
+      const WHALE_CSS = '@keyframes kb-whale-idle { from { background-position-x: 0 }'
+        + ' to { background-position-x: -360px } }'
+        + ' @keyframes kb-whale-wave { from { background-position-x: 0 } to { background-position-x: -432px } }'
+        + ' @keyframes kb-whale-doze { from { background-position-x: 0 } to { background-position-x: -432px } }'
+        + ' @keyframes kb-whale-work { from { background-position-x: 0 } to { background-position-x: -432px } }'
+        + ' @keyframes kb-whale-eat { from { background-position-x: 0 } to { background-position-x: -432px } }'
+
     const SURFACE = 'rgba(128,128,128,0.07)';
     // A node that overlaps another needs an opaque surface, or the box underneath shows
     // through its text. Taken from the host's design system so it follows the theme, with a
@@ -1030,7 +1088,11 @@ function estimateBox(node) {
      * @param unsaved - iterable of `from>to` pairs drawn as pending.
      */
     function routeKeyOf(boxes, drag, links, unsaved) {
-      const parts = [drag ? 'drag:' + drag.from + ',' + drag.x + ',' + drag.y : 'drag:-'];
+      // `kind` is part of the key: the band's colour depends on it, and a press that changes it without moving the
+      // pointer would otherwise keep drawing the previous colour.
+      const parts = [drag
+        ? 'drag:' + (drag.kind || 'link') + ',' + drag.from + ',' + drag.x + ',' + drag.y
+        : 'drag:-'];
       for (const box of boxes) {
         parts.push(box.id + '<' + (box.parent || '') + '>'
           + (box.x === null || box.x === undefined
@@ -1385,7 +1447,10 @@ function estimateBox(node) {
             style: {
               position: 'absolute', left: 34, top: 22, zIndex: 6,
               display: 'flex', gap: 5, alignItems: 'center', padding: 5,
-              border: '1px solid ' + HAIRLINE, borderRadius: 8, background: SURFACE,
+              // SOLID, not SURFACE. `SURFACE` is 7% grey — right for a card sitting in a list, where seeing the
+              // layers through it is the point. This is a popover over a node's text, and a menu you can read the
+              // sentence behind is a menu you have to squint at.
+              border: '1px solid ' + HAIRLINE, borderRadius: 8, background: SURFACE_SOLID,
               boxShadow: '0 6px 18px rgba(0,0,0,0.18)',
             },
           },
@@ -1518,7 +1583,7 @@ function estimateBox(node) {
     }
 
     function NodeBox({
-      entry, x, y, onPressStart, onActivate, onLinkStart, onReview, onSpotlight, color, isFocus,
+      entry, x, y, onPressStart, onActivate, onLinkStart, onReview, onSpotlight, color, isFocus, onNodeMenu,
       isSource, isTarget, isEdited, isArmed, boxWidth, boxHeight, liveWidth, liveHeight, onResizeStart,
       byline,
       onRename,
@@ -1569,9 +1634,10 @@ function estimateBox(node) {
           // fires after the gesture has ended, which makes this the place to ask whether a link was drawn.
           event.preventDefault();
           event.stopPropagation();
-          // The pointer's own position, which is where this gesture happened and therefore where the reader is
-          // looking. The card opens here; the button on that card is what expands it to the whole panel.
-          if (onHistory) onHistory(node.id, event.clientX, event.clientY);
+          // A menu rather than the history directly: right-click is the only gesture left that can mean "do
+          // something with this node", and structure now lives there too. History is the third item, so nothing
+          // became unreachable.
+          if (onNodeMenu) onNodeMenu(node.id, event);
         },
         tabIndex: 0,
         role: 'button',
@@ -1777,7 +1843,7 @@ function estimateBox(node) {
       focusNode, onFocusShown, onLocate,
       names,
       labels,
-      base, extraLinks, onLink, edits, onEdit, onReview, fullscreen, positions, onMove,
+      base, extraLinks, onLink, onParent, onCreateChild, edits, onEdit, onReview, fullscreen, positions, onMove,
       /**
        * `(nodeId) => void`. Swaps the panel over to that node's edit history.
        *
@@ -1840,6 +1906,8 @@ function estimateBox(node) {
       // needed — the menu is drawn outside the zoomed layer so it stays legible, while the node has to
       // be placed in the canvas's own coordinates.
       const [canvasMenu, setCanvasMenu] = React.useState(null);
+      /** Right-click on a node: `{ id, sx, sy }`, screen-relative inside the canvas. */
+      const [nodeMenu, setNodeMenu] = React.useState(null);
       // The dragged node's stand-in, in screen coordinates. Rendered fixed so the canvas's overflow
       // cannot clip it: the whole point is to watch it leave.
       const [ghost, setGhost] = React.useState(null);
@@ -2410,8 +2478,17 @@ function estimateBox(node) {
         if (event.button !== 0) return;
         const target = event.target;
         if (target && target.closest && target.closest('[data-node-id]')) return;
+        // A press inside an open menu belongs to the menu. Clearing it here — which is what this did for one
+        // round — unmounts it on pointerdown, so the click that follows lands on nothing and every item silently
+        // does nothing. The menus close themselves when an item is chosen, and this closes them when the press
+        // lands anywhere else, which is the split it should have had from the start.
+        if (target && target.closest
+          && target.closest('[data-kb-canvas-menu], [data-kb-node-menu]')) return;
         const rect = boxRef.current && boxRef.current.getBoundingClientRect();
         if (!rect) return;
+        // A press on the background dismisses any open menu.
+        setCanvasMenu(null);
+        setNodeMenu(null);
         pan.current = { startX: event.clientX, startY: event.clientY, view };
         event.preventDefault();
       };
@@ -2524,6 +2601,10 @@ function estimateBox(node) {
         // first movement the layout can run again — measured sizes arrive, the separating pass settles — and
         // a stale spot made the node snap back to where it had been a moment earlier.
         const now = placedRef.current[id] || spot;
+        // Alt at the moment of the press decides what this drag is for. Read here rather than on every move: the
+        // gesture is chosen by how it started, and a modifier pressed halfway through would otherwise rewrite what
+        // the release means.
+        const parenting = Boolean(event && event.altKey);
         press.current = {
           id,
           x0: point.x,
@@ -2533,9 +2614,10 @@ function estimateBox(node) {
           dx: now ? point.x - now.x : 0,
           dy: now ? point.y - now.y : 0,
           // Armed at once: dragging moves the node. The hold below turns this into a link instead.
-          armed: true,
+          armed: !parenting,
           displaced: false,
           linking: false,
+          parenting,
           x: now ? now.x : 0,
           y: now ? now.y : 0,
         };
@@ -2548,7 +2630,8 @@ function estimateBox(node) {
           //
           // The hold no longer arms the move, so everything it used to set up — the grab offset, the live
           // placement — is taken at the press instead, where the drag now begins.
-          if (current.displaced) return;
+          // A hold while Alt is down must not turn this into a link: the gesture was decided at the press.
+          if (current.displaced || current.parenting) return;
           current.linking = true;
           link.current = { from: current.id };
           setArmed(null);
@@ -2556,11 +2639,74 @@ function estimateBox(node) {
         }, HOLD_MS);
       };
 
-      /** Right press. Links to whatever node the pointer is released over. */
+      /**
+       * A free spot next to one node, for a node that has just been created.
+       *
+       * Without this a new node has no manual position, so it lands wherever the automatic layout puts it — and
+       * once the user has dragged things around, that can be the far side of the canvas from the parent they just
+       * made it under. Which defeats the point of "new child": the child should appear at the child's place.
+       *
+       * Below the anchor first (that is where a child reads as belonging), then to its right, stepping further
+       * down each time something is in the way. The clearance test uses the same gap the separating pass uses, so
+       * a spot this returns is one that pass will not immediately push somewhere else.
+       */
+      const freeSpotNear = (anchorId) => {
+        const anchor = rectOf(anchorId);
+        if (!anchor) return null;
+        // The new node has no measurements yet — nothing has been rendered. Its title is what it will be created
+        // with, so this is the estimate the layout itself would use.
+        const guess = estimateBox({ title: '新节点', body: '' });
+        const w = Math.max(120, guess.w);
+        const h = Math.max(72, guess.h);
+        const gap = 22;
+        const others = ordered
+          .filter((entry) => entry.node.id !== anchorId)
+          .map((entry) => rectOf(entry.node.id))
+          .filter(Boolean);
+        const clear = (x, y) => !others.some((rect) => x < rect.x + rect.w + 18
+          && x + w + 18 > rect.x
+          && y < rect.y + rect.h + 18
+          && y + h + 18 > rect.y);
+        const starts = [{ x: anchor.x, y: anchor.y + anchor.h + gap },
+          { x: anchor.x + anchor.w + gap, y: anchor.y }];
+        for (const start of starts) {
+          for (let step = 0; step < 30; step += 1) {
+            const y = start.y + step * (h + gap);
+            if (clear(start.x, y)) return { x: start.x, y };
+          }
+        }
+        // Everything nearby is taken: below the anchor anyway, and let the separating pass sort it out.
+        return starts[0];
+      };
+
+
       const onLinkStart = (id, event) => {
         const point = localPoint(event);
         link.current = { from: id };
         setDrag({ from: id, x: point.x, y: point.y });
+      };
+
+      /**
+       * Open a node's history card, placed at a point given in canvas coordinates.
+       *
+       * The card is a thing on the canvas — it takes the same transform the nodes do — so its position has to be in
+       * canvas units, and clamped to what can actually be seen at the current pan and zoom. Clamping to `0` here was
+       * wrong for the same reason it was wrong before: `0` is the canvas origin, not its visible edge.
+       */
+      const openHistoryCard = (id, point) => {
+        const frame = boxRef.current ? boxRef.current.getBoundingClientRect() : null;
+        if (!frame || !view.k) return setHistoryFor({ id, x: point.x, y: point.y });
+        const CARD_W = 300;
+        const CARD_MAX_H = 380;
+        const left = -view.x / view.k;
+        const top = -view.y / view.k;
+        const right = (frame.width - view.x) / view.k;
+        const bottom = (frame.height - view.y) / view.k;
+        return setHistoryFor({
+          id,
+          x: Math.max(left, Math.min(point.x, Math.max(left, right - CARD_W))),
+          y: Math.max(top, Math.min(point.y, Math.max(top, bottom - CARD_MAX_H))),
+        });
       };
 
       /** Keyboard path: Shift+Enter starts a link, Enter on another node finishes it. */
@@ -2594,6 +2740,16 @@ function estimateBox(node) {
           if (left) {
             left.last = point;
             lastPointer.current = point;
+            // Alt held: the drag is building structure, not moving the box and not drawing an association.
+            // Same preview machinery as a link — the band plus the highlighted target — with `kind` marking it so
+            // the line is drawn grey. Orange already means "these two are related"; a parent edge is a different
+            // claim and must not look like the same one for even a moment.
+            if (left.parenting) {
+              setDrag({ from: left.id, x: point.x, y: point.y, kind: 'parent' });
+              const under = nodeUnder(event);
+              setHover(under && under !== left.id ? under : null);
+              return;
+            }
             if (left.linking) {
               setDrag({ from: left.id, x: point.x, y: point.y });
               const under = nodeUnder(event);
@@ -2642,7 +2798,17 @@ function estimateBox(node) {
           setHover(null);
           setGhost(null);
           if (left) {
-            if (left.linking) {
+            if (left.parenting) {
+              // Released over another node: that node becomes the parent. Released anywhere else: nothing was
+              // asked for, and nothing changes — an accidental Alt-drag must not silently detach a node or move it
+              // to the top level.
+              //
+              // Named `over` rather than `under`: the linking branch below declares its own `under` in this same
+              // block, and two declarations of one name in one scope is a TDZ failure the checker catches before
+              // the browser ever runs it.
+              const over = nodeUnder(event);
+              if (over && over !== left.id) onParent(left.id, over);
+            } else if (left.linking) {
               const under = nodeUnder(event);
               if (under && under !== left.id) onLink(left.id, under);
             } else if (left.displaced) {
@@ -2892,7 +3058,13 @@ function estimateBox(node) {
           toolButton('适应', '缩放到刚好放下', () => fitTo(width, height)),
           // Labelled: a bare number in a row of buttons does not say what it measures.
           h('span', {
-            title: '这份知识库里节点的宽度。单个节点可以有自己的宽度，在它的编辑器里设。',
+            // This used to say a single node's width was set "in its editor". It is not: the editor holds the
+            // title, the body, the colour and the removal buttons. A tooltip pointing at a control which does not
+            // exist is worse than no tooltip — the reader goes looking, fails, and concludes they cannot find it
+            // rather than that it is not there. The per-node handles are the right edge, the bottom edge, and the
+            // corner where they meet.
+            title: '这份知识库里节点的默认宽度。单个节点的宽度靠拖它的右边缘（只改宽）、'
+              + '下边缘（只改高）或右下角（两者一起）改。',
             style: {
               display: 'inline-flex', alignItems: 'center', gap: 5,
               border: '1px solid ' + HAIRLINE, borderRadius: 7, padding: '1px 7px',
@@ -2965,7 +3137,8 @@ function estimateBox(node) {
             : null,
           // Folded into the zoom readout above, which already showed the same thing.
           h('span', { style: { fontSize: 11, opacity: 0.5 } },
-            '滚轮缩放 · 拖空白平移 · 拖节点移动 · 长按节点拉连线 · 右键节点看修改历史'),
+            '滚轮缩放 · 拖空白平移 · 拖节点移动 · 长按节点拉连线 · Alt+拖节点挂成子节点'),
+          h('span', { style: { fontSize: 11, opacity: 0.5 } }, '右键节点看修改历史'),
           // Jump to a node by its id, which is the handle every tool call and every conversation uses.
           //
           // The canvas shows titles, so an instruction like "read o14" had no way to be followed: the id was
@@ -3015,6 +3188,9 @@ function estimateBox(node) {
             if (!holder) return;
             const rect = holder.getBoundingClientRect();
             const spot = localPoint(event);
+            // One menu at a time: a leftover node menu under a new canvas menu would look like one menu with
+            // items from two different targets.
+            setNodeMenu(null);
             setCanvasMenu({
               sx: event.clientX - rect.left,
               sy: event.clientY - rect.top,
@@ -3058,6 +3234,55 @@ function estimateBox(node) {
               boxShadow: '0 4px 14px rgba(0,0,0,0.16)',
             },
           }, ghost.outside ? ghost.title + '  →  松手放进输入框' : ghost.title) : null,
+          // Right-click on a node. Same box as the canvas menu, because it is the same kind of control; the items
+          // differ because the subject does — this one is about one node, and two of the three build structure.
+          nodeMenu ? h('div', {
+            'data-kb-node-menu': nodeMenu.id,
+            style: {
+              position: 'absolute',
+              left: Math.max(0, nodeMenu.sx),
+              top: Math.max(0, nodeMenu.sy),
+              zIndex: 5,
+              minWidth: 148,
+              padding: 4,
+              borderRadius: 8,
+              border: '1px solid ' + HAIRLINE,
+              // SOLID: a menu has to be read, and this one opens on top of a node's own text.
+              background: SURFACE_SOLID,
+              boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
+              fontSize: 11.5,
+            },
+          },
+            [
+              ['新建子节点', '在这个节点下面建一个，并立刻开始编辑', () => {
+                const id = nodeMenu.id;
+                setNodeMenu(null);
+                onCreateChild(id).then((created) => {
+                  if (!created) return;
+                  // Placed by hand, not left to the automatic layout: an unplaced node is laid out from the whole
+                  // tree's shape, which after any dragging is somewhere else entirely.
+                  const spot = freeSpotNear(id);
+                  if (spot) onMove(created, Math.round(spot.x), Math.round(spot.y));
+                  setEditingId(created);
+                });
+              }],
+              ['看修改历史', '这个节点被改过几次、每次改了什么', () => {
+                const target = nodeMenu;
+                setNodeMenu(null);
+                openHistoryCard(target.id, { x: target.x, y: target.y });
+              }],
+            ].map(([label, hint, run]) => h('button', {
+              key: label,
+              type: 'button',
+              title: hint,
+              onClick: run,
+              style: {
+                display: 'block', width: '100%', textAlign: 'left', padding: '5px 8px',
+                border: 'none', borderRadius: 6, background: 'transparent', color: 'inherit',
+                font: 'inherit', cursor: 'pointer',
+              },
+            }, label)),
+          ) : null,
           canvasMenu ? h('div', {
             'data-kb-canvas-menu': 'true',
             style: {
@@ -3069,7 +3294,9 @@ function estimateBox(node) {
               padding: 4,
               borderRadius: 8,
               border: '1px solid ' + HAIRLINE,
-              background: SURFACE,
+              // SOLID for the same reason as the node menu: on an empty canvas there is nothing behind it, but
+              // right-clicking just beside a node put that node's text through the item labels.
+              background: SURFACE_SOLID,
               boxShadow: '0 6px 20px rgba(0,0,0,0.18)',
               fontSize: 11.5,
             },
@@ -3090,7 +3317,7 @@ function estimateBox(node) {
               border: 'none', borderRadius: 6, background: 'transparent', color: 'inherit',
               font: 'inherit', cursor: 'pointer',
             },
-          }, '新建节点')) : null,
+          }, '新建父节点')) : null,
           h('div', {
             style: {
               position: 'absolute',
@@ -3168,10 +3395,14 @@ function estimateBox(node) {
           band ? h('path', {
             d: band,
             fill: 'none',
-            stroke: '#c9761b',
+            // Grey for structure, orange for association — the same distinction the finished edges make. The
+            // in-flight line has to say which one you are about to create, because the release does two very
+            // different things and there is no undo step between them.
+            stroke: drag && drag.kind === 'parent' ? 'rgba(128,128,128,0.9)' : '#c9761b',
             strokeWidth: 1.6,
             vectorEffect: 'non-scaling-stroke',
             strokeDasharray: '3 3',
+            'data-kb-band': drag && drag.kind === 'parent' ? 'parent' : 'link',
           }) : null,
         ),
         ordered.map((entry) => {
@@ -3229,6 +3460,26 @@ function estimateBox(node) {
             // The labels come from Body: they are assigned across every base, and Tree renders one.
             onRename: entry.node.by ? () => renameSession(entry.node.by) : null,
             detail: view.k >= DETAIL_ZOOM,
+            // Right-click on a node opens a small menu: create a child, create a parent, or read the history.
+            //
+            // The canvas's own menu is for "make something here"; this one is for "make something relative to
+            // this node", which is the only way to build structure without the model.
+            onNodeMenu: (id, event) => {
+              const holder = boxRef.current;
+              if (!holder) return;
+              const rect = holder.getBoundingClientRect();
+              const spot = localPoint(event);
+              setCanvasMenu(null);
+              setNodeMenu({
+                id,
+                sx: event.clientX - rect.left,
+                sy: event.clientY - rect.top,
+                // Canvas coordinates are kept alongside the screen ones: the history card is a thing on the
+                // canvas and takes the canvas transform, so it needs the point in that space.
+                x: spot.x,
+                y: spot.y,
+              });
+            },
             onHistory: (nodeId, x, y) => setHistoryFor((current) => {
               if (current && current.id === nodeId) return null;
               // The pointer converted once, into the canvas's own coordinates. From then on the card is a
@@ -3725,6 +3976,42 @@ function estimateBox(node) {
             }),
         ),
       );
+    }
+
+    /**
+     * One frame of the whale, as a square slice of the strip.
+     *
+     * `background-position` picks the frame: the sheet lies along one row, so moving it left by one frame width shows
+     * the next. `imageRendering: pixelated` is not decoration — the art is drawn on a pixel grid, and the browser's
+     * default smoothing turns it into a smudge at this size.
+     */
+    function Whale({ state, size }) {
+      // No hooks. The only thing that varies with time is which loop is showing, and the clock already varies; the panel
+      // re-renders on its poll, so a fifteen-second window flips on its own. A component with no hooks cannot mismatch
+      // them between renders, which is the bug this file hit once when the random-expression path lived here.
+      const active = Boolean(state) && state !== 'idle'
+      const pick = active
+        ? WHALE_WORK
+        : WHALE_IDLE_LOOPS[Math.floor(Date.now() / 15000) % WHALE_IDLE_LOOPS.length]
+      const style = {
+        width: size,
+        height: size,
+        flex: '0 0 auto',
+        backgroundImage: 'url("' + whaleSheet(pick.sheet) + '")',
+        backgroundSize: pick.grid
+          ? (size * WHALE_COLS) + 'px ' + (size * WHALE_ROWS) + 'px'
+          : (size * pick.frames) + 'px ' + size + 'px',
+        backgroundPosition: '0 0',
+        backgroundRepeat: 'no-repeat',
+        imageRendering: 'pixelated',
+        animation: pick.anim + ' ' + pick.ms + 'ms steps(' + pick.frames + ') infinite',
+      }
+      return h('div', {
+        'aria-hidden': 'true',
+        'data-kb-whale': state || 'idle',
+        'data-kb-whale-loop': pick.loop,
+        style,
+      })
     }
 
     function Note({ children }) {
@@ -4224,6 +4511,11 @@ function estimateBox(node) {
         };
       }, [sessionId]);
 
+      // A ref, not state: the list effect below needs the diary flag, `activity` is declared further down, and an
+      // effect's dependency has to be declared above it. The poll updates this and bumps `tick` when it changes, so the
+      // list rebuilds exactly once per flip.
+      const activityRef = React.useRef(null)
+
       React.useEffect(() => {
         if (!REMOTE || !sessionId) {
           setState({ status: 'failed', message: '未拿到 remote 或 sessionId' });
@@ -4233,6 +4525,11 @@ function estimateBox(node) {
         (async () => {
           try {
             const listing = unwrap(await REMOTE.workspaceFiles.list(sessionId, DIR, controller.signal));
+            // The diary belongs to the conversation keeping it. This list is built from the files on disk, so the rule has to
+            // be applied here — the host-side filter in readPanelState is not on this path at all.
+            // Which diary is this conversation's own: the name comes back with the activity poll, because the panel builds
+          // this list from the files on disk and has no other way to know it.
+          const keepDiaryBase = activityRef.current && activityRef.current.diary ? activityRef.current.diaryBase : null
             const names = (listing.entries || [])
               .filter((entry) => entry.type === 'file' && entry.name.endsWith('.json'))
               .map((entry) => entry.name);
@@ -4246,7 +4543,17 @@ function estimateBox(node) {
               const parsed = JSON.parse(file.text);
               if (name === 'selection.json') selection = parsed;
               else if (name === 'layout.json') layout = parsed;
-              else bases.push(parsed);
+              else if (parsed && parsed.sealed) {
+                // A sealed file has no nodes to draw. Only this conversation's own diary is worth asking the host for; the others
+                // stay unreadable here, which is the point of sealing them.
+                if (parsed.baseId && parsed.baseId === keepDiaryBase) {
+                  const answer = await post('diary-get', { id: parsed.baseId }).catch(() => null);
+                  if (answer && answer.base) bases.push(answer.base);
+                }
+              }
+              // The diary belongs to the conversation keeping it, so it is filtered here — the panel builds this list from the
+              // files on disk, which means the host-side filter in readPanelState never ran on this path.
+              else if (!parsed.id.startsWith('diary-') || parsed.id === keepDiaryBase) bases.push(parsed);
             }
             // The user's arrangement wins over the default id order, so dragging the most important
             // base to the top is a real change. Anything they have not placed keeps its id order,
@@ -4303,6 +4610,29 @@ function estimateBox(node) {
         return () => controller.abort();
       }, [sessionId, tick, scope]);
 
+      // What the model has been doing in this workspace, for the header line.
+      //
+      // Polled rather than pushed because the host has no channel to the panel for this: the tools write a file and the
+      // panel reads it back. One and a half seconds is set against the cost of that file read, not against how fast the
+      // panel could redraw.
+      const [activity, setActivity] = React.useState(null);
+      React.useEffect(() => {
+        if (!sessionId) return undefined;
+        let cancelled = false;
+        const tick = () => {
+          post('activity', { session: sessionId, limit: 1 }).then((result) => {
+            if (cancelled || !result) return;
+            const diaryNow = result.diary === true;
+            if (Boolean(activityRef.current && activityRef.current.diary) !== diaryNow) setTick((current) => current + 1);
+            activityRef.current = { live: result.live === true, diary: diaryNow, diaryBase: result.diaryBase || null };
+            setActivity({ live: result.live === true, diary: diaryNow, entry: (result.entries || [])[0] || null });
+          }, () => { /* a panel that cannot read the log shows no line, rather than an error */ });
+        };
+        tick();
+        const timer = setInterval(tick, 1500);
+        return () => { cancelled = true; clearInterval(timer); };
+      }, [sessionId]);
+
       if (state.status === 'loading') {
         return h('div', { style: { padding: '14px 16px', fontSize: 12, opacity: 0.6 } }, '读取中…');
       }
@@ -4315,7 +4645,36 @@ function estimateBox(node) {
         );
       }
 
+
       const bases = state.bases;
+      // The header line, and the frame that goes with it. Nothing at all when the switch is off: a permanently
+      // cheerful whale over a workspace that never asked for one is furniture, and the user turned this on to watch
+      // the model work.
+      const activityLine = !activity || !activity.live ? null : (() => {
+        const entry = activity.entry;
+        if (!entry) return { state: 'idle', text: '模型还没用过这个工作区的知识库' };
+        const what = entry.what || '';
+        if (entry.took === 'running') {
+          return { state: 'working', text: '正在 ' + entry.tool + (what ? ' · ' + what : ''), title: entry.at };
+        }
+        if (/FAILED/.test(entry.took)) {
+          return { state: 'failed', text: '刚才失败了一次' + (what ? ' · ' + what : ''), title: entry.took };
+        }
+        const reading = entry.tool === 'knowledge_read';
+        // Five minutes, not eight seconds. The line is an indicator, not a notification: it should keep saying what
+        // the model last did until it does something else, and shortening it to a moment the reader has to catch
+        // defeats the point of having it at all. Only a long gap — long enough that "last did" would be stale —
+        // returns it to idling.
+        const at = Date.parse(String(entry.at || '').replace(' ', 'T'));
+        const fresh = Number.isFinite(at) && Date.now() - at < 5 * 60 * 1000;
+        if (!fresh) return { state: 'idle', text: '闲着', title: entry.at + ' · ' + entry.tool };
+        return {
+          state: reading ? 'thinking' : 'happy',
+          text: (reading ? '刚读了 ' : '刚写了 ') + (what || '一个库'),
+          title: entry.at + ' · ' + entry.tool,
+        };
+      })();
+
       const open = bases.find((base) => base.id === openId);
 
       /**
@@ -4366,9 +4725,25 @@ function estimateBox(node) {
         },
       },
         h('div', {
-          style: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 },
+          // center, not aseline: a 48 px whale sharing a baseline with 13.5 px text sits above the text instead of beside it.
+          style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
         },
-          h('div', { style: { fontSize: 13.5, fontWeight: 600, letterSpacing: 0.2 } }, '知识库'),
+          activityLine ? h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 } },
+            // The keyframes are defined once, here, next to the only element that uses them.
+            h('style', { key: 'kb-whale' }, WHALE_CSS),
+            h(Whale, { state: activityLine.state, size: 72 }),
+          ) : null,
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: '1 1 auto' } },
+            h('div', { style: { minWidth: 0 } },
+              h('div', { style: { fontSize: 13.5, fontWeight: 600, letterSpacing: 0.2 } }, '知识库'),
+              // Wraps rather than truncates: a write record names the node it touched, and that name is the
+              // informative half.
+              activityLine ? h('div', {
+                title: activityLine.title,
+                style: { fontSize: 10.5, opacity: 0.6, lineHeight: 1.35, overflow: 'hidden', maxWidth: 208 },
+              }, activityLine.text) : null,
+            ),
+          ),
           totalUnreviewed() > 0 ? h('button', {
             type: 'button',
             title: '把所有知识库里模型改过的节点全部标为已读',
@@ -4497,6 +4872,51 @@ function estimateBox(node) {
 
         // Whose list the switches below are editing. Without this the switches would silently write the
         // session's list and never the default, which is a change nobody could see.
+        // The diary, on its own line and labelled with who it applies to. It is written per conversation, so it
+        // cannot sit inside a row whose selector is about base lists — that read as "开关作用于 写日记".
+        // 日记模式。A track-and-knob rather than a text button: the label names the feature and the switch says
+        // whether it is on, which is what the previous version failed to convey — it repeated "写日记" twice, in the
+        // muted palette, and looked like part of the description.
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 } },
+          h('span', { style: { fontSize: 12 } }, '日记模式'),
+          h('button', {
+            type: 'button',
+            role: 'switch',
+            'aria-checked': Boolean(activity && activity.diary),
+            'data-kb-diary': activity && activity.diary ? 'on' : 'off',
+            title: (activity && activity.diary)
+              ? '这个会话正在写日记。点一下关掉。'
+              : '让这个会话在交流告一段落时写一篇日记（只对这个会话生效）',
+            onClick: () => {
+              const next = !(activity && activity.diary);
+              post('diary', { session: sessionId, on: next }).then(
+                (result) => setActivity((current) => ({
+                  live: Boolean(current && current.live),
+                  diary: Boolean(result && result.diary),
+                  entry: current ? current.entry : null,
+                })),
+                () => { /* a refused switch stays as it was */ },
+              );
+            },
+            style: {
+              position: 'relative', width: 34, height: 18, padding: 0, borderRadius: 999,
+              border: '1px solid ' + HAIRLINE, cursor: 'pointer',
+              background: activity && activity.diary ? 'rgba(201,118,27,0.85)' : 'rgba(128,128,128,0.28)',
+              transition: 'background 120ms ease',
+            },
+          }, h('span', {
+            style: {
+              position: 'absolute', top: 2, left: activity && activity.diary ? 18 : 2,
+              width: 12, height: 12, borderRadius: 999, background: 'Canvas',
+              transition: 'left 120ms ease',
+            },
+          })),
+          h('span', { style: { fontSize: 10.5, opacity: 0.5 } }, '只对本会话'),
+        ),
+        // What the switch actually does, in one line. A switch says whether; it cannot say what.
+        h('div', {
+          style: { fontSize: 10.5, opacity: 0.5, marginTop: 3, lineHeight: 1.55, maxWidth: 300 },
+        }, '开了之后，这个会话在聊到一个段落时会自己写一篇日记 —— 写到名为「日记」的库（没有就建一个）。不按天，也不会在别的会话里写。'),
         h('div', {
           role: 'group',
           'aria-label': '开关作用于哪一份名单',
@@ -4879,6 +5299,26 @@ function estimateBox(node) {
                   setSaving({ error: '新建节点失败：' + (error && error.message ? error.message : error) });
                   return null;
                 }),
+                /**
+                 * Create a node beneath an existing one.
+                 *
+                 * Only downward. A parent is born as a top-level node from the canvas menu, never inserted above
+                 * something that is already in the tree: doing that would either give the target two parents — which
+                 * the single `parent` field cannot hold — or silently reroute it out of its branch. Where a node
+                 * sits in the tree is changed deliberately, with Alt+drag, not as a side effect of creating one.
+                 */
+                onCreateChild: (nodeId) => post('createNode', {
+                  base: base.id,
+                  title: '新节点',
+                  body: '',
+                  parent: nodeId,
+                }).then((result) => {
+                  setTick((current) => current + 1);
+                  return result.node;
+                }, (error) => {
+                  setSaving({ error: '新建节点失败：' + (error && error.message ? error.message : error) });
+                  return null;
+                }),
                 onRemoveNode: (nodeId) => {
                   patchNodeLocally(base.id, nodeId, { change: 'removed' });
                   post('removeNode', { base: base.id, node: nodeId }).catch(() => {});
@@ -4959,6 +5399,20 @@ function estimateBox(node) {
                 [base.id]: (current[base.id] || []).concat([{ from, to }]),
               }));
               post('changes', { base: base.id, links: [{ from, to }] }).catch(() => {});
+            },
+            /**
+             * Make one node the parent of another — the panel's only structural gesture.
+             *
+             * Reloads rather than patching in place, for the same reason the note write does: the store decides
+             * what a refused move means (a loop, a node that is not there), and a local patch would show the tree
+             * as the panel guessed it rather than as the file has it.
+             */
+            onParent: (nodeId, parentId) => {
+              post('parent', { base: base.id, node: nodeId, parent: parentId })
+                .then(() => setTick((current) => current + 1))
+                .catch((error) => setSaving({
+                  error: '改父子关系失败：' + (error && error.message ? error.message : error),
+                }));
             },
             /**
              * Write one link's note.
@@ -5270,6 +5724,61 @@ function estimateBox(node) {
               overflowWrap: 'anywhere', wordBreak: 'break-word',
             },
           }, workspace.cwd),
+          // The recorder. A setting, not a control on the panel it decorates: it decides what the host writes.
+          // A pill, like the diary switch in the panel: one function, one control shape. The checkbox also had a bug
+          // worth remembering — its state came from the PUT's answer, and the answer did not include the flag, so it
+          // could be turned on and never off.
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 7 } },
+            h('span', { style: { fontSize: 11.5, opacity: 0.8 } }, '记录调用过程'),
+            h('button', {
+              type: 'button',
+              role: 'switch',
+              'aria-checked': workspace.live === true,
+              'data-kb-live': workspace.live === true ? 'on' : 'off',
+              title: '打开后，宿主会在每次工具调用开始时也写一行 activity.log，面板才能显示"正在做什么"。代价是日志大约翻倍。',
+              disabled: busy === workspace.cwd + '/live',
+              onClick: () => {
+                const next = !(workspace.live === true);
+                setBusy(workspace.cwd + '/live');
+                setProblem(null);
+                fetch(PREFIX + '/selection', {
+                  method: 'PUT',
+                  headers: { 'content-type': 'application/json' },
+                  body: JSON.stringify({
+                    session: workspace.sessionId,
+                    scope: 'workspace',
+                    enabled: workspace.enabled === null
+                      ? workspace.bases.map((base) => base.id)
+                      : workspace.enabled,
+                    live: next,
+                  }),
+                })
+                  .then((response) => response.json().catch(() => ({})).then((payload) => {
+                    if (!response.ok || !payload.ok) throw new Error(payload.error || ('HTTP ' + response.status));
+                    return payload;
+                  }))
+                  .then((payload) => {
+                    setWorkspaces((current) => current.map((entry) =>
+                      (entry.cwd === workspace.cwd ? { ...entry, live: Boolean(payload.live) } : entry)));
+                  })
+                  .catch((error) => setProblem(String((error && error.message) || error)))
+                  .then(() => setBusy(null));
+              },
+              style: {
+                position: 'relative', width: 34, height: 18, padding: 0, borderRadius: 999,
+                border: '1px solid ' + HAIRLINE, cursor: 'pointer',
+                background: workspace.live === true ? 'rgba(201,118,27,0.85)' : 'rgba(128,128,128,0.28)',
+                opacity: busy === workspace.cwd + '/live' ? 0.5 : 1,
+                transition: 'background 120ms ease',
+              },
+            }, h('span', {
+              style: {
+                position: 'absolute', top: 2, left: workspace.live === true ? 18 : 2,
+                width: 12, height: 12, borderRadius: 999, background: 'Canvas',
+                transition: 'left 120ms ease',
+              },
+            })),
+          ),
           workspace.bases.length === 0
             ? h('div', { style: { fontSize: 12, opacity: 0.55 } }, '这个工作区还没有知识库。')
             // One row per base: the name is the subject and reads as text, the two controls are the options
