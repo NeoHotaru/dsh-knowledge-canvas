@@ -27,7 +27,7 @@
 import { TOOLS } from './lib/tools.js'
 import { needsRefresh, outlineFor, refresh } from './lib/outline.js'
 import { sessionIdOf } from './lib/session.js'
-import { seedIfFirstTime } from './lib/seed.js'
+import { seedIfFirstTime, upgradeTutorial } from './lib/seed.js'
 import { PREFIX, createHandler } from './lib/routes.js'
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -98,10 +98,17 @@ export function apply(ctx) {
     // A first-time workspace gets its welcome base before anything reads the outline, because the outline
     // is where that base is explained to the model. Idempotent, and a no-op for every workspace that has
     // ever been used.
-    void seedIfFirstTime(cwd).then(() => {
-      if (needsRefresh(cwd, sessionId)) return refresh(cwd, sessionId)
-      return undefined
-    })
+    //
+    // The upgrade is the second half of the same idea, and it is not optional: a tutorial that never changes
+    // means every workspace that already ran the plugin keeps a description of the features it did not have —
+    // and since the outline is what the model reads, it keeps believing that description. Creation stays
+    // narrow (only when the directory is absent); the upgrade only touches nodes whose text is still ours.
+    void seedIfFirstTime(cwd)
+      .then(() => upgradeTutorial(cwd))
+      .then(() => {
+        if (needsRefresh(cwd, sessionId)) return refresh(cwd, sessionId)
+        return undefined
+      })
   }
 
   if (!ctx.tools || typeof ctx.tools.register !== 'function') {

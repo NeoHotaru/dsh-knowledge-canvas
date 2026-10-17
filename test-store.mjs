@@ -1137,6 +1137,62 @@ check('and every seed link carries a note',
   seededBases[0].links.every((link) => typeof link.note === 'string' && link.note.trim().length > 0),
   JSON.stringify(seededBases[0].links))
 
+// --- upgrading an existing tutorial ---------------------------------------------------
+// The seed creates once, but a tutorial that never changes is worse than none: ship a feature and every
+// workspace that already ran the plugin keeps a description of what it did not have — and the outline is what
+// the model reads, so the model keeps believing it. The upgrade is the other half.
+//
+// Five branches, and four of them do nothing, which is the hard part to test: doing nothing is what a broken
+// upgrade looks like too.
+console.log('\nupgrading an existing tutorial')
+check('a fresh seed records its version and each body digest',
+  seededBases[0].seed && seededBases[0].seed.version === seed.SEED_VERSION
+    && seededBases[0].nodes.every((node) => typeof node.seedSum === 'string' && node.seedSum.length === 12),
+  JSON.stringify(seededBases[0].seed))
+
+check('a current base is left alone', (await seed.upgradeTutorial(fresh)) === null)
+
+const upCwd = await mkdtemp(join(tmpdir(), 'kbup-'))
+const upDir = join(upCwd, '.dsh-knowledge')
+await mkdir(upDir, { recursive: true })
+// A base from before digests existed: no `seed`, no `seedSum`. n1 looks untouched (seeding writes no history
+// entry, and an edit does), n3 carries two entries — someone has been here.
+const oldNodes = [
+  { id: 'n1', parent: null, title: '这个知识库是什么', body: '旧正文一', at: '2020-01-01 00:00' },
+  {
+    id: 'n3', parent: 'n1', title: '怎么改它', body: '我改过的正文', at: '2020-01-02 00:00',
+    history: [{ at: '2020-01-02 00:00' }, { at: '2020-01-03 00:00' }],
+  },
+]
+await writeFile(join(upDir, 'welcome.json'), JSON.stringify({
+  version: 1, id: 'welcome', name: '怎么用这个知识库', nodes: oldNodes, links: [],
+}, null, 2))
+
+const upResult = await seed.upgradeTutorial(upCwd)
+check('an old base is upgraded', upResult !== null && upResult.to === seed.SEED_VERSION, JSON.stringify(upResult))
+const upgraded = JSON.parse(await readFile(join(upDir, 'welcome.json'), 'utf8'))
+const upById = new Map(upgraded.nodes.map((node) => [node.id, node]))
+check('an untouched node gets the current text',
+  upById.get('n1').body !== '旧正文一' && upById.get('n1').body.length > 20,
+  upById.get('n1').body.slice(0, 40))
+check('an edited node is left exactly as it was',
+  upById.get('n3').body === '我改过的正文', upById.get('n3').body)
+check('and its own history is untouched', upById.get('n3').history.length === 2)
+check('timestamps are preserved, not rewritten',
+  upById.get('n1').at === '2020-01-01 00:00' && upById.get('n3').at === '2020-01-02 00:00')
+check('node ids are preserved, so layout.json still lines up',
+  [...upById.keys()].sort().join() === 'n1,n3', [...upById.keys()].join())
+check('and the base records the new version', upgraded.seed.version === seed.SEED_VERSION)
+check('running it again does nothing', (await seed.upgradeTutorial(upCwd)) === null)
+
+// The rule that must survive the upgrade: a deleted base stays deleted.
+const goneCwd = await mkdtemp(join(tmpdir(), 'kbgone-'))
+await mkdir(join(goneCwd, '.dsh-knowledge'), { recursive: true })
+check('a workspace with no tutorial gets none back', (await seed.upgradeTutorial(goneCwd)) === null)
+check('and nothing was created', (await listBases(goneCwd)).length === 0)
+check('a workspace with no directory at all is creation\u2019s job, not the upgrade\u2019s',
+  (await seed.upgradeTutorial(await mkdtemp(join(tmpdir(), 'kbnone-')))) === null)
+
 // The rule that matters: a workspace where the user deleted the bases must not get them back.
 await rm(join(fresh, '.dsh-knowledge'), { recursive: true, force: true })
 await mkdir(join(fresh, '.dsh-knowledge'), { recursive: true })
