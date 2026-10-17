@@ -4112,8 +4112,8 @@ function estimateBox(node) {
        * A failed save is shown rather than swallowed: the panel shows what is really in the
        * file, so pretending a write succeeded would make the whole thing untrustworthy.
        */
-      const post = React.useCallback(async (action, body) => {
-        setSaving('saving');
+      const post = React.useCallback(async (action, body, quiet) => {
+        if (!quiet) setSaving('saving');
         try {
           const response = await fetch(PREFIX + '/' + action, {
             method: 'PUT',
@@ -4124,7 +4124,7 @@ function estimateBox(node) {
           if (!response.ok || !payload.ok) {
             throw new Error(payload.error || ('HTTP ' + response.status));
           }
-          setSaving(null);
+          if (!quiet) setSaving(null);
           return payload;
         } catch (error) {
           setSaving({ error: String((error && error.message) || error) });
@@ -4620,7 +4620,7 @@ function estimateBox(node) {
         if (!sessionId) return undefined;
         let cancelled = false;
         const tick = () => {
-          post('activity', { session: sessionId, limit: 1 }).then((result) => {
+          post('activity', { session: sessionId, limit: 1 }, true).then((result) => {
             if (cancelled || !result) return;
             const diaryNow = result.diary === true;
             if (Boolean(activityRef.current && activityRef.current.diary) !== diaryNow) setTick((current) => current + 1);
