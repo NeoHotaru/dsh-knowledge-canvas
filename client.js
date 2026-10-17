@@ -3283,7 +3283,7 @@ function estimateBox(node) {
                 setNodeMenu(null);
                 openHistoryCard(target.id, { x: target.x, y: target.y });
               }],
-              ['撤销这个节点', '把这个节点还没看过的改动撤回：新增的删掉、改过的回到上一版、移除的恢复', () => {
+              ['撤回本节点的改动', '只撤回这个节点【还没点过 ✓】的改动：新增的删掉、改过的回到上一版、标记移除的恢复。没有未看过的改动时不会有任何变化 —— 它不是删除。', () => {
                 const target = nodeMenu;
                 setNodeMenu(null);
                 post('revert', { base: target.base || nodeMenu.base, node: target.id }).catch(() => {});
