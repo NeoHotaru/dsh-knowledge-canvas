@@ -4148,7 +4148,9 @@ function estimateBox(node) {
           if (!quiet) setSaving(null);
           return payload;
         } catch (error) {
-          setSaving({ error: String((error && error.message) || error) });
+          // Which session this was, and what the host said: without the id a failed write names nothing.
+      const which = typeof sessionId === 'string' && sessionId ? sessionId.slice(0, 12) : '(none)';
+      setSaving({ error: String((error && error.message) || error) + ' ｜ 会话 ' + which });
           throw error;
         }
       }, [sessionId]);
