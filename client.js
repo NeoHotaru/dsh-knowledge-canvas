@@ -1487,6 +1487,17 @@ function estimateBox(node) {
               fontSize: 11.5, cursor: 'pointer',
             },
           }, '保存'),
+          // Only when there is something to undo, and only for this node: the editor is where someone notices they want it.
+          node.change ? h('button', {
+            type: 'button',
+            title: '把这个节点还没看过的改动撤回：新增的删掉、改过的回到上一版、移除的恢复',
+            onClick: () => onRevert(node.id),
+            style: {
+              padding: '2px 9px', border: '1px solid ' + HAIRLINE, borderRadius: 6,
+              background: 'transparent', color: 'inherit', font: 'inherit',
+              fontSize: 11.5, cursor: 'pointer',
+            },
+          }, '撤销改动') : null,
           // Two stages on one button. On a live node it marks the node removed — reversible, and the
           // marker is what makes the change reviewable. On an already-removed node the same place
           // offers the permanent delete, so an unwanted node does not have to sit in the canvas.
@@ -1859,7 +1870,7 @@ function estimateBox(node) {
        * rather than in `Tree` because `post` does.
        */
       onSetLinkNote,
-      colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onCreateNode, onPurgeNode,
+      colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onRevertNode, onCreateNode, onPurgeNode,
       onSendToChat, widths, nodeWidths, onSetWidth,
     }) {
       // How long this render took, reported to the host log every couple of seconds.
@@ -3427,6 +3438,7 @@ function estimateBox(node) {
               onColor,
               onRemove: onRemoveNode,
               onPurge: onPurgeNode,
+              onRevert: onRevertNode,
               boxWidth: widthOf(widths, nodeWidths, base.id, entry.node.id, entry.node),
             });
           }
@@ -5310,6 +5322,10 @@ function estimateBox(node) {
                       ? { error: '送进会话失败：附件方式——' + problem + '；文字方式——' + textProblem }
                       : { note: '已作为文字送进会话（附件方式没成功：' + problem + '）' });
                   });
+                },
+                onRevertNode: (nodeId) => {
+                  // One node at a time: the same route the right-click menu uses, so the two cannot drift.
+                  post('revert', { base: base.id, node: nodeId }).then(() => setTick((current) => current + 1)).catch(() => {});
                 },
                 onPurgeNode: (nodeId) => {
                   patchNodeLocally(base.id, nodeId, { change: 'removed' });
