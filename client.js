@@ -1353,7 +1353,7 @@ function estimateBox(node) {
       });
     }
 
-    function NodeEditor({ node, x, y, onSave, onClose, color, onColor, onRemove, onPurge, boxWidth }) {
+    function NodeEditor({ node, x, y, onSave, onClose, color, onColor, onRemove, onPurge, onRevert, boxWidth }) {
       const [paletteOpen, setPaletteOpen] = React.useState(false);
       const [title, setTitle] = React.useState(node.title || '');
       const [body, setBody] = React.useState(node.body || '');
