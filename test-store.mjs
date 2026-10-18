@@ -1,6 +1,7 @@
 // Exercise the store against a throwaway directory, so the logic is checked without a reload.
 // Run: node test-store.mjs
 
+import { officeText } from './lib/office.js'
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -1540,6 +1541,13 @@ check('a write naming an unknown workspace is refused',
 // exercise, so it is checked against the running app rather than here.
 const assetStrange = await call('GET', '/dsh-knowledge-tree/asset?workspace=C:/not/a/workspace&path=assets/0123456789abcdef.png')
 check('the asset route refuses an unknown workspace', assetStrange.status !== 200, JSON.stringify(assetStrange).slice(0, 120))
+
+// The Office reader returns nothing rather than throwing when the bytes are not a zip. Extraction itself was checked by hand
+// against files written by python-docx and openpyxl, which this suite cannot build.
+check('the office reader declines bytes that are not a zip',
+  officeText('x.docx', Buffer.from('not a zip at all')) === null
+  && officeText('x.txt', Buffer.from('plain')) === null,
+  'officeText should return null for a non-zip and for a format it does not know')
 
 const wsAnswer = await call('GET', '/dsh-knowledge-tree/workspaces?session=me')
 check('GET /workspaces is routed', wsAnswer.status === 200, JSON.stringify(wsAnswer).slice(0, 120))

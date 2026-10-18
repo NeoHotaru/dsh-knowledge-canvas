@@ -13,10 +13,11 @@
  * nothing unreviewed. The tools below set it; the panel draws it.
  */
 
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, readFile, readdir, rename, writeFile } from 'node:fs/promises'
 import { isDiary, isSealed, open, seal } from './seal.js'
 import { join } from 'node:path'
+import { officeText } from './office.js'
 
 /** Directory holding the bases, relative to the Session workspace. */
 export const DIRNAME = '.dsh-knowledge'
@@ -474,7 +475,9 @@ export function revertNode(base, nodeId) {
 /** 内容寻址：同一张图只有一个文件。返回相对 .dsh-knowledge 的路径（`assets/<name>`）。 */
 export async function putImageBytes(cwd, bytes, ext) {
   const { createHash } = await import('node:crypto')
-  const name = createHash('sha256').update(bytes).digest('hex').slice(0, 16) + extOf('x' + ext)
+  // `ext` arrives already checked and normalised by the caller (putImage / putAssetBytes). Validating again with the
+  // picture-only rule rejected everything that was not an image — the second check undid the first.
+  const name = createHash('sha256').update(bytes).digest('hex').slice(0, 16) + ext
   const dir = join(dirFor(cwd), 'assets')
   await mkdir(dir, { recursive: true })
   const target = join(dir, name)
@@ -501,6 +504,46 @@ export function extOf(file) {
 /** 一张图的 MIME，按扩展名；白名单之外不可能的。 */
 export function mimeOf(rel) {
   return { '.png': 'image/png', '.jpg': 'image/jpeg', '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml' }[extOf(rel)]
+}
+
+/**
+ * What may be attached. Everything, except the things that run when they are opened: the point of the list is not to judge what
+ * is useful — a log, a diff, a lockfile and a notebook are all worth keeping — but to keep executables and installers out of a
+ * directory that is served over HTTP.
+ */
+const REFUSED = new Set([
+  'exe', 'dll', 'msi', 'msix', 'scr', 'com', 'cpl', 'sys', 'drv', 'ocx',
+  'bat', 'cmd', 'ps1', 'psm1', 'vbs', 'vbe', 'wsf', 'wsh', 'hta', 'jar',
+  'app', 'dmg', 'pkg', 'deb', 'rpm', 'apk', 'ipa',
+]);
+
+export function extOfAny(file) {
+  const match = /\.([A-Za-z0-9]+)$/.exec(String(file))
+  const ext = match ? match[1].toLowerCase() : ''
+  if (!ext) throw new Error('a file needs an extension to be attached')
+  if (REFUSED.has(ext)) throw new Error('this kind of file cannot be attached: .' + ext)
+  return '.' + ({ jpeg: 'jpg' }[ext] || ext)
+}
+
+/** 附件的 MIME：图片按图，其它按下载。 */
+export function mimeOfAny(rel) {
+  const ext = (/\.([A-Za-z0-9]+)$/.exec(String(rel)) || [])[1] || ''
+  const table = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+    md: 'text/markdown; charset=utf-8', txt: 'text/plain; charset=utf-8', log: 'text/plain; charset=utf-8',
+    csv: 'text/csv; charset=utf-8', json: 'application/json', yaml: 'text/yaml; charset=utf-8', yml: 'text/yaml; charset=utf-8',
+    pdf: 'application/pdf',
+    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    zip: 'application/zip',
+  }
+  return table[ext.toLowerCase()] || 'application/octet-stream'
+}
+
+/** 存任意附件：与图片同一条内容寻址路径，只有扩展名校验不同。 */
+export async function putAssetBytes(cwd, bytes, ext) {
+  return putImageBytes(cwd, bytes, extOfAny('x' + ext))
 }
 
 export const HISTORY_LIMIT = 10
@@ -579,7 +622,7 @@ export function describeBase(base) {
  * @returns the text, or null when there is no such node. The caller decides how to say that; a silent empty
  * string would read as "this node is empty", which is a different and more confusing fact.
  */
-export function describeNode(base, nodeId, brief) {
+export function describeNode(base, nodeId, brief, workspace) {
   const byId = new Map()
   for (const node of base.nodes) byId.set(node.id, node)
   const node = byId.get(nodeId)
@@ -591,6 +634,60 @@ export function describeNode(base, nodeId, brief) {
 
   lines.push('')
   lines.push(node.body && String(node.body).trim() ? String(node.body).trimEnd() : '(no body)')
+
+  // The files a note points at. A relative path the model cannot resolve is the same as no attachment, so each one is given
+  // as an absolute path, and text small enough to be useful is inlined — the point of reading a note is not to learn that a
+  // file exists somewhere.
+  const refs = [...new Set((String(node.body || '').match(/assets\/[a-f0-9]{16}\.[a-z0-9]{1,12}/g) || []))];
+  if (refs.length) {
+    const TEXTY = /\.(md|txt|log|csv|json|yaml|yml|toml|ini|conf|diff|patch|sql|html|css|xml|js|mjs|ts|py|go|rs|java|sh)$/i;
+    lines.push('');
+    lines.push('attachments:');
+    for (const rel of refs) {
+      const absolute = workspace ? join(workspace, '.dsh-knowledge', rel) : rel;
+      let size = 0;
+      try {
+        size = statSync(absolute).size;
+      } catch {
+        lines.push('  ' + absolute + '  (missing)');
+        continue;
+      }
+      lines.push('  ' + absolute + '  (' + Math.round(size / 1024) + ' KB)');
+      const INLINE_LIMIT = 8000;
+      const fenced = (content) => {
+        lines.push('  ---');
+        lines.push(content.trimEnd());
+        lines.push('  ---');
+      };
+      if (workspace && TEXTY.test(rel)) {
+        try {
+          const content = readFileSync(absolute, 'utf8').trimEnd();
+          // A long file is still worth starting: the alternative is a path the model has to decide about, and that decision
+          // is exactly the extra hop that made attachments go unread.
+          if (content.length <= INLINE_LIMIT) fenced(content);
+          else {
+            fenced(content.slice(0, INLINE_LIMIT));
+            lines.push('  (' + content.length + ' characters in total; the rest is above this file)');
+          }
+        } catch {
+          lines.push('  (could not be read as text)');
+        }
+      } else if (workspace) {
+        try {
+          const extracted = officeText(absolute, readFileSync(absolute));
+          if (extracted) {
+            if (extracted.length <= INLINE_LIMIT) fenced(extracted);
+            else {
+              fenced(extracted.slice(0, INLINE_LIMIT));
+              lines.push('  (' + extracted.length + ' characters in total; the rest is above this file)');
+            }
+          }
+        } catch {
+          // Not text and not an Office file this reader knows: the path is all there is to say.
+        }
+      }
+    }
+  }
 
   const parent = node.parent ? byId.get(node.parent) : null
   const children = base.nodes.filter((entry) => entry.parent === node.id)
