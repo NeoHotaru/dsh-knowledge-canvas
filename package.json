@@ -16,7 +16,9 @@
     "test-store.mjs",
     "MANUAL.md",
     "README.md",
-    "assets/"
+    "assets/",
+    "CHANGELOG.md",
+    "README.zh.md"
   ],
   "scripts": {
     "test": "node test-store.mjs",

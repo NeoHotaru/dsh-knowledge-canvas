@@ -73,6 +73,7 @@ The first time you open a workspace, a base called 「怎么用这个知识库�
 | `knowledge_unlink` | remove an association; the nodes stay, the dashed line goes |
 | `knowledge_select` | switch a base on or off for this conversation |
 | `knowledge_remove_base` | mark a base removed (recoverable; the file is not deleted) |
+| `knowledge_show_images` | Hands a node's pictures to the model as images |
 
 ## Settings, per workspace
 

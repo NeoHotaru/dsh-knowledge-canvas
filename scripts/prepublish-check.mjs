@@ -11,7 +11,7 @@
  * Run by `prepublishOnly`, so npm refuses to publish while any of them is false. The point is that remembering is not part of
  * the process: a stale tree cannot be published.
  */
-import { execFileSync } from 'node:child_process'
+import { execSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -58,7 +58,9 @@ try {
 
 // 5. The version is not already on npm.
 try {
-  const published = execFileSync('npm', ['view', `${pkg.name}@${pkg.version}`, 'version', '--registry', 'https://registry.npmjs.org'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  // npm is a shell command on Windows (npm.cmd). execFileSync cannot find it, and the failure was swallowed by the
+  // catch below — this condition looked like it worked and never ran.
+  const published = execSync(`npm view ${pkg.name}@${pkg.version} version --registry https://registry.npmjs.org`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
   if (published === pkg.version) problems.push(`${pkg.name}@${pkg.version} is already published — bump the version`)
 } catch {
   // Not found is the good case; a network failure must not block a publish that is otherwise fine.
@@ -80,6 +82,45 @@ for (const name of new Set(names)) {
   if (!changelog.includes(name)) problems.push(`CHANGELOG.md never mentions ${name}`)
 }
 
+
+// 7. The English README names the tools too. Two READMEs that disagree are worse than one that is late.
+try {
+  const english = readFileSync(join(here, 'README.md'), 'utf8')
+  for (const name of new Set(names)) {
+    if (!english.includes(name)) problems.push(`README.md (English) never mentions ${name}`)
+  }
+} catch {
+  problems.push('README.md (English) is missing')
+}
+
+// 8. What actually ships. A file that everything here reads locally can still be excluded from the tarball by files[], and the
+//    failure only shows up on the machine of whoever installs it.
+try {
+  const packed = JSON.parse(execSync('npm pack --dry-run --json', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }))
+  const shipped = new Set((packed[0].files || []).map((entry) => entry.path))
+  for (const needed of ['index.js', 'client.js', 'lib/office.js', 'lib/seed.js', 'MANUAL.md', 'CHANGELOG.md']) {
+    if (!shipped.has(needed)) problems.push(`the package would not include ${needed} — check files[] in package.json`)
+  }
+} catch (error) {
+  problems.push('npm pack --dry-run failed: ' + (error && error.message ? error.message : error))
+}
+
+// 9. The two trees must agree. The dev tree is what runs here, the public one is what ships; a version bumped in one place
+//    publishes a package that does not match the code anyone tested.
+try {
+  const other = pkg.name === 'dsh-knowledge-canvas'
+    ? 'D:/DeepSeekHarness/dsh-knowledge-tree'
+    : 'D:/Aconnada/dsh-knowledge-tree-pub'
+  const theirs = JSON.parse(readFileSync(join(other, 'package.json'), 'utf8'))
+  if (theirs.version !== pkg.version) {
+    problems.push(`this tree is ${pkg.version} but ${other} is ${theirs.version} — bump both`)
+  }
+  const mine = Number(/SEED_VERSION = (\d+)/.exec(readFileSync(join(here, 'lib', 'seed.js'), 'utf8'))[1])
+  const otherSeed = Number(/SEED_VERSION = (\d+)/.exec(readFileSync(join(other, 'lib', 'seed.js'), 'utf8'))[1])
+  if (mine !== otherSeed) problems.push(`SEED_VERSION is ${mine} here and ${otherSeed} in ${other} — sync the seed`)
+} catch {
+  // The other tree is not on this machine; the check simply does not apply.
+}
 
 if (problems.length > 0) {
   console.error('\n  publish refused:\n')
