@@ -1912,8 +1912,7 @@ function estimateBox(node) {
        */
       onSetLinkNote,
       colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onRevertNode, onCreateNode, onPurgeNode,
-      onSendToChat, widths, nodeWidths, onSetWidth,
-    }) {
+      onSendToChat, widths, nodeWidths, onSetWidth, onAttachPicture }) {
       // How long this render took, reported to the host log every couple of seconds.
       //
       // Built because "the canvas is heavy with a large base" survived seven theories, all of them argued
