@@ -1420,6 +1420,9 @@ function estimateBox(node) {
     setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + line);
   };
 
+  /** 正文里引用到的附件，去重后最多 6 个；编辑器下方就地显示，点了就能移除。 */
+  const attachedRefs = [...new Set(String(body || '').match(/assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}/g) || [])].slice(0, 6);
+
       const [title, setTitle] = React.useState(node.title || '');
       const [body, setBody] = React.useState(node.body || '');
       const gone = node.change === 'removed';
@@ -1515,6 +1518,23 @@ function estimateBox(node) {
               event.target.value = '';
             },
           })),
+
+          // 已经进正文的附件就地显示：缩略图或文件条，带 × 移除。没有这一条，用户只能从 markdown 猜自己有没有成功。
+          attachedRefs.length > 0 ? h('div', { style: { marginTop: 2 } }, attachedRefs.map((rel) => {
+            const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rel);
+            const src = PREFIX + '/asset?' + (assetSession ? 'session=' + encodeURIComponent(assetSession) + '&' : '')
+              + 'path=' + encodeURIComponent(rel);
+            return h('span', { key: rel, style: { display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 8, marginTop: 6 } },
+              isImage ? h('img', { src, alt: '', style: { height: 44, borderRadius: 4, border: '1px solid ' + HAIRLINE } })
+                : h('span', { style: { fontSize: 11, opacity: 0.75 } }, '📎 ' + rel.split('/').pop()),
+              h('button', {
+                type: 'button',
+                title: '从正文里移除这个附件（文件仍留在 assets 里）',
+                onClick: () => setBody((current) => current.split('\n').filter((line) => !line.includes(rel)).join('\n')),
+                style: { border: 'none', background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 12, opacity: 0.6, padding: 0 },
+              }, '×'),
+            );
+          })) : null,
         // A fixed set of swatches rather than a colour picker: five choices are enough to say "this
         // one matters", and a native picker would put an OS dialog in the middle of a canvas.
         // One button showing the current colour, opening a small panel. A native picker was never an
