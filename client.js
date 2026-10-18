@@ -2289,7 +2289,9 @@ function estimateBox(node) {
         const depths = [];
         for (const item of ordered) {
           if (!depths[item.depth]) depths[item.depth] = 0;
-          depths[item.depth] = Math.max(depths[item.depth], sizeOf(item.node.id).h);
+          // Capped at what a card shows: a body scrolls inside its own box, so a long note does not need a tall row. Without the
+    // cap one tall note made its whole row tall and pushed every child row hundreds of pixels down.
+    depths[item.depth] = Math.max(depths[item.depth], Math.min(sizeOf(item.node.id).h, 260));
         }
 
         const layOut = (id, left) => {
