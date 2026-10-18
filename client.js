@@ -909,18 +909,9 @@ function estimateBox(node) {
   // otherwise produce an absurd height — but the box really is that tall, so the cap only taught the layout
   // a number five times too small and the rows overlapped. A generous estimate leaves a gap; a stingy one
   // overlaps, and overlapping is the failure that matters.
-  // Pictures are counted as pictures. Each one renders at most 160 px tall (see renderMarkdown), but as text its
-  // characters estimated to a dozen or more lines — and those lines are the long vertical run the user had to pan past.
-  const pictureLines = (String(body).match(/^\s*!\[\]\(assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}\)\s*$/gm) || []).length;
-  const PICTURE_H = 160 + 12;
-  const picturePixels = pictureLines * PICTURE_H;
   const bodyLines = Math.ceil(lines(body));
   const titleLines = Math.ceil(lines(title));
-  // Text lines plus the空间 the pictures really take. The characters of an image line are still in `body`, so subtracting
-  // their estimated lines keeps the sum from counting them twice.
-  const withoutPictures = String(body).replace(/^\s*!\[\]\(assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}\)\s*$/gm, '');
-  const textPixels = Math.max(0, Math.round(9 + titleLines * 17 + 4 + Math.ceil(lines(withoutPictures)) * 17 + 9 + 15));
-  const h = Math.max(BOX_H, textPixels + picturePixels);
+  const h = Math.max(BOX_H, Math.round(9 + titleLines * 17 + 4 + bodyLines * 17 + 9 + 15));
   return { w, h };
 }
 
@@ -2289,9 +2280,7 @@ function estimateBox(node) {
         const depths = [];
         for (const item of ordered) {
           if (!depths[item.depth]) depths[item.depth] = 0;
-          // Capped at what a card shows: a body scrolls inside its own box, so a long note does not need a tall row. Without the
-    // cap one tall note made its whole row tall and pushed every child row hundreds of pixels down.
-    depths[item.depth] = Math.max(depths[item.depth], Math.min(sizeOf(item.node.id).h, 260));
+          depths[item.depth] = Math.max(depths[item.depth], sizeOf(item.node.id).h);
         }
 
         const layOut = (id, left) => {
@@ -2330,28 +2319,12 @@ function estimateBox(node) {
         }
       } else if (shape === 'staircase') {
         // One column per depth, one row per node in visit order, each row as tall as its own box.
-      // One column per depth, one row per depth — not one row per node. Stacking every node in visit order put a child
-      // many rows below its parent, with nothing in between, and the edge ran diagonally across all of them. With a row per
-      // depth the furthest an edge can travel is one row.
-        // A row is as tall as the tallest card on it, capped at what a card shows: a body scrolls inside its own box, so
-        // reserving room for a whole note only pushed everything below it down.
-        const VISIBLE_CAP = 260;
-        const stairDepthHeight = [];
+        // This is the arrangement the panel had before the radial one, and for a straight chain of
+        // steps — which is exactly what a release flow is — it reads better than a fan.
+        let stack = 10;
         for (const item of ordered) {
-          const own = Math.min(sizeOf(item.node.id).h, VISIBLE_CAP);
-          stairDepthHeight[item.depth] = Math.max(stairDepthHeight[item.depth] || 0, own);
-        }
-        // Only depths that actually hold a node get a row. Empty depths used to consume a full row anyway, which is why two
-        // nodes could sit a screen apart with nothing between them.
-        const stairRowTop = [];
-        let stairShelf = 10;
-        for (let depth = 0; depth < stairDepthHeight.length; depth += 1) {
-          if (!stairDepthHeight[depth]) continue;
-          stairRowTop[depth] = stairShelf;
-          stairShelf += stairDepthHeight[depth] + ROW_GAP;
-        }
-        for (const item of ordered) {
-          placed[item.node.id] = { x: offsetX + item.depth * COLUMN, y: stairRowTop[item.depth] || 10 };
+          placed[item.node.id] = { x: offsetX + item.depth * COLUMN, y: stack };
+          stack += sizeOf(item.node.id).h + ROW_GAP;
         }
       } else {
         const rootLeaves = roots.reduce((sum, item) => sum + (leaves.get(item.node.id) || 1), 0);
