@@ -1373,7 +1373,7 @@ function estimateBox(node) {
       });
     }
 
-    function NodeEditor({ node, x, y, onSave, onClose, color, onColor, onRemove, onPurge, onRevert, boxWidth }) {
+    function NodeEditor({ node, x, y, onSave, onClose, color, onColor, onRemove, onPurge, onRevert, onAttachPicture, boxWidth }) {
       const [paletteOpen, setPaletteOpen] = React.useState(false);
       const [title, setTitle] = React.useState(node.title || '');
       const [body, setBody] = React.useState(node.body || '');
@@ -1419,6 +1419,27 @@ function estimateBox(node) {
           style: Object.assign({}, INPUT_STYLE, { fontWeight: 600, marginBottom: 4 }),
         }),
         h('textarea', {
+          onPaste: (event) => {
+            // Only pictures: pasting text must behave exactly as it always did.
+            const item = [...(event.clipboardData?.items || [])].find((entry) => entry.type.startsWith('image/'))
+            if (!item) return
+            const file = item.getAsFile()
+            if (!file) return
+            event.preventDefault()
+            onAttachPicture(file).then((rel) => {
+        if (!rel) return
+        setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + '![](' + rel + ')')
+      })
+          },
+          onDrop: (event) => {
+            const file = [...(event.dataTransfer?.files || [])].find((entry) => entry.type.startsWith('image/'))
+            if (!file) return
+            event.preventDefault()
+            onAttachPicture(file).then((rel) => {
+        if (!rel) return
+        setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + '![](' + rel + ')')
+      })
+          },
           value: body,
           // The height follows the text, up to a point. A fixed two rows meant editing a paragraph through
           // a letterbox, and the box gave no clue how much there was. The ceiling is there because a very
@@ -3460,6 +3481,7 @@ function estimateBox(node) {
               onRemove: onRemoveNode,
               onPurge: onPurgeNode,
               onRevert: onRevertNode,
+        onAttachPicture: onAttachPicture,
               boxWidth: widthOf(widths, nodeWidths, base.id, entry.node.id, entry.node),
             });
           }
@@ -5351,6 +5373,22 @@ function estimateBox(node) {
                       : { note: '已作为文字送进会话（附件方式没成功：' + problem + '）' });
                   });
                 },
+                // Upload a picture the user pasted or dropped, and hand back the path to put in the body.
+                onAttachPicture: (file) => new Promise((resolve) => {
+                  if (!file || !String(file.type || '').startsWith('image/')) {
+                    resolve(null)
+                    return
+                  }
+                  const ext = (String(file.type).split('/')[1] || 'png').replace('jpeg', 'jpg')
+                  const reader = new FileReader()
+                  reader.onerror = () => resolve(null)
+                  reader.onload = () => {
+                    // FileReader gives a data URL; the host wants only the base64 part.
+                    const base64 = String(reader.result || '').split(',')[1] || ''
+                    post('putAsset', { ext, base64 }).then((answer) => resolve(answer && answer.rel)).catch(() => resolve(null))
+                  }
+                  reader.readAsDataURL(file)
+                }),
                 onRevertNode: (nodeId) => {
                   // One node at a time: the same route the right-click menu uses, so the two cannot drift.
                   post('revert', { base: base.id, node: nodeId }).then(() => setTick((current) => current + 1)).catch(() => {});

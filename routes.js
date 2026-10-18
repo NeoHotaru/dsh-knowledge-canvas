@@ -26,7 +26,7 @@ import { dirname, join, resolve } from 'node:path'
 import {
   addLink, assertId, DIRNAME, listBases, loadBase, purgeNode, removeBase, removeLink, setLinkNote, removeNode, renameBase, saveBase,
   revertNode, revertUnreviewed, upsertNode,
-  mimeOf,
+mimeOf, putImageBytes,
 } from './store.js'
 import { parseActivity } from './tools.js'
 import {
@@ -671,7 +671,12 @@ export function createHandler(ctx) {
   if (action === 'asset') {
     // By workspace, not by session: an <img> request carries no session of its own, and a picture belongs to the workspace it
     // is stored in. The same guard as every other write applies — an unknown workspace is refused.
-    const cwd = await workspaceForWrite(ctx, { workspace: url.searchParams.get('workspace') })
+    // Either names the workspace: the panel only has a session id, a link or a script may have the path. `workspace` wins when
+    // both are present, and an unknown one is still refused.
+    const askedWorkspace = url.searchParams.get('workspace')
+    const cwd = askedWorkspace
+      ? await workspaceForWrite(ctx, { workspace: askedWorkspace })
+      : workspaceOf(ctx, url.searchParams.get('session'))
     const rel = String(url.searchParams.get('path') || '')
     if (!/^assets\/[a-f0-9]{16}\.(png|jpg|gif|webp|svg)$/.test(rel)) {
       send(res, 400, { ok: false, error: 'not an asset path' })
@@ -737,7 +742,25 @@ export function createHandler(ctx) {
           live: await readLive(cwd) })
         return
       }
-      if (action === 'createNode') {
+      // A picture pasted or dropped into the editor. The bytes come in base64 because that is what a FileReader gives us; the
+  // size cap is checked before decoding so a big paste fails fast rather than after allocating it.
+  if (action === 'putAsset') {
+    const ext = String(payload.ext || '').toLowerCase()
+    const base64 = String(payload.base64 || '')
+    if (!base64) {
+      send(res, 400, { ok: false, error: 'no image data' })
+      return
+    }
+    const bytes = Buffer.from(base64, 'base64')
+    if (bytes.length > 8 * 1024 * 1024) {
+      send(res, 400, { ok: false, error: 'image is larger than 8 MB' })
+      return
+    }
+    const saved = await putImageBytes(cwd, bytes, '.' + ext)
+    send(res, 200, { ok: true, rel: saved.rel, bytes: saved.bytes })
+    return
+  }
+  if (action === 'createNode') {
         send(res, 200, {
           ok: true,
           ...(await createNodeFromPanel(cwd, payload.base, {
