@@ -1453,6 +1453,11 @@ function estimateBox(node) {
 
   /** 正文里引用到的附件，去重后最多 6 个；编辑器下方就地显示，点了就能移除。 */
   const [attachProblem, setAttachProblem] = React.useState('');
+  /** 正文里这个附件写着什么名字：取 [名字](path) 的标签，没有就用存储名。 */
+  const labelOf = (rel) => {
+    const found = new RegExp('\\[([^\\]]+)\\]\\(' + rel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\)').exec(String(body || ''));
+    return found ? found[1] : '';
+  };
   const attachedRefs = [...new Set(String(body || '').match(/assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}/g) || [])].slice(0, 6);
       const gone = node.change === 'removed';
       return h('div', {
@@ -1559,7 +1564,7 @@ function estimateBox(node) {
               + 'path=' + encodeURIComponent(rel);
             return h('span', { key: rel, style: { display: 'inline-flex', alignItems: 'center', gap: 4, marginRight: 8, marginTop: 6 } },
               isImage ? h('img', { src, alt: '', style: { height: 44, borderRadius: 4, border: '1px solid ' + HAIRLINE } })
-                : h('span', { style: { fontSize: 11, opacity: 0.75 } }, '📎 ' + rel.split('/').pop()),
+                : h('span', { style: { fontSize: 11, opacity: 0.75 } }, '📎 ' + (labelOf(rel) || rel.split('/').pop())),
               h('button', {
                 type: 'button',
                 title: '从正文里移除这个附件（文件仍留在 assets 里）',
