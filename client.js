@@ -543,13 +543,24 @@ function parseMarkdown(source) {
       if (picture) {
         const src = PREFIX + '/asset?' + (assetSession ? 'session=' + encodeURIComponent(assetSession) + '&' : '')
           + 'path=' + encodeURIComponent(picture[1])
-        return h('img', {
+        // Bounded height on purpose: an unbounded picture made the card taller than the box the user dragged out, and the
+        // canvas wheel means zoom, so "scroll to see the rest" was not even available. Click opens the original.
+        return h('a', {
           key,
+          href: src,
+          target: '_blank',
+          rel: 'noreferrer',
+          title: '在新标签打开原图',
+          style: { display: 'block', marginTop: 6 },
+        }, h('img', {
           src,
           alt: '',
           loading: 'lazy',
-          style: { display: 'block', maxWidth: '100%', height: 'auto', marginTop: 6, borderRadius: 6 },
-        })
+          style: {
+            display: 'block', maxWidth: '100%', maxHeight: 160, height: 'auto', width: 'auto',
+            objectFit: 'contain', borderRadius: 6, cursor: 'zoom-in',
+          },
+        }))
       }
     }
     if (block.type === 'code') {
