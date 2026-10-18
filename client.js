@@ -1408,10 +1408,15 @@ function estimateBox(node) {
       const [paletteOpen, setPaletteOpen] = React.useState(false);
   /** 上传完之后决定它在正文里的样子：图片是 ![]()，其它是 [名字]()。 */
   const appendAttachment = (saved) => {
-    if (!saved || !saved.rel) return;
-    const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(saved.rel);
-    const label = saved.name || saved.rel.split('/').pop();
-    const line = isImage ? '![](' + saved.rel + ')' : '[' + label + '](' + saved.rel + ')';
+    // onAttachPicture resolves to the path itself; the uploader that hands back an object is a different call site. Accepting
+    // both is cheaper than two helpers — but it has to be explicit, because reading `.rel` off a string just silently did nothing.
+    const rel = typeof saved === 'string' ? saved : saved && saved.rel;
+    if (!rel) {
+      setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + '（附件没有上传成功）');
+      return;
+    }
+    const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rel);
+    const line = isImage ? '![](' + rel + ')' : '[' + rel.split('/').pop() + '](' + rel + ')';
     setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + line);
   };
 
