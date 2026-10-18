@@ -64,6 +64,22 @@ try {
   // Not found is the good case; a network failure must not block a publish that is otherwise fine.
 }
 
+// 6. The CHANGELOG has a section for this version, and it names every tool. Docs written after the publish are docs nobody
+//    reads; a release note that does not exist yet is the signal that the work was not finished when the version was bumped.
+const changelog = (() => {
+  try {
+    return readFileSync(join(here, 'CHANGELOG.md'), 'utf8')
+  } catch {
+    return ''
+  }
+})()
+if (!changelog.includes('## ' + pkg.version)) {
+  problems.push(`CHANGELOG.md has no section "## ${pkg.version}"`)
+}
+// Not per tool: a tool released in an earlier version has no line here, and requiring one would block every
+// future publish. The requirement is that this version has notes at all.
+
+
 if (problems.length > 0) {
   console.error('\n  publish refused:\n')
   for (const problem of problems) console.error('    - ' + problem)
