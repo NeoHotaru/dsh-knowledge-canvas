@@ -4,7 +4,10 @@
 
 - A node can carry pictures and documents. Paste, drop, or pick them in the editor; a picture is drawn in the card, anything else becomes a chip you open in a new tab.
 - Attachments are content-addressed under `.dsh-knowledge/assets/`, so the same file attached twice is stored once. Their own names stay in the note; only the path is a hash.
-- Reading a node brings its attachments with it: text under 8 KB inline, everything else as an absolute path.
+- Reading a node brings its attachments with it: text under 8 KB (and Office text, extracted in place) inline, everything
+  else as an absolute path.
+- `knowledge_show_images` hands a node's pictures to the model as images, so a screenshot in a note can be looked at
+  rather than guessed about.
 - A failed attachment is a red line under the editor, with the reason. It is never written into the note.
 - A node handed to the conversation carries its attachments as session files.
 
