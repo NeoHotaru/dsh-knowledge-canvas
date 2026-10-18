@@ -24,7 +24,7 @@
  *   half" from "registration was rejected". The log answers that in one restart.
  */
 
-import { TOOLS, useHostAttachments } from './lib/tools.js'
+import { TOOLS } from './lib/tools.js'
 import { needsRefresh, outlineFor, refresh } from './lib/outline.js'
 import { sessionIdOf } from './lib/session.js'
 import { seedIfFirstTime, upgradeTutorial } from './lib/seed.js'
@@ -77,8 +77,6 @@ export { LOG_PATH }
  */
 export function apply(ctx) {
   log('apply() entered')
-  // Pictures in a tool result go through the host's attachment store; hand the service over instead of reaching for it.
-  useHostAttachments(ctx.attachments)
 
   /** Sources already reported, so each warmer logs its first firing once. */
   const warmed = new Set()
