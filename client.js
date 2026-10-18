@@ -1423,9 +1423,10 @@ function estimateBox(node) {
     // both is cheaper than two helpers — but it has to be explicit, because reading `.rel` off a string just silently did nothing.
     const rel = typeof saved === 'string' ? saved : saved && saved.rel;
     if (!rel) {
-      setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + '（附件没有上传成功）');
+      setAttachProblem((saved && saved.error) || '附件没有上传成功');
       return;
     }
+    setAttachProblem('');
     const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rel);
     const line = isImage ? '![](' + rel + ')' : '[' + rel.split('/').pop() + '](' + rel + ')';
     setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + line);
@@ -1436,6 +1437,7 @@ function estimateBox(node) {
       const [body, setBody] = React.useState(node.body || '');
 
   /** 正文里引用到的附件，去重后最多 6 个；编辑器下方就地显示，点了就能移除。 */
+  const [attachProblem, setAttachProblem] = React.useState('');
   const attachedRefs = [...new Set(String(body || '').match(/assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}/g) || [])].slice(0, 6);
       const gone = node.change === 'removed';
       return h('div', {
@@ -1532,7 +1534,11 @@ function estimateBox(node) {
           })),
 
           // 已经进正文的附件就地显示：缩略图或文件条，带 × 移除。没有这一条，用户只能从 markdown 猜自己有没有成功。
-          attachedRefs.length > 0 ? h('div', { style: { marginTop: 2 } }, attachedRefs.map((rel) => {
+          attachProblem ? h('div', {
+          style: { marginTop: 6, fontSize: 11.5, color: '#c0392b' },
+          'data-kb-attach-error': 'true',
+        }, '附件没有上传成功：' + attachProblem) : null,
+        attachedRefs.length > 0 ? h('div', { style: { marginTop: 2 } }, attachedRefs.map((rel) => {
             const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rel);
             const src = PREFIX + '/asset?' + (assetSession ? 'session=' + encodeURIComponent(assetSession) + '&' : '')
               + 'path=' + encodeURIComponent(rel);
@@ -5486,11 +5492,13 @@ function estimateBox(node) {
                   const fromType = String(file.type || '').split('/')[1];
                   const ext = String(fromName || fromType || 'png').toLowerCase().replace('jpeg', 'jpg');
                   const reader = new FileReader()
-                  reader.onerror = () => resolve(null)
+                  reader.onerror = () => resolve({ error: '读取这个文件失败' })
                   reader.onload = () => {
                     // FileReader gives a data URL; the host wants only the base64 part.
                     const base64 = String(reader.result || '').split(',')[1] || ''
-                    post('putAsset', { ext, base64 }).then((answer) => resolve(answer && answer.rel)).catch(() => resolve(null))
+                    post('putAsset', { ext, base64 })
+                      .then((answer) => resolve(answer && answer.rel ? { rel: answer.rel } : { error: '宿主没有返回路径' }))
+                      .catch((error) => resolve({ error: (error && (error.error || error.message)) || '上传失败' }))
                   }
                   reader.readAsDataURL(file)
                 }),
