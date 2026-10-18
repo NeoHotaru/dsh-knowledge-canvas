@@ -2330,10 +2330,13 @@ function estimateBox(node) {
         // One column per depth, one row per node in visit order, each row as tall as its own box.
         // This is the arrangement the panel had before the radial one, and for a straight chain of
         // steps — which is exactly what a release flow is — it reads better than a fan.
+        // Rows advance by what a card shows, not by how long its note is. A body scrolls inside its own box now, so reserving
+        // room for the whole text only pushed the next node hundreds of pixels down — the long runs people had to pan past.
+        const VISIBLE_CAP = 260;
         let stack = 10;
         for (const item of ordered) {
           placed[item.node.id] = { x: offsetX + item.depth * COLUMN, y: stack };
-          stack += sizeOf(item.node.id).h + ROW_GAP;
+          stack += Math.min(sizeOf(item.node.id).h, VISIBLE_CAP) + ROW_GAP;
         }
       } else {
         const rootLeaves = roots.reduce((sum, item) => sum + (leaves.get(item.node.id) || 1), 0);
