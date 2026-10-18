@@ -1431,11 +1431,12 @@ function estimateBox(node) {
     setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + line);
   };
 
-  /** 正文里引用到的附件，去重后最多 6 个；编辑器下方就地显示，点了就能移除。 */
-  const attachedRefs = [...new Set(String(body || '').match(/assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}/g) || [])].slice(0, 6);
 
       const [title, setTitle] = React.useState(node.title || '');
       const [body, setBody] = React.useState(node.body || '');
+
+  /** 正文里引用到的附件，去重后最多 6 个；编辑器下方就地显示，点了就能移除。 */
+  const attachedRefs = [...new Set(String(body || '').match(/assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}/g) || [])].slice(0, 6);
       const gone = node.change === 'removed';
       return h('div', {
         // Kept for hit testing, which must still find the editor under the pointer.
