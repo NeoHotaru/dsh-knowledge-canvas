@@ -14,8 +14,8 @@
  * is a same-process call rather than a file watch: the writer and the cache live together.
  */
 
-import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { appendFile, mkdir, readFile, stat, writeFile } from 'node:fs/promises'
+import { dirname, join, resolve, sep } from 'node:path'
 import { log } from './log.js'
 import {
   addLink,
@@ -25,6 +25,7 @@ import {
   DIRNAME,
   listBases,
   loadBase,
+  putImage,
   newBase,
   pathFor,
   removeBase,
@@ -87,6 +88,29 @@ async function assertEnabled(cwd, baseId, sessionId, what) {
     + 'Ask the user to switch it on in the knowledge panel if it should be. '
     + 'Do not write into it from memory: you cannot see what is already there.',
   )
+}
+
+/**
+ * Copy one picture into the base and return the markdown line for it.
+ *
+ * The path is confined to the workspace on purpose: it is a model-supplied string, and without that check this becomes "copy any
+ * readable file on this machine into a place the panel serves over HTTP".
+ */
+async function attachPicture(cwd, asked) {
+  const inside = resolve(String(asked).trim())
+  const root = resolve(cwd)
+  if (inside !== root && !inside.startsWith(root + sep)) {
+    throw new Error('image must be a file inside this workspace: ' + root)
+  }
+  let size = 0
+  try {
+    size = (await stat(inside)).size
+  } catch {
+    throw new Error('no such file: ' + inside)
+  }
+  if (size > 8 * 1024 * 1024) throw new Error('image is larger than 8 MB')
+  const saved = await putImage(cwd, inside)
+  return { line: '![](' + saved.rel + ')', rel: saved.rel, bytes: saved.bytes }
 }
 
 const BASE_PROP = {
@@ -235,6 +259,11 @@ const writeNode = {
       base: BASE_PROP,
       node: { type: 'string', description: 'Existing node id to update. Omit to create a new node.' },
       title: { type: 'string', description: 'Node title. Required when creating.' },
+      image: {
+        type: 'string',
+        description: 'Path to an image file inside this workspace (png/jpg/gif/webp/svg, up to 8 MB). It is copied into '
+          + '.dsh-knowledge/assets and a markdown line pointing at it is appended to the body.',
+      },
       body: {
         type: 'string',
         description: 'Node body: the note itself. End it with a line beginning 「什么时候该想起它:」 — '
@@ -283,10 +312,17 @@ const writeNode = {
     const wasRemoved = targetId
       ? Boolean(base.nodes.find((entry) => entry.id === targetId && entry.change === 'removed'))
       : false
+    // Pictures first: a bad path must fail before anything is written.
+    let body = args?.body
+    let attached = null
+    if (typeof args?.image === 'string' && args.image.trim()) {
+      attached = await attachPicture(cwd, args.image)
+      body = (typeof body === 'string' && body.length > 0 ? body.replace(/\s+$/, '') + '\n\n' : '') + attached.line
+    }
     const result = upsertNode(base, {
       node: typeof args?.node === 'string' && args.node.trim() ? args.node.trim() : undefined,
       title: args?.title,
-      body: args?.body,
+      body,
       parent,
       // Which session this is. The same lookup the outline cache uses, and the only handle that stays the
       // same across turns of one conversation.
@@ -311,8 +347,11 @@ const writeNode = {
       : ''
     if (wasRemoved) {
       return `Restored node ${result.node.id} "${result.node.title}" in base "${base.id}" — it had been marked removed.`
-        + stamp + warning
+        + stamp + picture + warning
     }
+    const picture = attached
+      ? ` Attached ${attached.rel} (${Math.round(attached.bytes / 1024)} KB).`
+      : ''
     return (result.created
       ? `Added node ${result.node.id} "${result.node.title}" to base "${base.id}".`
       : `Updated node ${result.node.id} "${result.node.title}" in base "${base.id}".`) + stamp + warning

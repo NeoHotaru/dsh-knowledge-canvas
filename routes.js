@@ -26,6 +26,7 @@ import { dirname, join, resolve } from 'node:path'
 import {
   addLink, assertId, DIRNAME, listBases, loadBase, purgeNode, removeBase, removeLink, setLinkNote, removeNode, renameBase, saveBase,
   revertNode, revertUnreviewed, upsertNode,
+  mimeOf,
 } from './store.js'
 import { parseActivity } from './tools.js'
 import {
@@ -665,7 +666,28 @@ export function createHandler(ctx) {
       // Served rather than embedded: as a data URI the sheet made the panel bundle 547 KB, and every panel load paid
       // for it. This way the bytes are fetched once by the browser and cached, and replacing the art no longer means
       // rebuilding client.js.
-      if (req.method === 'GET' && /^whale(-[a-z]+)?\.png$/.test(action)) {
+      // A picture attached to a node. The path is matched against a whitelist, so there is no ".." to filter: anything else is
+  // simply not this shape.
+  if (action === 'asset') {
+    // By workspace, not by session: an <img> request carries no session of its own, and a picture belongs to the workspace it
+    // is stored in. The same guard as every other write applies — an unknown workspace is refused.
+    const cwd = await workspaceForWrite(ctx, { workspace: url.searchParams.get('workspace') })
+    const rel = String(url.searchParams.get('path') || '')
+    if (!/^assets\/[a-f0-9]{16}\.(png|jpg|gif|webp|svg)$/.test(rel)) {
+      send(res, 400, { ok: false, error: 'not an asset path' })
+      return
+    }
+    try {
+      const bytes = await readFile(join(cwd, '.dsh-knowledge', rel))
+      res.writeHead(200, { 'content-type': mimeOf(rel), 'cache-control': 'public, max-age=31536000, immutable' })
+      res.end(bytes)
+    } catch {
+      send(res, 404, { ok: false, error: 'no such image' })
+    }
+    return
+  }
+
+  if (req.method === 'GET' && /^whale(-[a-z]+)?\.png$/.test(action)) {
         try {
           // The action comes from the URL, so it is checked above against a narrow shape and then used as a file name. A
           // whitelist rather than sanitising: the only names that exist are these three.

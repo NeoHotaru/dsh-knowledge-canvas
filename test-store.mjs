@@ -1536,6 +1536,11 @@ check('a write naming an unknown workspace is refused',
   strangeWorkspace.status !== 200 && /unknown workspace/.test(String(strangeWorkspace.payload && strangeWorkspace.payload.error)),
   JSON.stringify(strangeWorkspace).slice(0, 140))
 
+// /asset serves a picture by workspace. An unknown workspace is refused. The path whitelist needs a known workspace to
+// exercise, so it is checked against the running app rather than here.
+const assetStrange = await call('GET', '/dsh-knowledge-tree/asset?workspace=C:/not/a/workspace&path=assets/0123456789abcdef.png')
+check('the asset route refuses an unknown workspace', assetStrange.status !== 200, JSON.stringify(assetStrange).slice(0, 120))
+
 const wsAnswer = await call('GET', '/dsh-knowledge-tree/workspaces?session=me')
 check('GET /workspaces is routed', wsAnswer.status === 200, JSON.stringify(wsAnswer).slice(0, 120))
 check('and answers with a list', Array.isArray(wsAnswer.payload && wsAnswer.payload.workspaces),
