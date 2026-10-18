@@ -1441,8 +1441,9 @@ function estimateBox(node) {
       return;
     }
     setAttachProblem('');
+    const shown = (typeof saved === 'object' && saved && saved.name) || rel.split('/').pop();
     const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(rel);
-    const line = isImage ? '![](' + rel + ')' : '[' + rel.split('/').pop() + '](' + rel + ')';
+    const line = isImage ? '![](' + rel + ')' : '[' + shown + '](' + rel + ')';
     setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + line);
   };
 
@@ -5511,7 +5512,7 @@ function estimateBox(node) {
                     // FileReader gives a data URL; the host wants only the base64 part.
                     const base64 = String(reader.result || '').split(',')[1] || ''
                     post('putAsset', { ext, base64 })
-                      .then((answer) => resolve(answer && answer.rel ? { rel: answer.rel } : { error: '宿主没有返回路径' }))
+                      .then((answer) => resolve(answer && answer.rel ? { rel: answer.rel, name: String(file.name || '') } : { error: '宿主没有返回路径' }))
                       .catch((error) => resolve({ error: (error && (error.error || error.message)) || '上传失败' }))
                   }
                   reader.readAsDataURL(file)
