@@ -2328,15 +2328,25 @@ function estimateBox(node) {
         }
       } else if (shape === 'staircase') {
         // One column per depth, one row per node in visit order, each row as tall as its own box.
-        // This is the arrangement the panel had before the radial one, and for a straight chain of
-        // steps — which is exactly what a release flow is — it reads better than a fan.
-        // Rows advance by what a card shows, not by how long its note is. A body scrolls inside its own box now, so reserving
-        // room for the whole text only pushed the next node hundreds of pixels down — the long runs people had to pan past.
+      // One column per depth, one row per depth — not one row per node. Stacking every node in visit order put a child
+      // many rows below its parent, with nothing in between, and the edge ran diagonally across all of them. With a row per
+      // depth the furthest an edge can travel is one row.
+        // A row is as tall as the tallest card on it, capped at what a card shows: a body scrolls inside its own box, so
+        // reserving room for a whole note only pushed everything below it down.
         const VISIBLE_CAP = 260;
-        let stack = 10;
+        const depthHeight = [];
         for (const item of ordered) {
-          placed[item.node.id] = { x: offsetX + item.depth * COLUMN, y: stack };
-          stack += Math.min(sizeOf(item.node.id).h, VISIBLE_CAP) + ROW_GAP;
+          const own = Math.min(sizeOf(item.node.id).h, VISIBLE_CAP);
+          depthHeight[item.depth] = Math.max(depthHeight[item.depth] || 0, own);
+        }
+        const rowTop = [];
+        let shelf = 10;
+        for (let depth = 0; depth < depthHeight.length; depth += 1) {
+          rowTop[depth] = shelf;
+          shelf += (depthHeight[depth] || BOX_H) + ROW_GAP;
+        }
+        for (const item of ordered) {
+          placed[item.node.id] = { x: offsetX + item.depth * COLUMN, y: rowTop[item.depth] || 10 };
         }
       } else {
         const rootLeaves = roots.reduce((sum, item) => sum + (leaves.get(item.node.id) || 1), 0);
