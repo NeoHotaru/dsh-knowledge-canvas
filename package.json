@@ -1,12 +1,12 @@
 {
   "name": "dsh-knowledge-canvas",
   "version": "0.3.0",
-  "type": "module",
   "description": "Tree-shaped knowledge bases for DeepSeek Harness: per-session activation, a node graph view, and review markers for model edits.",
-  "exports": {
-    ".": "./index.js",
-    "./client": "./client.js"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NeoHotaru/dsh-knowledge-canvas.git"
   },
+  "type": "module",
   "files": [
     "index.js",
     "client.js",
@@ -20,13 +20,6 @@
     "CHANGELOG.md",
     "README.zh.md"
   ],
-  "scripts": {
-    "test": "node test-store.mjs",
-    "check": "node check-client-loads.mjs && node check-scope.mjs && node check-actions.mjs && node check-identifiers.mjs && node check-tdz.mjs && node check-props.mjs && node check-promise.mjs && node check-duplicate-keys.mjs && node check-placement.mjs",
-    "check:all": "npm run check && node check-sprites.mjs && npm test",
-    "prepublishOnly": "npm run check:all && node scripts/prepublish-check.mjs",
-    "prepublish-check": "node scripts/prepublish-check.mjs"
-  },
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -39,5 +32,16 @@
         "@deepseek-ai/dsh-client-ui-sidebar"
       ]
     }
+  },
+  "scripts": {
+    "test": "node test-store.mjs",
+    "check": "node check-client-loads.mjs && node check-scope.mjs && node check-actions.mjs && node check-identifiers.mjs && node check-tdz.mjs && node check-props.mjs && node check-promise.mjs && node check-duplicate-keys.mjs && node check-placement.mjs",
+    "check:all": "npm run check && node check-sprites.mjs && npm test",
+    "prepublishOnly": "npm run check:all && node scripts/prepublish-check.mjs",
+    "prepublish-check": "node scripts/prepublish-check.mjs"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js"
   }
 }
