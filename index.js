@@ -24,7 +24,7 @@
  *   half" from "registration was rejected". The log answers that in one restart.
  */
 
-import { TOOLS } from './lib/tools.js'
+import { TOOLS, useHostAttachments } from './lib/tools.js'
 import { needsRefresh, outlineFor, refresh } from './lib/outline.js'
 import { sessionIdOf } from './lib/session.js'
 import { seedIfFirstTime, upgradeTutorial } from './lib/seed.js'
@@ -80,7 +80,8 @@ export function apply(ctx) {
   // The attachment service turns a picture on disk into an image block. A host without it is not an error — the tools
   // answer in text — and the guard is here because an unguarded call once took every tool in this plugin down.
   try {
-    useHostAttachments(ctx.attachments)
+    // ctx.get, not ctx.attachments: the host exposes services through the accessor. dsh-read-animation reads it the same way.
+    useHostAttachments(typeof ctx.get === 'function' ? ctx.get('attachments') : ctx.attachments)
   } catch (error) {
     log('FAIL handing over the attachment service: ' + describeError(error))
   }
