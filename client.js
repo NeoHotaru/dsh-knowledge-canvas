@@ -372,7 +372,11 @@ window.__ModuleLoader__.load({
      *
      * @returns {Array<{type, text?, items?}>} blocks, each with plain strings for the renderer.
      */
-    function parseMarkdown(source) {
+    // Which session's pictures to ask for. Module-level because renderMarkdown is a plain function, far from the state that
+// knows the session; the panel sets this when it mounts and when the session changes.
+let assetSession = ''
+
+function parseMarkdown(source) {
       const lines = String(source || '').split('\n');
       const blocks = [];
       let paragraph = [];
@@ -501,7 +505,23 @@ window.__ModuleLoader__.load({
     function renderMarkdown(source, keyPrefix) {
       return parseMarkdown(source).map((block, index) => {
         const key = keyPrefix + index;
-        if (block.type === 'code') {
+        if (block.type === 'p') {
+      // A picture on its own line. Anything else in the paragraph stays text, so a body that merely mentions a path is not
+      // turned into an image by accident.
+      const picture = /^!\[[^\]]*\]\((assets\/[a-f0-9]{16}\.(?:png|jpe?g|gif|webp|svg))\)$/.exec(String(block.text || '').trim())
+      if (picture) {
+        const src = PREFIX + '/asset?' + (assetSession ? 'session=' + encodeURIComponent(assetSession) + '&' : '')
+          + 'path=' + encodeURIComponent(picture[1])
+        return h('img', {
+          key,
+          src,
+          alt: '',
+          loading: 'lazy',
+          style: { display: 'block', maxWidth: '100%', height: 'auto', marginTop: 6, borderRadius: 6 },
+        })
+      }
+    }
+    if (block.type === 'code') {
           return h('pre', {
             key,
             style: {
@@ -4096,6 +4116,8 @@ function estimateBox(node) {
       // Bumped to re-read the files: the tools write to disk, and this panel has no way to be
       // told about it, so the user asks for the re-read.
       const [tick, setTick] = React.useState(0);
+  // One assignment, because the renderer is a plain function: see `assetSession` near parseMarkdown.
+  assetSession = sessionId;
       // A destructive action that is one stray click away is a bug in the affordance: the first click only arms it.
       const [revertArmed, setRevertArmed] = React.useState(false);
       // Links drawn by hand. Held here, not in the file: the client has no write path.
