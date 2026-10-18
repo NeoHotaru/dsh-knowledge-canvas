@@ -147,7 +147,38 @@ window.__ModuleLoader__.load({
         return { ok: false, problem: '宿主没有提供 conversation.createDrafts' };
       }
 
-      const heading = baseName + ' · ' + node.title;
+      // Pictures and documents this node points at. The panel cannot read files itself, so the host hands them over as base64;
+  // without this a handed-off node carried a line of markdown the model could not open.
+  const wanted = [];
+  for (const match of String(node.body || '').matchAll(/assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}/g)) {
+    if (!wanted.includes(match[0])) wanted.push(match[0]);
+  }
+  const carried = [];
+  const skipped = [];
+  for (const rel of wanted.slice(0, 5)) {
+    try {
+      // No `post` here: this function is module-level, far from the one that owns it. The route takes the session.
+      const response = await fetch(PREFIX + '/assetBytes', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ session: sessionId, path: rel }),
+      });
+      const answer = await response.json().catch(() => null);
+      if (!answer || !answer.base64) {
+        skipped.push(rel.split('/').pop());
+        continue;
+      }
+      const raw = atob(answer.base64);
+      const bytes = new window.Uint8Array(raw.length);
+      for (let index = 0; index < raw.length; index += 1) bytes[index] = raw.charCodeAt(index);
+      carried.push(new File([bytes], answer.name, { type: answer.mime || 'application/octet-stream' }));
+    } catch {
+      skipped.push(rel.split('/').pop());
+    }
+  }
+  if (wanted.length > 5) skipped.push('（还有 ' + (wanted.length - 5) + ' 个未带）');
+
+  const heading = baseName + ' · ' + node.title;
       const markdown = '# ' + heading + '\n\n' + (node.body || '') + '\n';
       const fileName = (baseName + '-' + node.title).replace(/[\\/:*?"<>|]/g, '_').slice(0, 80) + '.md';
       const file = new File([markdown], fileName, { type: 'text/markdown' });
@@ -156,7 +187,7 @@ window.__ModuleLoader__.load({
       // draft id it hands back, not the durable file id from an explicit upload.
       let drafts = null;
       try {
-        drafts = conversation.createDrafts(sessionId, [file]);
+        drafts = conversation.createDrafts(sessionId, [file, ...carried]);
       } catch (error) {
         return { ok: false, problem: 'createDrafts 失败：' + (error && error.message ? error.message : error) };
       }
