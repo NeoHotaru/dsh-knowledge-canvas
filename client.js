@@ -3280,7 +3280,12 @@ function estimateBox(node) {
           // positions[base.id]. Indexing it again with base.id returned undefined, so the button
           // never rendered at all.
           Object.keys(positions || {}).length > 0
-            ? toolButton('重排', '取消这份库里手动拖过的位置，让自动排版重新排列', () => onResetLayout(base))
+        ? toolButton('重排', '取消这份库里手动拖过的位置，让自动排版重新排列', () => {
+            onResetLayout(base);
+            // Positions move underneath the viewport. Without bringing the view to the new content, the rearranged
+            // nodes end up somewhere off-screen and no gesture leads back to them — only 定位 did.
+            requestAnimationFrame(() => fitTo(width, height));
+          })
             : null,
           // Folded into the zoom readout above, which already showed the same thing.
           h('span', { style: { fontSize: 11, opacity: 0.5 } },
