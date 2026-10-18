@@ -77,6 +77,13 @@ export { LOG_PATH }
  */
 export function apply(ctx) {
   log('apply() entered')
+  // The attachment service turns a picture on disk into an image block. A host without it is not an error — the tools
+  // answer in text — and the guard is here because an unguarded call once took every tool in this plugin down.
+  try {
+    useHostAttachments(ctx.attachments)
+  } catch (error) {
+    log('FAIL handing over the attachment service: ' + describeError(error))
+  }
 
   /** Sources already reported, so each warmer logs its first firing once. */
   const warmed = new Set()
@@ -124,7 +131,9 @@ export function apply(ctx) {
           parameters: tool.parameters,
           // Shape copied from dsh-read-animation, whose registration is known to be accepted:
           // an output schema plus a render that returns content blocks.
-          output: {
+          // A tool may bring its own output shape, which is how the one that returns pictures declares them; everything else
+          // keeps answering in text.
+          output: tool.output || {
             schema: { type: 'string' },
             render: (_args, value) => [{ type: 'text', text: String(value) }],
           },

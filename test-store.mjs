@@ -1205,7 +1205,8 @@ check('and it keeps the line breaks instead of flattening them', splitRead.inclu
 
 // --- the activity log -----------------------------------------------------------
 console.log('\nthe activity log')
-check('the wrapper keeps every tool', TOOLS.length === 8, String(TOOLS.length))
+// Nine now: the eight that read and write, plus the one that hands pictures over as images.
+check('the wrapper keeps every tool', TOOLS.length === 9, String(TOOLS.length))
   check('and the link can be removed, not only drawn', TOOLS.some((tool) => tool.name === 'knowledge_unlink'))
 check('and their names', TOOLS.map((tool) => tool.name).includes('knowledge_read'))
 check('and their descriptions',
