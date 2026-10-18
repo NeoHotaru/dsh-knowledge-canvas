@@ -909,9 +909,18 @@ function estimateBox(node) {
   // otherwise produce an absurd height — but the box really is that tall, so the cap only taught the layout
   // a number five times too small and the rows overlapped. A generous estimate leaves a gap; a stingy one
   // overlaps, and overlapping is the failure that matters.
+  // Pictures are counted as pictures. Each one renders at most 160 px tall (see renderMarkdown), but as text its
+  // characters estimated to a dozen or more lines — and those lines are the long vertical run the user had to pan past.
+  const pictureLines = (String(body).match(/^\s*!\[\]\(assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}\)\s*$/gm) || []).length;
+  const PICTURE_H = 160 + 12;
+  const picturePixels = pictureLines * PICTURE_H;
   const bodyLines = Math.ceil(lines(body));
   const titleLines = Math.ceil(lines(title));
-  const h = Math.max(BOX_H, Math.round(9 + titleLines * 17 + 4 + bodyLines * 17 + 9 + 15));
+  // Text lines plus the空间 the pictures really take. The characters of an image line are still in `body`, so subtracting
+  // their estimated lines keeps the sum from counting them twice.
+  const withoutPictures = String(body).replace(/^\s*!\[\]\(assets\/[a-f0-9]{16}\.[a-z0-9]{1,5}\)\s*$/gm, '');
+  const textPixels = Math.max(0, Math.round(9 + titleLines * 17 + 4 + Math.ceil(lines(withoutPictures)) * 17 + 9 + 15));
+  const h = Math.max(BOX_H, textPixels + picturePixels);
   return { w, h };
 }
 
