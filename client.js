@@ -540,6 +540,20 @@ function parseMarkdown(source) {
       // A picture on its own line. Anything else in the paragraph stays text, so a body that merely mentions a path is not
       // turned into an image by accident.
       const picture = /^!\[[^\]]*\]\((assets\/[a-f0-9]{16}\.(?:png|jpe?g|gif|webp|svg))\)$/.exec(String(block.text || '').trim())
+      // An attachment on its own line. Same shape as a picture line, different label: [名字](assets/xxx.md).
+      const fileLink = /^\[([^\]]+)\]\((assets\/[a-f0-9]{16}\.[a-z0-9]{1,12})\)$/.exec(String(block.text || '').trim());
+      if (fileLink) {
+        const href = PREFIX + '/asset?' + (assetSession ? 'session=' + encodeURIComponent(assetSession) + '&' : '')
+          + 'path=' + encodeURIComponent(fileLink[2]);
+        return h('a', {
+          key, href, target: '_', rel: 'noreferrer', download: '',
+          title: '下载这个附件',
+          style: {
+            display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, padding: '4px 9px',
+            borderRadius: 6, border: '1px solid ' + HAIRLINE, textDecoration: 'none', color: 'inherit', fontSize: '0.94em',
+          },
+        }, '📎', h('span', { style: { maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, fileLink[1]));
+      }
       if (picture) {
         const src = PREFIX + '/asset?' + (assetSession ? 'session=' + encodeURIComponent(assetSession) + '&' : '')
           + 'path=' + encodeURIComponent(picture[1])
