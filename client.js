@@ -1375,6 +1375,15 @@ function estimateBox(node) {
 
     function NodeEditor({ node, x, y, onSave, onClose, color, onColor, onRemove, onPurge, onRevert, onAttachPicture, boxWidth }) {
       const [paletteOpen, setPaletteOpen] = React.useState(false);
+  /** 上传完之后决定它在正文里的样子：图片是 ![]()，其它是 [名字]()。 */
+  const appendAttachment = (saved) => {
+    if (!saved || !saved.rel) return;
+    const isImage = /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(saved.rel);
+    const label = saved.name || saved.rel.split('/').pop();
+    const line = isImage ? '![](' + saved.rel + ')' : '[' + label + '](' + saved.rel + ')';
+    setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + line);
+  };
+
       const [title, setTitle] = React.useState(node.title || '');
       const [body, setBody] = React.useState(node.body || '');
       const gone = node.change === 'removed';
@@ -1420,25 +1429,19 @@ function estimateBox(node) {
         }),
         h('textarea', {
           onPaste: (event) => {
-            // Only pictures: pasting text must behave exactly as it always did.
-            const item = [...(event.clipboardData?.items || [])].find((entry) => entry.type.startsWith('image/'))
-            if (!item) return
-            const file = item.getAsFile()
-            if (!file) return
-            event.preventDefault()
-            onAttachPicture(file).then((rel) => {
-        if (!rel) return
-        setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + '![](' + rel + ')')
-      })
+            const item = [...(event.clipboardData?.items || [])].find((entry) => entry.type.startsWith('image/'));
+            if (!item) return;
+            const file = item.getAsFile();
+            if (!file) return;
+            event.preventDefault();
+            onAttachPicture(file).then(appendAttachment);
           },
+          onDragOver: (event) => event.preventDefault(),
           onDrop: (event) => {
-            const file = [...(event.dataTransfer?.files || [])].find((entry) => entry.type.startsWith('image/'))
-            if (!file) return
-            event.preventDefault()
-            onAttachPicture(file).then((rel) => {
-        if (!rel) return
-        setBody((current) => (current.trimEnd() ? current.trimEnd() + '\n\n' : '') + '![](' + rel + ')')
-      })
+            const files = [...(event.dataTransfer?.files || [])];
+            if (files.length === 0) return;
+            event.preventDefault();
+            for (const file of files) onAttachPicture(file).then(appendAttachment);
           },
           value: body,
           // The height follows the text, up to a point. A fixed two rows meant editing a paragraph through
@@ -1453,6 +1456,29 @@ function estimateBox(node) {
           },
           style: Object.assign({}, INPUT_STYLE, { resize: 'vertical', lineHeight: 1.45 }),
         }),
+
+        // 附件入口：点它选文件，或把文件拖进这个方框。虚线框是「可放东西进来」的通用约定。
+        h('label', {
+          'data-kb-attach': 'box',
+          title: '添加附件：图片直接显示，其它文件显示成附件条',
+          style: {
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            marginTop: 6, height: 34, borderRadius: 8, border: '1px dashed ' + HAIRLINE,
+            fontSize: 11.5, opacity: 0.7, cursor: 'pointer',
+          },
+          onDragOver: (event) => event.preventDefault(),
+          onDrop: (event) => {
+            event.preventDefault();
+            for (const file of [...(event.dataTransfer?.files || [])]) onAttachPicture(file).then(appendAttachment);
+          },
+        }, h('span', { style: { fontSize: 14, lineHeight: 1 } }, '＋'), '添加附件',
+          h('input', {
+            type: 'file', multiple: true, style: { display: 'none' },
+            onChange: (event) => {
+              for (const file of [...(event.target.files || [])]) onAttachPicture(file).then(appendAttachment);
+              event.target.value = '';
+            },
+          })),
         // A fixed set of swatches rather than a colour picker: five choices are enough to say "this
         // one matters", and a native picker would put an OS dialog in the middle of a canvas.
         // One button showing the current colour, opening a small panel. A native picker was never an
