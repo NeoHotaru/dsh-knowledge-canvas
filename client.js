@@ -5476,11 +5476,15 @@ function estimateBox(node) {
                 },
                 // Upload a picture the user pasted or dropped, and hand back the path to put in the body.
                 onAttachPicture: (file) => new Promise((resolve) => {
-                  if (!file || !String(file.type || '').startsWith('image/')) {
-                    resolve(null)
-                    return
+                  // Any file, not just pictures. The host decides what it accepts (see extOfAny); refusing here as well meant a .md
+                  // or a .docx never reached it, and the user got "附件没有上传成功" with no reason.
+                  if (!file) {
+                    resolve(null);
+                    return;
                   }
-                  const ext = (String(file.type).split('/')[1] || 'png').replace('jpeg', 'jpg')
+                  const fromName = (/\.([A-Za-z0-9]+)$/.exec(String(file.name || '')) || [])[1];
+                  const fromType = String(file.type || '').split('/')[1];
+                  const ext = String(fromName || fromType || 'png').toLowerCase().replace('jpeg', 'jpg');
                   const reader = new FileReader()
                   reader.onerror = () => resolve(null)
                   reader.onload = () => {
