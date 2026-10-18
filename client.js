@@ -1890,11 +1890,14 @@ function estimateBox(node) {
             // A fixed-height box scrolls its text. minHeight: 0 is what allows a flex child to be smaller
             // than its content; without it the box grows anyway and the setting does nothing.
             minHeight: 0,
-            overflowY: (liveHeight || boxHeight) ? 'auto' : undefined,
+            // Always scrollable and always marked: with a fixed height only, a node that had neither a live height nor a
+            // dragged one could not be scrolled at all — the text overflowed, the box did not grow, and the wheel over it
+            // zoomed the canvas. A box that fits its content shows no scrollbar, so this costs nothing when empty.
+            overflowY: 'auto',
             // Only when it actually scrolls: the mark tells the canvas to leave the wheel alone.
             // Parenthesised because the conditional binds to the spread's operand — which is what is
             // wanted, but reads as if it were not.
-            ...((liveHeight || boxHeight) ? { 'data-kb-scroll': 'true' } : {}),
+            ...{ 'data-kb-scroll': 'true' },
           },
         }, detail === false ? null : renderMarkdown(node.body, 'md' + node.id)),
         // The stamp, when the file has one. Absent stays absent: a node written before stamps existed has
