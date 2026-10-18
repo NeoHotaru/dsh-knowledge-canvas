@@ -546,8 +546,8 @@ function parseMarkdown(source) {
         const href = PREFIX + '/asset?' + (assetSession ? 'session=' + encodeURIComponent(assetSession) + '&' : '')
           + 'path=' + encodeURIComponent(fileLink[2]);
         return h('a', {
-          key, href, target: '_', rel: 'noreferrer', download: '',
-          title: '下载这个附件',
+          key, href, target: '_blank', rel: 'noreferrer',
+          title: '在新标签打开',
           style: {
             display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 6, padding: '4px 9px',
             borderRadius: 6, border: '1px solid ' + HAIRLINE, textDecoration: 'none', color: 'inherit', fontSize: '0.94em',
