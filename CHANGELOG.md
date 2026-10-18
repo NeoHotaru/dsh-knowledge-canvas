@@ -1,5 +1,14 @@
 # 变更记录
 
+## 0.3.0
+
+- A node can carry pictures and documents. Paste, drop, or pick them in the editor; a picture is drawn in the card, anything else becomes a chip you open in a new tab.
+- Attachments are content-addressed under `.dsh-knowledge/assets/`, so the same file attached twice is stored once. Their own names stay in the note; only the path is a hash.
+- Reading a node brings its attachments with it: text under 8 KB inline, everything else as an absolute path.
+- A failed attachment is a red line under the editor, with the reason. It is never written into the note.
+- A node handed to the conversation carries its attachments as session files.
+
+
 ## 0.2.5 — 2026-10-17
 
 **两个设置自己跑掉的问题，以及教程补上今晚新增的两个动作。**
