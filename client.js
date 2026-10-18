@@ -2339,11 +2339,14 @@ function estimateBox(node) {
           const own = Math.min(sizeOf(item.node.id).h, VISIBLE_CAP);
           stairDepthHeight[item.depth] = Math.max(stairDepthHeight[item.depth] || 0, own);
         }
+        // Only depths that actually hold a node get a row. Empty depths used to consume a full row anyway, which is why two
+        // nodes could sit a screen apart with nothing between them.
         const stairRowTop = [];
         let stairShelf = 10;
         for (let depth = 0; depth < stairDepthHeight.length; depth += 1) {
+          if (!stairDepthHeight[depth]) continue;
           stairRowTop[depth] = stairShelf;
-          stairShelf += (stairDepthHeight[depth] || BOX_H) + ROW_GAP;
+          stairShelf += stairDepthHeight[depth] + ROW_GAP;
         }
         for (const item of ordered) {
           placed[item.node.id] = { x: offsetX + item.depth * COLUMN, y: stairRowTop[item.depth] || 10 };
