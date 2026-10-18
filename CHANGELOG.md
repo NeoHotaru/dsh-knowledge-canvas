@@ -12,6 +12,9 @@
 - A node handed to the conversation carries its attachments as session files.
 
 
+Tools in this release: knowledge_read, knowledge_create_base, knowledge_write_node, knowledge_link,
+knowledge_unlink, knowledge_remove_node, knowledge_select, knowledge_remove_base, knowledge_show_images.
+
 ## 0.2.5 — 2026-10-17
 
 **两个设置自己跑掉的问题，以及教程补上今晚新增的两个动作。**

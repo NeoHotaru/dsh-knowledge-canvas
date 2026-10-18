@@ -76,8 +76,9 @@ const changelog = (() => {
 if (!changelog.includes('## ' + pkg.version)) {
   problems.push(`CHANGELOG.md has no section "## ${pkg.version}"`)
 }
-// Not per tool: a tool released in an earlier version has no line here, and requiring one would block every
-// future publish. The requirement is that this version has notes at all.
+for (const name of new Set(names)) {
+  if (!changelog.includes(name)) problems.push(`CHANGELOG.md never mentions ${name}`)
+}
 
 
 if (problems.length > 0) {
