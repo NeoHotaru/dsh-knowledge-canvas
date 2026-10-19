@@ -1,5 +1,15 @@
 # 变更记录
 
+## 0.4.0 — 2026-10-18
+
+- Diary bases now open as a notebook: month catalog, readable pages, earlier/newer navigation, collapsed recall hints, and edit-history access. Narrow panels use a catalog button; the original knowledge canvas remains available.
+- Send or drag a diary page into the current conversation using the existing attachment workflow. No diary content or storage format is migrated.
+
+- Add per-workspace attachment reading policy in DSH settings: on-demand (default) or required.
+- `knowledge_read` supports individual attachment selection and character-based text pagination; required mode returns supported text and image blocks with explicit limits and delivery warnings.
+- `knowledge_show_images` remains available for on-demand image reading. Attachment preferences are independent of base selection, layout, and prompt injection.
+- Update tutorial and manual to explain token costs, unsupported formats and manual drag behavior.
+
 ## 0.3.0
 
 - A node can carry pictures and documents. Paste, drop, or pick them in the editor; a picture is drawn in the card, anything else becomes a chip you open in a new tab.

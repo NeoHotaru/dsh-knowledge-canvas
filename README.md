@@ -1,5 +1,11 @@
 # dsh-knowledge-canvas
 
+## Notebook and attachment reading (0.4.0)
+
+Diary bases open in a notebook view with a monthly catalog, readable pages, earlier/newer navigation, revision history, and send/drag to chat. Narrow panels provide a catalog button. Switch back to the knowledge canvas to edit. This is a presentation change: encryption, session isolation, node storage and model-call behavior remain unchanged.
+
+DSH settings offer a per-workspace attachment policy: on-demand (default) or required. On-demand reading lets the model choose attachments; required reading includes supported text and images with explicit limits and increases token usage.
+
 **English** · [简体中文](README.zh.md)
 
 A knowledge base for DeepSeek Harness that the model retrieves from **by judgement, not by similarity** — and that you edit on a canvas in the sidebar.
@@ -139,3 +145,12 @@ While it is `Validating`, `registry.npmjs.org/.../<version>.tgz` returns 404 —
 ## License
 
 MIT
+
+## Attachment reading policy
+
+DSH Settings → Knowledge base offers a per-workspace choice, independent of index/full-body injection:
+
+- **On demand (default):** reading a node or base lists attachment paths and sizes, without file content or images. Pass `attachment` to `knowledge_read` with `base` and `node` to fetch one referenced file. Text supports `offset` and `limit`, measured in characters, up to 8,000 per call. `knowledge_show_images` remains available.
+- **Required:** reading a node or base includes supported text and Office content (up to 8,000 characters per file) and up to 6 pictures per call. Continuation instructions identify omitted content. This uses more tokens and does not guarantee model attention.
+
+Unsupported formats, including PDFs and archives, retain their paths for another reader. Missing files and image delivery failures are reported. This policy affects knowledge tools; manually dragging nodes into chat still sends session attachments. Preferences survive restarts and other knowledge settings changes.

@@ -16,7 +16,7 @@ const manualPath = join(here, 'MANUAL.md')
 const { SEED_NODE_IDS } = await import(pathToFileURL(seedPath).href)
 
 // Read the node list out of the module without exporting it: `NODES` is internal on purpose.
-const source = await readFile(seedPath, 'utf-8')
+const source = (await readFile(seedPath, 'utf-8')).replace(/\r\n/g, '\n')
 const start = source.indexOf('const NODES = [')
 const end = source.indexOf('\n]\n', start)
 const literal = source.slice(start + 'const NODES = '.length, end + 2)

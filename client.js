@@ -4210,6 +4210,209 @@ function estimateBox(node) {
       return h('div', { style: { marginTop: 10, fontSize: 11.5, opacity: 0.55, lineHeight: 1.65 } }, children);
     }
 
+    // Presentation only: never rewrite the encrypted diary or its graph to make a book.
+    function diaryPages(base) {
+      const nodes = (base.nodes || []).filter((node) => node.change !== 'removed');
+      const byId = new Map(nodes.map((node) => [node.id, node]));
+      const monthOf = (text) => {
+        const match = /^(\d{4})\s*(?:年|[-/])\s*(\d{1,2})(?:\s*月|[-/]|$)/.exec(String(text || '').trim());
+        return match && Number(match[2]) >= 1 && Number(match[2]) <= 12
+          ? match[1] + '-' + match[2].padStart(2, '0') : null;
+      };
+      return nodes.filter((node) => !monthOf(node.title)
+        && !(node.parent == null && /^(按月分组|日记目录|日记)$/.test(node.title || '')))
+        .map((node, index) => {
+          const dates = (node.history || []).map((entry) => entry.at).filter(Boolean).concat(node.at || []).sort();
+          const writtenAt = String(dates[0] || '');
+          let month = null;
+          let ancestor = byId.get(node.parent);
+          const visited = new Set([node.id]);
+          while (ancestor && !visited.has(ancestor.id)) {
+            visited.add(ancestor.id);
+            month = monthOf(ancestor.title);
+            if (month) break;
+            ancestor = byId.get(ancestor.parent);
+          }
+          month = month || monthOf(writtenAt) || '未注明月份';
+          const source = String(node.body || '');
+          const hint = /(?:^|\n)\s*什么时候该想起它[：:]\s*([^]*)$/.exec(source);
+          const body = hint ? source.slice(0, hint.index).trimEnd() : source;
+          return { node, month, writtenAt, body, hint: hint ? hint[1].trim() : '', index };
+        }).sort((a, b) => b.writtenAt.localeCompare(a.writtenAt) || b.index - a.index);
+    }
+
+    function DiaryBook({ base, onSendToChat, onShowHistory, onReview, onLocate, focusNode, onFocusShown, names, onCanvas }) {
+      const pages = diaryPages(base);
+      const [selectedId, setSelectedId] = React.useState(null);
+      const [month, setMonth] = React.useState('');
+      const [sending, setSending] = React.useState(false);
+      const [notice, setNotice] = React.useState('');
+      const [catalog, setCatalog] = React.useState(false);
+      const paperRef = React.useRef(null);
+      const frameRef = React.useRef(null);
+      const dragRef = React.useRef(null);
+      const [dragLabel, setDragLabel] = React.useState(null);
+      const months = [...new Set(pages.map((page) => page.month))].sort((a, b) => {
+        if (a === '未注明月份') return 1;
+        if (b === '未注明月份') return -1;
+        return b.localeCompare(a);
+      });
+      const activeMonth = months.includes(month) ? month : (months[0] || '');
+      const filtered = pages.filter((page) => page.month === activeMonth);
+      const current = filtered.find((page) => page.node.id === selectedId) || filtered[0] || null;
+      const currentIndex = current ? pages.indexOf(current) : -1;
+      const choose = (page) => {
+        setMonth(page.month);
+        setSelectedId(page.node.id);
+        setCatalog(false);
+      };
+      const send = (nodeId) => {
+        if (sending) return;
+        setSending(true);
+        setNotice('');
+        Promise.resolve().then(() => onSendToChat(nodeId)).catch((error) => {
+          setNotice('送进对话失败：' + (error && error.message ? error.message : error));
+        }).finally(() => setSending(false));
+      };
+      React.useEffect(() => {
+        if (!focusNode) return;
+        const page = pages.find((entry) => entry.node.id === focusNode.nodeId);
+        if (page) choose(page);
+        onFocusShown(page ? 'centred' : 'unknown-node', focusNode.nodeId);
+      }, [focusNode]);
+      React.useEffect(() => {
+        if (paperRef.current) paperRef.current.scrollTop = 0;
+        setNotice('');
+      }, [current && current.node.id]);
+      // Pointer drag follows the existing canvas convention: dropping outside the reader adds an attachment.
+      React.useEffect(() => {
+        const move = (event) => {
+          const start = dragRef.current;
+          if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) < 8) return;
+          start.moved = true;
+          setDragLabel({ x: event.clientX, y: event.clientY, title: start.title });
+        };
+        const release = (event) => {
+          const start = dragRef.current;
+          dragRef.current = null;
+          setDragLabel(null);
+          const box = frameRef.current && frameRef.current.getBoundingClientRect();
+          if (start && start.moved && box && (event.clientX < box.left || event.clientX > box.right
+            || event.clientY < box.top || event.clientY > box.bottom)) send(start.id);
+        };
+        const cancel = () => { dragRef.current = null; setDragLabel(null); };
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', release);
+        window.addEventListener('pointercancel', cancel);
+        return () => {
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', release);
+          window.removeEventListener('pointercancel', cancel);
+        };
+      }, [onSendToChat, sending]);
+      const buttonStyle = {
+        border: '1px solid ' + HAIRLINE, background: 'transparent', color: 'inherit',
+        borderRadius: 5, padding: '5px 9px', font: 'inherit', fontSize: 12, cursor: 'pointer',
+      };
+      const navButton = (label, page) => h('button', {
+        type: 'button', disabled: !page, style: { ...buttonStyle, opacity: page ? 1 : 0.4 },
+        onClick: () => { if (page) choose(page); },
+      }, label);
+      const author = current && current.node.by ? '写于当前会话' : null;
+      return h('section', { ref: frameRef, className: 'kb-diary-book', 'aria-label': '日记本', 'data-kb-diary-book': base.id },
+        h('style', null, `
+          .kb-diary-book{--diary-paper:#fffdf7;--diary-ink:#343d4b;--diary-muted:#6a7380;--diary-rule:#dedbd2;--diary-side:#f2f3f4;color:var(--diary-ink);border:1px solid var(--diary-rule);border-radius:6px;overflow:hidden;container-type:inline-size}
+          .kb-diary-book button:focus-visible,.kb-diary-book select:focus-visible{outline:2px solid #527eab;outline-offset:2px}
+          .kb-diary-layout{display:grid;grid-template-columns:170px minmax(0,1fr);min-height:420px;height:clamp(420px,65vh,800px)}
+          .kb-diary-catalog{overflow-y:auto;min-width:0;background:var(--diary-side);border-right:1px solid var(--diary-rule);padding:12px 10px}
+          .kb-diary-paper{overflow-y:auto;min-width:0;background:var(--diary-paper);padding:30px clamp(20px,5cqw,54px);overscroll-behavior:contain}
+          .kb-diary-prose{font-family:'Microsoft YaHei','PingFang SC',sans-serif;font-size:15px;line-height:2;overflow-wrap:anywhere;max-width:38em;margin:0 auto}
+          .kb-diary-prose>div{margin:0 0 1em!important}.kb-diary-title{font-family:'Noto Serif CJK SC','SimSun',serif;font-size:25px;line-height:1.55;font-weight:600;margin:12px 0 26px;overflow-wrap:anywhere}
+          .kb-diary-compact{display:none}
+          @media(prefers-color-scheme:dark){.kb-diary-book{--diary-paper:#26282c;--diary-ink:#e0e1e3;--diary-muted:#a9adb5;--diary-rule:#47494e;--diary-side:#202226}}
+          @container(max-width:600px){.kb-diary-layout{grid-template-columns:minmax(0,1fr)}.kb-diary-catalog{display:none;border-right:0}.kb-diary-compact{display:inline-flex}.kb-diary-layout[data-catalog="shown"] .kb-diary-catalog{display:block}.kb-diary-layout[data-catalog="shown"] .kb-diary-paper{display:none}}
+        `),
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid var(--diary-rule)', background: 'var(--diary-paper)' } },
+          h('span', { style: { fontWeight: 600, flex: 1 } }, base.name || '日记'),
+          h('span', { style: { color: 'var(--diary-muted)', fontSize: 12 } }, pages.length + ' 篇'),
+          h('button', { type: 'button', className: 'kb-diary-compact', 'aria-expanded': catalog, onClick: () => setCatalog(!catalog), style: buttonStyle }, catalog ? '回到书页' : '目录'),
+        ),
+        h('div', { className: 'kb-diary-layout', 'data-catalog': catalog ? 'shown' : 'closed' },
+          h('nav', { className: 'kb-diary-catalog', 'aria-label': '日记目录' },
+            h('label', { style: { display: 'block', fontSize: 12, marginBottom: 12 } }, '按月翻阅',
+              h('select', {
+                'aria-label': '日记月份', value: activeMonth, disabled: !months.length,
+                onChange: (event) => { setMonth(event.currentTarget.value); setSelectedId(null); },
+                style: { width: '100%', marginTop: 7, padding: 6, font: 'inherit', color: 'inherit', background: 'var(--diary-paper)', border: '1px solid var(--diary-rule)', borderRadius: 4 },
+              }, months.map((value) => h('option', { key: value, value }, value))),
+            ),
+            filtered.map((page) => h('button', {
+              key: page.node.id, type: 'button', 'aria-current': current && current.node.id === page.node.id ? 'page' : undefined,
+              onClick: () => choose(page),
+              style: { width: '100%', padding: '11px 8px', marginBottom: 5, textAlign: 'left', font: 'inherit', color: 'inherit', cursor: 'pointer', border: '1px solid ' + (current && current.node.id === page.node.id ? 'var(--diary-rule)' : 'transparent'), borderRadius: 4, background: current && current.node.id === page.node.id ? 'var(--diary-paper)' : 'transparent' },
+            },
+              h('div', { style: { fontSize: 11, color: 'var(--diary-muted)', marginBottom: 4 } }, page.writtenAt.slice(0, 10) || '日期未记录'),
+              h('div', { style: { fontSize: 13, fontWeight: 600, overflowWrap: 'anywhere' } }, page.node.title || '未命名日记'),
+              h('div', { style: { fontSize: 11, lineHeight: 1.6, color: 'var(--diary-muted)', marginTop: 5, overflowWrap: 'anywhere' } }, page.body.replace(/\s+/g, ' ').slice(0, 45)),
+            )),
+          ),
+          h('article', { ref: paperRef, className: 'kb-diary-paper', tabIndex: 0, 'aria-label': current ? current.node.title : '空白日记' },
+            current ? h('div', { style: { maxWidth: '38em', margin: '0 auto' } },
+              h('div', { style: { color: 'var(--diary-muted)', fontSize: 12 } }, current.writtenAt.slice(0, 10) || '日期未记录'),
+              h('h2', { className: 'kb-diary-title' }, current.node.title || '未命名日记'),
+              h('div', { className: 'kb-diary-prose' }, renderMarkdown(current.body, 'diary-' + current.node.id)),
+              author ? h('p', { style: { textAlign: 'right', color: 'var(--diary-muted)', fontSize: 13, marginTop: 24 } }, author) : null,
+              current.hint ? h('details', { key: current.node.id, style: { borderTop: '1px solid var(--diary-rule)', paddingTop: 14, marginTop: 28, fontSize: 12, color: 'var(--diary-muted)' } },
+                h('summary', { style: { cursor: 'pointer' } }, '回想提示'),
+                h('p', { style: { lineHeight: 1.8, whiteSpace: 'pre-wrap' } }, current.hint),
+              ) : null,
+              h('div', { style: { display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 24 } },
+                h('button', { type: 'button', disabled: sending, style: buttonStyle, onClick: () => send(current.node.id) }, sending ? '正在加入…' : '送进对话'),
+                h('button', { type: 'button', style: buttonStyle, onPointerDown: (event) => {
+                  if (event.button !== 0) return;
+                  event.preventDefault();
+                  dragRef.current = { id: current.node.id, title: current.node.title, x: event.clientX, y: event.clientY, moved: false };
+                }, title: '按住拖出日记本，作为附件加入当前对话' }, '拖入对话'),
+                h('button', { type: 'button', style: buttonStyle, onClick: () => onShowHistory(current.node.id) }, '修改记录'),
+                current.node.change ? h('button', { type: 'button', style: buttonStyle, onClick: () => onReview(current.node.id) }, '标为已读') : null,
+                h('button', { type: 'button', style: buttonStyle, onClick: () => { onLocate(current.node.id); onCanvas(); } }, '在画布中编辑'),
+              ),
+              h('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--diary-rule)' } },
+                navButton('← 较早一篇', pages[currentIndex + 1]),
+                navButton('较新一篇 →', pages[currentIndex - 1]),
+              ),
+            ) : h('div', { style: { padding: '50px 0', lineHeight: 1.9 } },
+              h('h2', { className: 'kb-diary-title' }, '还没有写下的日记'),
+              h('p', { style: { fontSize: 14, color: 'var(--diary-muted)' } }, '打开日记模式，继续和角色聊天。交流中有值得留下的片段时，模型会选择写入。'),
+            ),
+            notice ? h('p', { role: 'alert', style: { color: '#b94444', fontSize: 12 } }, notice) : null,
+          ),
+        ),
+        dragLabel ? h('div', { style: { position: 'fixed', pointerEvents: 'none', zIndex: 9999, left: dragLabel.x + 12, top: dragLabel.y + 12, maxWidth: 240, padding: '8px 12px', border: '1px solid var(--diary-rule)', background: 'var(--diary-paper)', color: 'var(--diary-ink)', borderRadius: 5, fontSize: 12 } }, '送进对话：' + dragLabel.title) : null,
+      );
+    }
+
+    function DiaryOrTree(props) {
+      const [view, setView] = React.useState('book');
+      if (!/^diary(?:-[a-z0-9]+)?$/.test(props.base.id)) return h(Tree, props);
+      return h('div', null,
+        h('div', { style: { display: 'flex', gap: 6, padding: '8px 0' }, role: 'group', 'aria-label': '日记视图' },
+          [['book', '日记本'], ['canvas', '知识画布']].map(([id, label]) => h('button', {
+            key: id, type: 'button', 'aria-pressed': view === id, onClick: () => setView(id),
+            style: { font: 'inherit', fontSize: 12, padding: '4px 10px', border: '1px solid ' + HAIRLINE, borderRadius: 5, color: 'inherit', background: view === id ? 'rgba(128,128,128,0.16)' : 'transparent', cursor: 'pointer' },
+          }, label)),
+        ),
+        h('div', { style: { display: view === 'book' ? 'block' : 'none' } },
+          h(DiaryBook, { base: props.base, onSendToChat: props.onSendToChat, onShowHistory: props.onShowHistory,
+            onReview: props.onReview, onLocate: props.onLocate, focusNode: view === 'book' ? props.focusNode : null,
+            onFocusShown: props.onFocusShown, names: props.names, onCanvas: () => setView('canvas') }),
+        ),
+        // Keep the graph mounted so a trip to the book does not discard pan/zoom or an editor draft.
+        h('div', { style: { display: view === 'canvas' ? 'block' : 'none' } }, h(Tree, { ...props, focusNode: view === 'canvas' ? props.focusNode : null })),
+      );
+    }
+
+
     function Body({ sessionId, fullscreen }) {
       const [state, setState] = React.useState({ status: 'loading' });
       const [enabled, setEnabled] = React.useState({});
@@ -4256,6 +4459,15 @@ function estimateBox(node) {
        * Right-clicking a node sets it; the view's back button clears it.
        */
       const [historyFor, setHistoryFor] = React.useState(null);
+      const panelRef = React.useRef(null);
+      const historyScroll = React.useRef(0);
+      const showHistory = (baseId, nodeId) => {
+        if (panelRef.current) {
+          historyScroll.current = panelRef.current.scrollTop;
+          panelRef.current.scrollTop = 0;
+        }
+        setHistoryFor({ baseId, nodeId });
+      };
       // The outcome of the last locate request, shown so a request that lands nowhere is not silent.
       const [lastFocus, setLastFocus] = React.useState(null);
       // Whether this session has a list of its own. Only used to say so; absence means inherit, which is
@@ -4902,11 +5114,17 @@ function estimateBox(node) {
           node: target,
           nodeId: historyFor.nodeId,
           names,
-          onBack: () => setHistoryFor(null),
+          onBack: () => {
+            setHistoryFor(null);
+            requestAnimationFrame(() => {
+              if (panelRef.current) panelRef.current.scrollTop = historyScroll.current;
+            });
+          },
         });
       })();
 
       return h('div', {
+        ref: panelRef,
         style: {
           height: '100%',
           boxSizing: 'border-box',
@@ -4916,7 +5134,7 @@ function estimateBox(node) {
           // in empty space.
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'auto',
+          overflow: historyFor ? 'hidden' : 'auto',
           padding: '14px 16px 22px',
           font: 'inherit',
           color: 'inherit',
@@ -5427,7 +5645,7 @@ function estimateBox(node) {
               // Inside the map the base is `base`; `open` is the same object whenever this
               // branch renders, and the callbacks below are written against it.
               base.nodes && base.nodes.length ? null : h(Note, null, '这份库里还没有节点。'),
-              h(Tree, {
+              h(DiaryOrTree, {
             // Only the base whose canvas is actually on screen may take the request.
             //
             // `Tree` is mounted for every base, not just the open one, and each copy received the same
@@ -5485,7 +5703,7 @@ function estimateBox(node) {
                   if (!node) return;
                   // Attachment first: a node with a page of text in the composer makes the composer
                   // unreadable, and the file is what the model can read in full anyway.
-                  attachNode(node, base.name, sessionId).then(({ ok, problem }) => {
+                  return attachNode(node, base.name, sessionId).then(({ ok, problem }) => {
                     if (ok) {
                       setSaving({ note: '已作为附件送进会话：' + node.title });
                       return;
@@ -5591,7 +5809,7 @@ function estimateBox(node) {
                 base,
             fullscreen,
             // Body owns which view is on screen, so the canvas only asks.
-            onShowHistory: (nodeId) => setHistoryFor({ baseId: base.id, nodeId }),
+            onShowHistory: (nodeId) => showHistory(base.id, nodeId),
             positions: positions[base.id] || {},
             onMove: (nodeId, x, y) => {
               const updated = {
@@ -5830,6 +6048,25 @@ function estimateBox(node) {
 
       React.useEffect(() => { void load(); }, [load]);
 
+      const setAttachmentMode = React.useCallback(async (workspace, mode) => {
+        setBusy(workspace.cwd + '/attachments');
+        setProblem(null);
+        try {
+          const response = await fetch(PREFIX + '/attachmentMode', {
+            method: 'PUT', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ workspace: workspace.cwd, session: workspace.sessionId, mode }),
+          });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || !payload.ok) throw new Error(payload.error || ('HTTP ' + response.status));
+          setWorkspaces((current) => current.map((entry) => entry.cwd === workspace.cwd
+            ? { ...entry, attachmentMode: payload.attachmentMode } : entry));
+        } catch (error) {
+          setProblem(String((error && error.message) || error));
+        } finally {
+          setBusy(null);
+        }
+      }, []);
+
       /** Flip one base in one workspace, then take the host's answer as the truth. */
       const toggle = React.useCallback(async (workspace, baseId) => {
         // null means the workspace has no selection file, which every reader treats as "all of them".
@@ -5974,6 +6211,22 @@ function estimateBox(node) {
               overflowWrap: 'anywhere', wordBreak: 'break-word',
             },
           }, workspace.cwd),
+          h('label', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, fontSize: 12 } },
+            '附件读取方式',
+            h('select', {
+              value: workspace.attachmentMode || 'on-demand',
+              disabled: busy !== null,
+              onChange: (event) => setAttachmentMode(workspace, event.target.value),
+              style: { font: 'inherit', color: 'inherit', background: SURFACE, border: '1px solid ' + HAIRLINE, borderRadius: 5, padding: '3px 6px' },
+            },
+              h('option', { value: 'on-demand' }, '按需读取（默认）'),
+              h('option', { value: 'required' }, '必须读取'),
+            )),
+          h('div', { style: { fontSize: 11.5, opacity: 0.65, lineHeight: 1.5, marginBottom: 9 } },
+            workspace.attachmentMode === 'required'
+              ? '读取节点时自动附上可解析文本和图片，会增加 token 消耗。每个文本附件最多 8,000 字符、每次最多 6 张图片，其余按需续读；不支持解析的格式仅列路径。'
+              : '读取节点时只列附件清单，模型需要时再读取指定文件或图片。文本支持分段读取，减少无关内容占用上下文。',
+            ' 此设置作用于本工作区的知识库读取工具；手动拖入对话的附件仍作为会话附件发送。'),
           // The recorder. A setting, not a control on the panel it decorates: it decides what the host writes.
           // A pill, like the diary switch in the panel: one function, one control shape. The checkbox also had a bug
           // worth remembering — its state came from the PUT's answer, and the answer did not include the flag, so it
@@ -6080,7 +6333,7 @@ function estimateBox(node) {
       // shows up as a line that looks slightly off rather than as a failure.
       // Pure decisions the panel makes, exposed for the same reason the geometry is: a button cannot
       // be pressed by a check script, but the question the button answers can be asked directly.
-      __logic: {
+      __logic: { diaryPages, DiaryBook, DiaryOrTree,
         nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines, worthMarking, historyMarks,
       },
       __geometry: {

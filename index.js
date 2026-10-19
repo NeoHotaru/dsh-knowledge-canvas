@@ -132,8 +132,7 @@ export function apply(ctx) {
           parameters: tool.parameters,
           // Shape copied from dsh-read-animation, whose registration is known to be accepted:
           // an output schema plus a render that returns content blocks.
-          // A tool may bring its own output shape, which is how the one that returns pictures declares them; everything else
-          // keeps answering in text.
+          // Image-capable tools declare both schema and renderer; other tools keep answering in text.
           output: tool.output || {
             schema: { type: 'string' },
             render: (_args, value) => [{ type: 'text', text: String(value) }],
@@ -246,9 +245,9 @@ export function apply(ctx) {
     const dir = join(workspace, '.dsh-knowledge')
     let names = []
     try {
-      // The same two files `lib/store.js` excludes: they are settings, not bases.
+      // Exclude workspace preferences, just as lib/store.js does.
       names = readdirSync(dir).filter((name) => name.endsWith('.json')
-        && name !== 'selection.json' && name !== 'layout.json')
+        && name !== 'selection.json' && name !== 'layout.json' && name !== '.attachment-settings.json')
     } catch {
       return texts
     }

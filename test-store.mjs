@@ -383,7 +383,7 @@ await keepCreate.execute({ id: 'brand-new-2', name: '新库' }, { agent: { sessi
 check('a created base joins the list the session inherits',
   await activityWriteTool.execute({ base: 'brand-new-2', title: '第一篇', body: '正文。', session_name: '测试' },
     { agent: { session: { header: { cwd: inheritCwd, id: 'inheritor' } } } })
-    .then((value) => String(value).includes('第一篇'), (error) => 'refused: ' + error.message))
+    .then((value) => String(value.text ?? value).includes('第一篇'), (error) => 'refused: ' + error.message))
 
 check('creating a base keeps the diary switch on', (await state.readDiary(bothCwd, 'keeper')) === true)
 check('and turning it off does not invent a base list',
@@ -396,7 +396,7 @@ check('a base created mid-conversation is usable at once',
 check('and the write tool accepts it',
   await activityWriteTool.execute(
     { base: 'brand-new', title: '第一篇', body: '正文。', session_name: '测试' }, freshExec,
-  ).then((value) => String(value).includes('第一篇'), (error) => 'refused: ' + error.message))
+  ).then((value) => String(value.text ?? value).includes('第一篇'), (error) => 'refused: ' + error.message))
 
 check('the record of a write names the node it wrote',
   Boolean(writeLine) && writeLine.what.includes('notes')
@@ -491,7 +491,7 @@ check('the read tool refuses the diary from a session that is not keeping one',
   await diaryReadTool.execute({ base: diaryBase }, diaryExecFor('work-session')).then(() => false, (error) => /no knowledge base/.test(error.message)))
 await state.writeDiary(diaryCwd, true, 'diary-session')
 check('and allows it for a session that is',
-  await diaryReadTool.execute({ base: diaryBase }, diaryExecFor('diary-session')).then((value) => String(value).includes('日记'), () => false))
+  await diaryReadTool.execute({ base: diaryBase }, diaryExecFor('diary-session')).then((value) => String(value.text ?? value).includes('日记'), () => false))
 
 // The case that surfaced in a live session: the diary base already exists (someone made it earlier), the session turns
 // the diary on, but that session's enabled list was written before the base existed — so the base is not in it. Writing
@@ -500,7 +500,7 @@ await state.writeSelection(diaryCwd, ['ops'], 'diary-session')
 await state.writeDiary(diaryCwd, true, 'diary-session')
 check('a diary written by a session whose list predates the base still works',
   await diaryReadTool.execute({ base: diaryBase }, diaryExecFor('diary-session'))
-    .then((value) => String(value).includes('日记'), (error) => false))
+    .then((value) => String(value.text ?? value).includes('日记'), (error) => false))
 
 // o47's four judgements, in one place: two conversations keeping diaries must not see each other's, and each must see its
 // own. The name is a hash of the conversation id, so the two are different by construction — what needs asserting is that
@@ -517,7 +517,7 @@ const twoTool = TOOLS.find((tool) => tool.name === 'knowledge_read')
 const twoExec = (session) => ({ agent: { session: { header: { cwd: twoCwd, id: session } } } })
 check('a conversation reads its own diary',
   await twoTool.execute({ base: firstBase }, twoExec('conv-a'))
-    .then((value) => String(value).includes('甲'), () => false))
+    .then((value) => String(value.text ?? value).includes('甲'), () => false))
 check('and not the other conversation\'s',
   await twoTool.execute({ base: secondBase }, twoExec('conv-a')).then(() => false, () => true))
 check('the other conversation cannot read it either',
@@ -1246,7 +1246,7 @@ const linkExec = { agent: { session: { header: { cwd: linkCwd } } } }
 const linkTool = TOOLS.find((tool) => tool.name === 'knowledge_link')
 const writeTool = TOOLS.find((tool) => tool.name === 'knowledge_write_node')
 
-const one = await readTool.execute({ base: 'linked', node: 'n1' }, linkExec)
+const one = (await readTool.execute({ base: 'linked', node: 'n1' }, linkExec)).text
 check('reading one node gives its body', one.includes('正文一。'), one.slice(0, 120))
 check('and does not include the whole base', !one.includes('正文二。') || one.includes('故障排查'))
 check('and names its children as neighbours', /child\s+n2\s+故障排查/.test(one), one)
@@ -1963,6 +1963,116 @@ const leftovers = await readdir(join(raceCwd, '.dsh-knowledge'))
 check('and no temporary file was left behind',
   leftovers.every((name) => !name.endsWith('.tmp')), JSON.stringify(leftovers))
 await rm(raceCwd, { recursive: true, force: true })
+
+
+// Attachment policy: verify actual tool results and persisted routes, without invoking a model.
+{
+  const { useHostAttachments } = await import('./lib/tools.js')
+  const ac = await mkdtemp(join(tmpdir(), 'kb-policy-'))
+  const bc = await mkdtemp(join(tmpdir(), 'kb-policy-other-'))
+  const assetDir = join(ac, '.dsh-knowledge', 'assets')
+  await mkdir(assetDir, { recursive: true })
+  const textPath = 'assets/0123456789abcdef.txt'
+  const picPath = 'assets/1123456789abcdef.png'
+  const pdfPath = 'assets/2123456789abcdef.pdf'
+  const officePath = 'assets/3123456789abcdef.docx'
+  const document = 'private-attachment-' + 'x'.repeat(9000) + '-tail'
+  await writeFile(join(ac, '.dsh-knowledge', textPath), document)
+  await writeFile(join(ac, '.dsh-knowledge', picPath), Buffer.from('image-fixture'))
+  await writeFile(join(ac, '.dsh-knowledge', pdfPath), Buffer.from('%PDF-fixture'))
+  await writeFile(join(ac, '.dsh-knowledge', officePath), Buffer.from('UEsDBBQAAAAAABSqUl3Rrs3PZAAAAGQAAAARAAAAd29yZC9kb2N1bWVudC54bWw8dzpkb2N1bWVudCB4bWxuczp3PSJ3Ij48dzpib2R5Pjx3OnA+PHc6cj48dzp0Pm9mZmljZS1zZWNyZXQ8L3c6dD48L3c6cj48L3c6cD48L3c6Ym9keT48L3c6ZG9jdW1lbnQ+UEsBAhQAFAAAAAAAFKpSXdGuzc9kAAAAZAAAABEAAAAAAAAAAAAAAIABAAAAAHdvcmQvZG9jdW1lbnQueG1sUEsFBgAAAAABAAEAPwAAAJMAAAAAAA==', 'base64'))
+  const kb = newBase('notes', 'Notes', 'Root', 'node-body\n![](' + picPath + ')\n[file](' + textPath + ')\n[pdf](' + pdfPath + ')\n[office](' + officePath + ')')
+  upsertNode(kb, { title: 'Other node', body: 'no attachments', parent: 'n1' })
+  await saveBase(pathFor(ac, 'notes'), kb)
+  const ex = { agent: { session: { header: { cwd: ac, id: 'policy' } } } }
+  const reader = TOOLS.find((t) => t.name === 'knowledge_read')
+  const pictures = TOOLS.find((t) => t.name === 'knowledge_show_images')
+  let delivered = 0
+  useHostAttachments({ async saveImages(files) {
+    delivered += files.length
+    return files.map((file) => ({ image: { id: file.name, mediaType: file.mediaType } }))
+  } })
+  const get = (extra = {}) => reader.execute({ base: 'notes', node: 'n1', ...extra }, ex)
+  const refuses = (args) => get(args).then(() => false, () => true)
+  try {
+    check('attachments default to on-demand', await state.readAttachmentMode(ac) === 'on-demand')
+    const lazy = await get()
+    check('on-demand keeps the body and file metadata', lazy.text.includes('node-body') && lazy.text.includes(textPath) && lazy.text.includes('KB'))
+    check('on-demand sends no file text or pictures', !lazy.text.includes('private-attachment-') && !lazy.text.includes('office-secret') && lazy.pictures.length === 0 && delivered === 0)
+    const fullLazy = await reader.execute({ base: 'notes' }, ex)
+    check('whole-base reads obey on-demand too', !fullLazy.text.includes('private-attachment-') && fullLazy.text.includes(textPath) && delivered === 0)
+    const page = await get({ attachment: textPath, offset: 8000, limit: 40 })
+    check('explicit text selection returns the requested page only', page.text.includes(document.slice(8000, 8040)) && page.text.includes('offset=8040') && !page.text.includes('private-attachment-') && delivered === 0)
+    const pageLog = parseActivity(await readFile(join(ac, '.dsh-knowledge', 'activity.log'), 'utf8')).at(-1)
+    check('call records identify the selected attachment and output size', pageLog.what.includes(textPath) && pageLog.took.includes('chars'))
+    const tail = await get({ attachment: textPath, offset: document.length - 5, limit: 40 })
+    check('the final text page reports its end', tail.text.includes('-tail') && tail.text.includes('(end of attachment)'))
+    check('Office text is extracted only when selected', (await get({ attachment: officePath })).text.includes('office-secret'))
+    check('PDF extraction is explicitly unavailable', (await get({ attachment: pdfPath })).text.includes('unavailable'))
+    check('an explicit image is an actual image output block', reader.output.render({}, await get({ attachment: picPath })).some((block) => block.type === 'image' && block.attachment.id.endsWith('.png')))
+    check('text output also has the declared structured schema', reader.output.schema.required.includes('pictures') && reader.output.render({}, lazy)[0].type === 'text')
+    check('rejects an unrelated file', await refuses({ attachment: 'assets/ffffffffffffffff.txt' }))
+    check('rejects traversal', await refuses({ attachment: '../../secret.txt' }))
+    check('rejects an attachment belonging to another node', await refuses({ node: 'n2', attachment: textPath }))
+    check('rejects pagination without a file', await refuses({ offset: 10 }))
+    check('rejects negative offsets', await refuses({ attachment: textPath, offset: -1 }))
+    check('rejects offsets beyond the file', await refuses({ attachment: textPath, offset: document.length + 1 }))
+    check('rejects excessive page sizes', await refuses({ attachment: textPath, limit: 8001 }))
+    check('rejects attachment selection without node', await reader.execute({ base: 'notes', attachment: textPath }, ex).then(() => false, () => true))
+    await state.writeAttachmentMode(ac, 'required')
+    const required = await get()
+    check('required mode includes text, Office content and image refs', required.text.includes('private-attachment-') && required.text.includes('office-secret') && required.pictures.length === 1)
+    check('required mode explicitly explains omitted text and unsupported formats', !required.text.includes('-tail') && required.text.includes('offset=8000') && required.text.includes('unavailable'))
+    check('the policy is isolated from other workspaces', await state.readAttachmentMode(bc) === 'on-demand')
+    await state.writeSelection(ac, ['notes'])
+    await state.writeLive(ac, true)
+    await state.writeOrder(ac, ['notes'])
+    await state.writeInject(ac, 'notes', 'full')
+    check('other settings do not erase attachment policy', await state.readAttachmentMode(ac) === 'required')
+    check('policy is not listed as a knowledge base', (await listBases(ac)).length === 1)
+    check('invalid modes are rejected', await state.writeAttachmentMode(ac, 'all').then(() => false, () => true))
+    const policyCtx = { sessions: { get: () => ({ header: { cwd: ac, id: 'policy' } }), list: () => ['policy'] } }
+    const policyHandler = routes.createHandler(policyCtx)
+    const response = fakeResponse()
+    await policyHandler(fakeRequest('PUT', '/dsh-knowledge-tree/attachmentMode', { session: 'policy', mode: 'on-demand' }), response)
+    check('settings route persists and returns the selected policy', response.held.status === 200 && JSON.parse(response.held.body).attachmentMode === 'on-demand' && await state.readAttachmentMode(ac) === 'on-demand')
+    const known = await routes.listWorkspaces(policyCtx, 'policy')
+    check('settings enumeration includes the policy', known.find((entry) => entry.cwd === ac)?.attachmentMode === 'on-demand')
+    await state.writeAttachmentMode(ac, 'required')
+    useHostAttachments(null)
+    const unavailable = await get()
+    check('missing image service preserves text and reports non-delivery', unavailable.text.includes('private-attachment-') && unavailable.text.includes('NOT delivered') && unavailable.pictures.length === 0)
+    useHostAttachments({ async saveImages() { throw new Error('simulated service failure') } })
+    check('image delivery failure is visible', (await get()).text.includes('simulated service failure'))
+    useHostAttachments({ async saveImages(files) { return files.map((file) => ({ id: file.name })) } })
+    for (let i = 4; i < 11; i++) {
+      const path = 'assets/' + String(i).padStart(16, '0') + '.png'
+      kb.nodes[0].body += '\n![](' + path + ')'
+      await writeFile(join(ac, '.dsh-knowledge', path), Buffer.from('image-fixture'))
+    }
+    await saveBase(pathFor(ac, 'notes'), kb)
+    const limited = await get()
+    check('required mode caps image delivery and explains continuation', limited.pictures.length === 6 && limited.text.includes('first 6'))
+    const beyondCap = 'assets/0000000000000010.png'
+    check('images beyond the automatic limit remain individually readable', (await get({ attachment: beyondCap })).pictures.length === 1)
+    const baseRead = await reader.execute({ base: 'notes' }, ex)
+    check('whole-base required mode returns images with a per-call cap', baseRead.pictures.length === 6 && baseRead.text.includes('private-attachment-'))
+    await rm(join(ac, '.dsh-knowledge', picPath))
+    const missing = await get()
+    check('missing images are named without dropping readable text', missing.text.includes('missing') && missing.text.includes(picPath) && missing.text.includes('private-attachment-'))
+    await state.writeSelection(ac, [])
+    check('attachment reading respects disabled knowledge bases', await refuses({ attachment: textPath }))
+    await state.writeSelection(ac, ['notes'])
+    await state.writeAttachmentMode(ac, 'on-demand')
+    check('legacy image tool still works on demand', (await pictures.execute({ base: 'notes', node: 'n1' }, ex)).pictures.length > 0)
+    await writeFile(join(ac, '.dsh-knowledge', '.attachment-settings.json'), '{broken')
+    check('corrupt preferences fall back to the economical default', await state.readAttachmentMode(ac) === 'on-demand')
+  } finally {
+    useHostAttachments(null)
+    await rm(ac, { recursive: true, force: true })
+    await rm(bc, { recursive: true, force: true })
+  }
+}
 
 await rm(cwd, { recursive: true, force: true })
 console.log('\n' + passed + ' passed, ' + failed + ' failed')
