@@ -1117,7 +1117,7 @@ const timedOutline = renderOutline([{ id: 'b', name: '测试', nodes: [
 ], links: [] }], null)
 // The instruction lives in its own early section so it is read where attention is strongest. It is a
 // constant injected verbatim, so asserting on its text is asserting on what the model receives.
-const protocolSource = await readFile('D:/DeepSeekHarness/dsh-knowledge-tree/index.js', 'utf8')
+const protocolSource = await readFile(new URL('./index.js', import.meta.url), 'utf8')
 check('the protocol names the read tool', /knowledge_read/.test(protocolSource))
 check('and the write tool', /knowledge_write_node/.test(protocolSource))
 check('and the trigger convention', /什么时候该想起它/.test(protocolSource))

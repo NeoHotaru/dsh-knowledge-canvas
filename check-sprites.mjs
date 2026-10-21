@@ -4,10 +4,8 @@
 // numbers in the client were right, the files were wrong, and nothing compared the two. Width/height equals the frame
 // count for a single-row strip, and 5/3 for the grid sheet.
 import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 
-const ROOT = 'D:/DeepSeekHarness/dsh-knowledge-tree'
-const ASSETS = join(ROOT, 'assets')
+const ASSETS = new URL('./assets/', import.meta.url)
 
 /** Read width and height from the PNG header: 8-byte signature, then IHDR. */
 function sizeOf(path) {
@@ -29,7 +27,7 @@ const problems = []
 for (const [name, frames, rows] of EXPECTED) {
   let size
   try {
-    size = sizeOf(join(ASSETS, name))
+    size = sizeOf(new URL(name, ASSETS))
   } catch (error) {
     problems.push(name + ': ' + error.message)
     continue

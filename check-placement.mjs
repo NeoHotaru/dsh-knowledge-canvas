@@ -5,7 +5,7 @@
 // the two properties the user asked for 鈥?at the pointer, and inside the canvas.
 import { readFileSync } from 'node:fs'
 
-const SOURCE = readFileSync('D:/DeepSeekHarness/dsh-knowledge-tree/client.js', 'utf8')
+const SOURCE = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
 const found = SOURCE.match(/const CARD_W = 300;[\s\S]*?y: Math\.max\(top,[^\n]*\n/)
 if (!found) {
   console.log('  the placement code was not found')

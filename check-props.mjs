@@ -7,7 +7,7 @@
 // match — the keys at the call site and the names in the signature — and that is checkable exactly.
 import { readFileSync } from 'node:fs'
 
-const SOURCE = 'D:/DeepSeekHarness/dsh-knowledge-tree/client.js'
+const SOURCE = new URL('./client.js', import.meta.url)
 // Comments are blanked first, keeping offsets. The first run reported a prop called "scope" that
 // existed only inside a comment — the same mistake the other two checks made on their first run: they
 // were reading the text of the file rather than the code in it.

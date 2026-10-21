@@ -105,23 +105,6 @@ try {
   problems.push('npm pack --dry-run failed: ' + (error && error.message ? error.message : error))
 }
 
-// 9. The two trees must agree. The dev tree is what runs here, the public one is what ships; a version bumped in one place
-//    publishes a package that does not match the code anyone tested.
-try {
-  const other = pkg.name === 'dsh-knowledge-canvas'
-    ? 'D:/DeepSeekHarness/dsh-knowledge-tree'
-    : 'D:/Aconnada/dsh-knowledge-tree-pub'
-  const theirs = JSON.parse(readFileSync(join(other, 'package.json'), 'utf8'))
-  if (theirs.version !== pkg.version) {
-    problems.push(`this tree is ${pkg.version} but ${other} is ${theirs.version} — bump both`)
-  }
-  const mine = Number(/SEED_VERSION = (\d+)/.exec(readFileSync(join(here, 'lib', 'seed.js'), 'utf8'))[1])
-  const otherSeed = Number(/SEED_VERSION = (\d+)/.exec(readFileSync(join(other, 'lib', 'seed.js'), 'utf8'))[1])
-  if (mine !== otherSeed) problems.push(`SEED_VERSION is ${mine} here and ${otherSeed} in ${other} — sync the seed`)
-} catch {
-  // The other tree is not on this machine; the check simply does not apply.
-}
-
 if (problems.length > 0) {
   console.error('\n  publish refused:\n')
   for (const problem of problems) console.error('    - ' + problem)

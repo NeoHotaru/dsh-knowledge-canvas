@@ -6,8 +6,8 @@
 // dispatch. It is a grep, not a proof, but it is exactly the class that slipped through.
 import { readFileSync } from 'node:fs'
 
-const client = readFileSync('D:/DeepSeekHarness/dsh-knowledge-tree/client.js', 'utf8')
-const routes = readFileSync('D:/DeepSeekHarness/dsh-knowledge-tree/lib/routes.js', 'utf8')
+const client = readFileSync(new URL('./client.js', import.meta.url), 'utf8')
+const routes = readFileSync(new URL('./lib/routes.js', import.meta.url), 'utf8')
 
 const sent = new Set()
 for (const match of client.matchAll(/post\(\s*'([a-z]+)'/g)) sent.add(match[1])

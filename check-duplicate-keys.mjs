@@ -13,7 +13,7 @@
 // that literal is where keys live — a nested object's keys belong to the nested object.
 import { readFileSync } from 'node:fs'
 
-const ROOT = 'D:/DeepSeekHarness/dsh-knowledge-tree/'
+const ROOT = new URL('./', import.meta.url)
 const FILES = ['client.js', 'index.js', 'lib/routes.js', 'lib/state.js', 'lib/store.js', 'lib/tools.js']
 
 /** Blank comments, strings and regexes, keeping offsets, so punctuation inside them is not counted. */
@@ -78,12 +78,7 @@ function blank(source) {
 
 const problems = []
 for (const file of FILES) {
-  let raw
-  try {
-    raw = readFileSync(ROOT + file, 'utf8')
-  } catch {
-    continue
-  }
+  const raw = readFileSync(new URL(file, ROOT), 'utf8')
   const code = blank(raw)
   const lines = code.split('\n')
   const rawLines = raw.split('\n')

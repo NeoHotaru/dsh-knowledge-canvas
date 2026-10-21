@@ -20,8 +20,8 @@
 import { readFileSync } from 'node:fs'
 
 const SOURCES = [
-  'D:/DeepSeekHarness/dsh-knowledge-tree/client.js',
-  'D:/DeepSeekHarness/dsh-knowledge-tree/index.js',
+  './client.js',
+  './index.js',
 ]
 
 /** True where a value may begin, which is what decides whether a slash opens a regex. */
@@ -99,7 +99,7 @@ function blankLiterals(source) {
 
 const problems = []
 for (const file of SOURCES) {
-  const raw = readFileSync(file, 'utf8')
+  const raw = readFileSync(new URL(file, import.meta.url), 'utf8')
   const code = blankLiterals(raw)
   const lines = code.split('\n')
   const rawLines = raw.split('\n')

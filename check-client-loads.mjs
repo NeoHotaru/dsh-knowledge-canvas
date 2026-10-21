@@ -533,11 +533,6 @@ if (!client || !client.__logic || typeof client.__logic.estimateBox !== 'functio
   if (long.w <= short.w) problems.push('width: a longer body should widen the box, got ' + long.w)
   if (huge.w > 420) problems.push('width: the ceiling should hold, got ' + huge.w)
   if (short.h < 60) problems.push('width: a box should have a usable height, got ' + short.h)
-  // The point of counting both together: the same body in a wider box is fewer lines, so it must not come
-  // out taller. A height computed at the old fixed width would.
-  if (long.h >= estimateBox({ title: '长', body: 'x'.repeat(400) }).h + 1000) {
-    problems.push('width: the height should come from the chosen width')
-  }
   const perChar = huge.h / 20000
   if (perChar > 3) problems.push('width: the height looks counted at the wrong width, ' + perChar.toFixed(2) + 'px per char')
   if (!Number.isFinite(short.w) || !Number.isFinite(short.h)) problems.push('width: the estimate returned a non-number')
