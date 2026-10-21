@@ -641,6 +641,8 @@ function parseMarkdown(source) {
      * and past this a box is wider than a comfortable reading measure while the canvas stops fitting.
      */
     const AUTO_MAX_W = 420;
+    // Automatic cards stay browseable; full content scrolls inside the body. A user-set height wins.
+    const AUTO_MAX_H = 320;
 
     /**
      * Parse a stamp: `YYYY-MM-DD` or `YYYY-MM-DD HH:MM`.
@@ -812,7 +814,7 @@ function parseMarkdown(source) {
       const title = String((node && node.title) || '')
       const perLine = Math.max(8, (full.w - BOX_PADDING) / GLYPH_W)
       const titleLines = Math.ceil((title.length / perLine) + 1)
-      return { w: full.w, h: Math.max(BOX_H, Math.round(9 + titleLines * 17 + 9 + 15)) }
+      return { w: full.w, h: Math.max(BOX_H, Math.round(9 + titleLines * 22 + 9 + 15)) }
     }
 
     function boxOf(widths, nodeWidths, baseId, nodeId, node) {
@@ -872,7 +874,7 @@ function parseMarkdown(source) {
     }
 
 /** Roughly how wide one character is at the body's size, CJK included. */
-const GLYPH_W = 14.5;
+const GLYPH_W = 15.5;
 
 /** Padding either side of the text, plus the room the byline needs. */
 const BOX_PADDING = 26;
@@ -919,13 +921,11 @@ function estimateBox(node) {
   const w = Math.max(BOX_W, Math.min(AUTO_MAX_W, Math.round(wanted)));
   const perLine = Math.max(8, (w - BOX_PADDING) / GLYPH_W);
   const lines = (text) => (String(text || '').length / perLine) + 1;
-  // No cap on the height. One was here, at nine lines, on the reasoning that a very long body would
-  // otherwise produce an absurd height — but the box really is that tall, so the cap only taught the layout
-  // a number five times too small and the rows overlapped. A generous estimate leaves a gap; a stingy one
-  // overlaps, and overlapping is the failure that matters.
+  // The same cap is applied to the rendered box through sizeOf, not only to this estimate.
+  // Otherwise the layout would reserve a small box while the actual long body overlaps its neighbours.
   const bodyLines = Math.ceil(lines(body));
   const titleLines = Math.ceil(lines(title));
-  const h = Math.max(BOX_H, Math.round(9 + titleLines * 17 + 4 + bodyLines * 17 + 9 + 15));
+  const h = Math.min(AUTO_MAX_H, Math.max(BOX_H, Math.round(9 + titleLines * 22 + 5 + bodyLines * 24 + 9 + 15)));
   return { w, h };
 }
 
@@ -971,6 +971,12 @@ function estimateBox(node) {
 
     /** Does a quadratic Bézier from a to b, with this control point, pass through the box? */
     function curveHitsBox(a, control, b, box) {
+      // A quadratic and every sampled segment lie in the convex hull of these three points.
+      // Most nodes are nowhere near this edge; reject them before the 12 segment tests.
+      if (Math.max(a.x, control.x, b.x) < box.x
+        || Math.min(a.x, control.x, b.x) > box.x + box.w
+        || Math.max(a.y, control.y, b.y) < box.y
+        || Math.min(a.y, control.y, b.y) > box.y + box.h) return false;
       const STEPS = 12;
       let previous = a;
       for (let step = 1; step <= STEPS; step += 1) {
@@ -1429,7 +1435,7 @@ function estimateBox(node) {
       });
     }
 
-    function NodeEditor({ node, x, y, onSave, onClose, color, onColor, onRemove, onPurge, onRevert, onAttachPicture, boxWidth }) {
+    function NodeEditor({ node, x, y, onSave, onClose, color, onColor, onRemove, onPurge, onRevert, onAttachPicture, boxWidth, injectionMode, defaultInjection, onInjection }) {
       const [paletteOpen, setPaletteOpen] = React.useState(false);
   /** 上传完之后决定它在正文里的样子：图片是 ![]()，其它是 [名字]()。 */
   const appendAttachment = (saved) => {
@@ -1530,6 +1536,14 @@ function estimateBox(node) {
           style: Object.assign({}, INPUT_STYLE, { resize: 'vertical', lineHeight: 1.45 }),
         }),
 
+        h('label', { style: { display: 'flex', gap: 6, alignItems: 'center', marginTop: 8, fontSize: 12 } },
+          '内容注入', h('select', {
+            'aria-label': '节点内容注入方式', value: injectionMode || 'inherit',
+            onChange: (event) => onInjection(node.id, event.target.value),
+            style: { font: 'inherit', color: 'inherit', background: SURFACE_SOLID, border: '1px solid ' + HAIRLINE, borderRadius: 5, padding: 3 },
+          }, h('option', { value: 'inherit' }, '跟随知识库（' + (defaultInjection === 'full' ? '全文' : '按需') + '）'),
+            h('option', { value: 'full' }, '全文注入'), h('option', { value: 'index' }, '按需读取'))),
+        h('div', { style: { fontSize: 11, opacity: 0.65, marginTop: 4 } }, '立即保存，仅设置此节点；同工作区共享。'),
         // 附件入口：点它选文件，或把文件拖进这个方框。虚线框是「可放东西进来」的通用约定。
         h('label', {
           'data-kb-attach': 'box',
@@ -1757,13 +1771,38 @@ function estimateBox(node) {
     function NodeBox({
       entry, x, y, onPressStart, onActivate, onLinkStart, onReview, onSpotlight, color, isFocus, onNodeMenu,
       isSource, isTarget, isEdited, isArmed, boxWidth, boxHeight, liveWidth, liveHeight, onResizeStart,
-      byline,
+      byline, injectionMode,
       onRename,
       onHistory,
       /** False when the canvas is zoomed out far enough that a body would be illegible. */
       detail,
     }) {
       const node = entry.node;
+      const bodyRef = React.useRef(null);
+      const contentRef = React.useRef(null);
+      const scrollHintRef = React.useRef(null);
+      const [bodyOverflows, setBodyOverflows] = React.useState(false);
+      React.useLayoutEffect(() => {
+        const body = bodyRef.current;
+        const content = contentRef.current;
+        if (!body || !content || detail === false) {
+          setBodyOverflows(false);
+          return undefined;
+        }
+        const measure = () => {
+          // Account for the hint's own height so showing it cannot manufacture an overflow.
+          const hintHeight = scrollHintRef.current ? scrollHintRef.current.offsetHeight : 0;
+          const next = body.scrollHeight > body.clientHeight + hintHeight + 1;
+          setBodyOverflows((current) => current === next ? current : next);
+        };
+        measure();
+        // Watch content as well: an image can load without resizing its scroll viewport.
+        if (typeof ResizeObserver !== 'function') return undefined;
+        const observer = new ResizeObserver(measure);
+        observer.observe(body);
+        observer.observe(content);
+        return () => observer.disconnect();
+      }, [detail, node.id]);
       const gone = node.change === 'removed';
       // The reader's own colour for this node, if they set one. It takes the stripe; the model's
       // mark no longer competes for it. Declared before the line that reads it — this exact
@@ -1775,6 +1814,8 @@ function estimateBox(node) {
       // A base can have several roots — the flow base has two — and all of them are top level.
       const isRoot = (entry.depth || 0) === 0;
       const isDeep = (entry.depth || 0) >= 2;
+      const markdown = React.useMemo(() => detail === false ? null
+        : renderMarkdown(node.body, 'md' + node.id), [node.id, node.body, detail]);
 
       return h('div', {
         // Hit testing reads this back off the element, so the drag needs no coordinate math.
@@ -1790,6 +1831,9 @@ function estimateBox(node) {
         // panned, so anything that computes "which node is under the cursor" by hand drifts.
         onPointerEnter: () => onSpotlight(node.id),
         onPointerLeave: () => onSpotlight(null),
+        onFocus: () => onSpotlight(node.id),
+        onBlur: () => onSpotlight(null),
+        title: detail === false ? node.title : undefined,
         onPointerDown: (event) => {
           // The right button is the menu's. It used to start a link here, which meant every right-click
           // also began a connection and the two gestures could not be told apart.
@@ -1884,8 +1928,10 @@ function estimateBox(node) {
           },
         }, '✓') : null,
         h('div', {
+          'data-kb-node-title': 'true',
           style: {
-            fontSize: isRoot ? 13.5 : 12.5,
+            fontSize: isRoot ? 17 : 16,
+            flexShrink: 0,
             fontWeight: isRoot ? 700 : 600,
             letterSpacing: isRoot ? 0 : 0.1,
             textDecoration: gone ? 'line-through' : 'none',
@@ -1907,12 +1953,26 @@ function estimateBox(node) {
               fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', opacity: 0.85,
             },
           }, node.id),
+          injectionMode ? h('span', {
+            'data-kb-injection': injectionMode,
+            title: '此节点单独指定为' + (injectionMode === 'full' ? '全文注入' : '按需读取') + '，不影响子节点',
+            style: { marginLeft: 5, fontSize: 11, fontWeight: 400, whiteSpace: 'nowrap' },
+          }, injectionMode === 'full' ? '全文' : '按需') : null,
         ),
         // `overflowWrap: anywhere` so a long identifier or path breaks instead of running out of the
         // box and under its neighbour, which is what made the canvas look like it was stacking.
         h('div', {
+          'data-kb-node-body': 'true',
+          ref: bodyRef,
+          'data-kb-overflow': bodyOverflows ? 'true' : undefined,
+          tabIndex: bodyOverflows && detail !== false ? 0 : undefined,
+          'aria-label': bodyOverflows ? '长文正文，可滚动阅读' : undefined,
+          onKeyDown: (event) => {
+            if (['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '].includes(event.key)) event.stopPropagation();
+          },
+          'data-kb-scroll': 'true',
           style: {
-            marginTop: 3, fontSize: 11.5, opacity: MUTED, lineHeight: 1.45,
+            marginTop: 5, fontSize: 15, opacity: 0.88, lineHeight: 1.55,
             overflowWrap: 'anywhere', wordBreak: 'break-word',
             // A fixed-height box scrolls its text. minHeight: 0 is what allows a flex child to be smaller
             // than its content; without it the box grows anyway and the setting does nothing.
@@ -1921,17 +1981,40 @@ function estimateBox(node) {
             // dragged one could not be scrolled at all — the text overflowed, the box did not grow, and the wheel over it
             // zoomed the canvas. A box that fits its content shows no scrollbar, so this costs nothing when empty.
             overflowY: 'auto',
+            scrollbarWidth: 'thin',
+            scrollbarGutter: 'stable',
+            scrollbarColor: 'rgba(128,128,128,0.85) rgba(128,128,128,0.18)',
+            overscrollBehavior: 'contain',
             // Only when it actually scrolls: the mark tells the canvas to leave the wheel alone.
             // Parenthesised because the conditional binds to the spread's operand — which is what is
             // wanted, but reads as if it were not.
-            ...{ 'data-kb-scroll': 'true' },
           },
-        }, detail === false ? null : renderMarkdown(node.body, 'md' + node.id)),
+        }, h('div', { ref: contentRef, 'data-kb-node-content': 'true' }, markdown)),
+        bodyOverflows && detail !== false ? h('div', {
+          ref: scrollHintRef,
+          'data-kb-scroll-hint': 'true',
+          style: {
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6,
+            flexShrink: 0, paddingTop: 4, fontSize: 11.5, lineHeight: '17px',
+          },
+        }, h('span', { style: { opacity: 0.8 } }, '↕ 长文 · 滚动阅读'),
+          h('button', {
+            type: 'button',
+            'aria-label': '编辑长文节点：' + node.title,
+            onPointerDown: (event) => event.stopPropagation(),
+            onKeyDown: (event) => event.stopPropagation(),
+            onClick: (event) => { event.stopPropagation(); onActivate(node.id, 'edit'); },
+            style: {
+              padding: '0 5px', border: '1px solid ' + HAIRLINE, borderRadius: 4,
+              background: 'transparent', color: 'inherit', font: 'inherit', cursor: 'pointer', flexShrink: 0,
+            },
+          }, '编辑')) : null,
         // The stamp, when the file has one. Absent stays absent: a node written before stamps existed has
         // no date, and showing a made-up one would be worse than showing nothing.
-        node.at || node.by || true ? h('div', {
+        detail !== false ? h('div', {
           style: {
-            marginTop: 5, fontSize: 10.5, opacity: 0.45, fontVariantNumeric: 'tabular-nums',
+            marginTop: 5, fontSize: 11, opacity: 0.7, fontVariantNumeric: 'tabular-nums',
+            flexShrink: 0,
             display: 'flex', gap: 5, alignItems: 'baseline', flexWrap: 'wrap',
           },
         },
@@ -2035,7 +2118,7 @@ function estimateBox(node) {
        */
       onSetLinkNote,
       colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onRevertNode, onCreateNode, onPurgeNode,
-      onSendToChat, widths, nodeWidths, onSetWidth, onAttachPicture }) {
+      onSendToChat, widths, nodeWidths, onSetWidth, onAttachPicture, nodeInjection, defaultInjection, onInjection }) {
       // How long this render took, reported to the host log every couple of seconds.
       //
       // Built because "the canvas is heavy with a large base" survived seven theories, all of them argued
@@ -2053,7 +2136,7 @@ function estimateBox(node) {
       const renderStats = React.useRef({ frames: 0, total: 0, worst: 0, since: 0 });
       const stats = renderStats.current;
       if (stats.since === 0) stats.since = renderStart;
-      const ordered = layout(base.nodes || []);
+      const ordered = React.useMemo(() => layout(base.nodes || []), [base.nodes]);
       /**
        * `ordered` by id, built once per render.
        *
@@ -2064,8 +2147,7 @@ function estimateBox(node) {
        * This was briefly part of the compact-mode commit, which was reverted. It is not part of that idea, and
        * is re-applied on its own.
        */
-      const entryById = new Map();
-      for (const entry of ordered) entryById.set(entry.node.id, entry);
+      const entryById = React.useMemo(() => new Map(ordered.map((entry) => [entry.node.id, entry])), [ordered]);
       const depthOf = {};
       ordered.forEach((entry) => { depthOf[entry.node.id] = entry.depth; });
 
@@ -2201,20 +2283,26 @@ function estimateBox(node) {
         for (const entry of ordered) {
           const node = entry.node;
           parts.push(node.id + ':' + widthOf(widths, nodeWidths, base.id, node.id, node)
-            + ':' + (node.title || '').length + ':' + (node.body || '').length);
+            + ':' + (node.title || '').length + ':' + (node.body || '').length
+            + ':' + (nodeInjection?.[node.id] || ''));
         }
         parts.push('e' + (edits ? Object.keys(edits).join(',') : ''));
         return parts.join('|');
       })();
       React.useLayoutEffect(() => {
         const holder = boxRef.current;
-        if (!holder) return;
+        // Collapsed overview cards must not overwrite the full-detail measurements.
+        if (!holder || !detailRef.current) return;
         const found = {};
         let changed = false;
         holder.querySelectorAll('[data-node-id]').forEach((element) => {
           // An editor is not the node. Measuring it fed its own height back into the layout, so
           // opening one re-flowed the whole tree and the node under the pointer moved.
-          if (element.hasAttribute('data-kb-editor')) return;
+          if (element.hasAttribute('data-kb-editor')) {
+            const id = element.getAttribute('data-node-id');
+            if (sizes[id]) found[id] = sizes[id];
+            return;
+          }
           const id = element.getAttribute('data-node-id');
           const w = element.offsetWidth;
           // The larger of the two: offsetHeight is the box's layout height, scrollHeight the height
@@ -2231,7 +2319,9 @@ function estimateBox(node) {
         // `measureKey` and not the sizes: see above. `boxRef` is stable, and `ordered`/`widths`/`edits` are
         // all folded into the key.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [measureKey]);
+      }, [measureKey, base.nodes, edits, editingId, view.k >= DETAIL_ZOOM]);
+      // Pan/zoom within one detail mode changes the camera, not the graph.
+      const { placed: layoutPlaced, sizeOf, width, height, unshifted } = React.useMemo(() => {
       const placed = {};
       for (const item of ordered) placed[item.node.id] = { x: 0, y: 0 };
 
@@ -2243,10 +2333,16 @@ function estimateBox(node) {
         const box = boxOf(widths, nodeWidths, base.id, id, item ? item.node : undefined);
         if (Number.isFinite(box.h)) return { w: box.w, h: box.h };
         const found = sizes[id];
-        return { w: box.w, h: found ? found.h : estimateBox(item ? item.node : {}).h };
+        return { w: box.w, h: Math.min(AUTO_MAX_H, found ? found.h : estimateBox(item ? item.node : {}).h) };
       };
 
-      const childrenOf = (id) => ordered.filter((item) => item.node.parent === id);
+      const childIndex = new Map();
+      for (const item of ordered) {
+        const parent = item.node.parent;
+        if (!childIndex.has(parent)) childIndex.set(parent, []);
+        childIndex.get(parent).push(item);
+      }
+      const childrenOf = (id) => childIndex.get(id) || [];
       const known = new Set(ordered.map((item) => item.node.id));
       const roots = ordered.filter((item) => !item.node.parent || !known.has(item.node.parent));
 
@@ -2296,11 +2392,14 @@ function estimateBox(node) {
         // children plus the gaps between them), then everything is placed inside that span.
         const GAP_X = 34;
         const GAP_Y = 76;
+        const spans = new Map();
         const spanOf = (id) => {
+          if (spans.has(id)) return spans.get(id);
           const kids = childrenOf(id);
-          if (kids.length === 0) return sizeOf(id).w;
-          return kids.reduce((sum, kid) => sum + spanOf(kid.node.id), 0)
-            + GAP_X * (kids.length - 1);
+          const span = kids.length === 0 ? sizeOf(id).w
+            : kids.reduce((sum, kid) => sum + spanOf(kid.node.id), 0) + GAP_X * (kids.length - 1);
+          spans.set(id, span);
+          return span;
         };
 
         let shelf = 10;
@@ -2438,6 +2537,9 @@ function estimateBox(node) {
       // this space, so a shift computed for drawing cannot invalidate what the drag recorded.
       const unshifted = {};
       for (const item of ordered) unshifted[item.node.id] = { ...placed[item.node.id] };
+        return { placed, sizeOf, width, height, unshifted };
+      }, [ordered, sizes, widths, nodeWidths, base.id, shape, positions, view.k >= DETAIL_ZOOM]);
+      const placed = { ...layoutPlaced };
 
 
       // The latest placement, for callbacks that outlive the render that created them — the hold
@@ -3068,8 +3170,12 @@ function estimateBox(node) {
           const parent = entry.node.parent ? rectOf(entry.node.parent) : null;
           const self = rectOf(entry.node.id);
           if (parent && self) {
+            const others = ordered
+              .filter((item) => item.node.id !== entry.node.parent && item.node.id !== entry.node.id)
+              .map((item) => rectOf(item.node.id)).filter(Boolean);
             parentEdges.push({
               fromId: entry.node.parent, from: parent, toId: entry.node.id, to: self,
+              route: bestLink(parent, self, others),
             });
           }
         });
@@ -3121,6 +3227,13 @@ function estimateBox(node) {
       // from the rendered panel, it sat at exactly the old minimum. Sizing off the viewport is
       // the robust alternative, since the right pane is full height.
       const canvasMin = fullscreen ? '72vh' : '56vh';
+      const previewEntry = view.k < DETAIL_ZOOM && spotlight !== null && !moving && !drag && !pan.current
+        ? entryById.get(spotlight) : null;
+      const previewNode = previewEntry ? Object.assign({}, previewEntry.node, edits && edits[spotlight]) : null;
+      const previewBody = previewNode ? String(previewNode.body || '')
+        .replace(/!\[([^\]]*)\]\([^)]*\)/g, '图片：$1')
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+        .replace(/^\s{0,3}#{1,6}\s+/gm, '').replace(/\*\*|__|`/g, '') : '';
       const toolButton = (label, title, onClick) => h('button', {
         type: 'button',
         title,
@@ -3185,6 +3298,7 @@ function estimateBox(node) {
         h('style', null,
           '[data-kb-canvas], [data-kb-canvas] * { user-select: none; -webkit-user-select: none; }'
           + '[data-kb-canvas] input, [data-kb-canvas] textarea { user-select: text; -webkit-user-select: text; }'
+          + '[data-kb-canvas] pre, [data-kb-canvas] code { font-family: "Cascadia Code", Consolas, "Microsoft YaHei UI", "Microsoft YaHei", monospace; }'
           + '[data-kb-node] { cursor: pointer; }'
           + '[data-kb-node][data-armed="true"] { cursor: grabbing; outline: 2px dashed #c9761b; outline-offset: 2px; }'
           + '[data-kb-node][data-target="true"] { outline: 2px solid #c9761b; outline-offset: 2px; }'
@@ -3383,6 +3497,7 @@ function estimateBox(node) {
             // the min-height above is what actually sizes it today.
             flex: '1 1 auto',
             minHeight: canvasMin,
+            fontFamily: '"Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif',
             marginTop: 6,
             overflow: 'hidden',
             border: '1px solid ' + HAIRLINE,
@@ -3392,6 +3507,20 @@ function estimateBox(node) {
             touchAction: 'none',
           },
         },
+          previewNode ? h('aside', {
+            'data-kb-reading-preview': 'true',
+            'aria-label': '节点阅读预览',
+            style: {
+              position: 'absolute', left: 12, bottom: 12, zIndex: 35,
+              width: 'calc(100% - 24px)', maxWidth: 390, padding: '12px 15px',
+              boxSizing: 'border-box', border: '1px solid ' + HAIRLINE,
+              borderRadius: 8, background: SURFACE_SOLID, color: 'inherit',
+              boxShadow: '0 4px 18px rgba(0,0,0,0.12)', pointerEvents: 'none',
+            },
+          }, h('strong', { style: { fontSize: 14, lineHeight: 1.5, overflowWrap: 'anywhere' } }, previewNode.title),
+            h('div', { style: { marginTop: 6, fontSize: 13, lineHeight: 1.6, opacity: 0.9, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } },
+              previewBody.slice(0, 220) + (previewBody.length > 220 ? '…' : '')),
+            h('div', { style: { marginTop: 7, fontSize: 11, opacity: 0.7 } }, previewNode.id + ' · 点击节点编辑，或放大阅读全文')) : null,
           ghost ? h('div', {
             'data-kb-ghost': ghost.outside ? 'outside' : 'inside',
             style: {
@@ -3421,7 +3550,7 @@ function estimateBox(node) {
               // Fixed, and clamped: the canvas can be panned and zoomed, the menu cannot.
               position: 'fixed',
               left: Math.min(Math.max(0, (nodeMenu.clientX || 0) + 4), Math.max(0, window.innerWidth - 172)),
-              top: Math.min(Math.max(0, (nodeMenu.clientY || 0) + 4), Math.max(0, window.innerHeight - 132)),
+              top: Math.min(Math.max(0, (nodeMenu.clientY || 0) + 4), Math.max(0, window.innerHeight - 245)),
               zIndex: 5,
               minWidth: 148,
               padding: 4,
@@ -3434,6 +3563,11 @@ function estimateBox(node) {
             },
           },
             [
+              ...[['跟随知识库', 'inherit'], ['全文注入', 'full'], ['按需读取', 'index']].map(([label, mode]) => [
+                ((nodeInjection?.[nodeMenu.id] || 'inherit') === mode ? '✓ ' : '') + label,
+                '仅设置这个节点，不影响子节点；同工作区共享',
+                () => { const id = nodeMenu.id; setNodeMenu(null); onInjection(id, mode); },
+              ]),
               ['新建子节点', '在这个节点下面建一个，并立刻开始编辑', () => {
                 const id = nodeMenu.id;
                 setNodeMenu(null);
@@ -3510,7 +3644,10 @@ function estimateBox(node) {
               top: 0,
               width,
               height,
-              transform: 'translate(' + view.x + 'px, ' + view.y + 'px) scale(' + view.k + ')',
+              // CSS zoom lays out/hints text at its display size instead of scaling a painted layer.
+              // Translation is inside zoom, so divide it to preserve the existing screen-space camera.
+              zoom: view.k,
+              transform: 'translate(' + (view.x / view.k) + 'px, ' + (view.y / view.k) + 'px)',
               transformOrigin: '0 0',
             },
           },
@@ -3521,11 +3658,7 @@ function estimateBox(node) {
           parentEdges.map((edge, index) => {
             // Same anchor search as a cross-link: the parent-child pair is the only pair excluded
             // from the obstacles, so a node between them still pushes the edge aside.
-            const others = ordered
-              .filter((item) => item.node.id !== edge.fromId && item.node.id !== edge.toId)
-              .map((item) => rectOf(item.node.id))
-              .filter(Boolean);
-            const route = bestLink(edge.from, edge.to, others);
+            const route = edge.route;
             const away = edgeFades(spotlight, edge.fromId, edge.toId);
             return h('path', {
               key: 'p' + index,
@@ -3605,6 +3738,7 @@ function estimateBox(node) {
               onClose: () => setEditingId(null),
               color: (colors || {})[entry.node.id] || null,
               onColor,
+              injectionMode: nodeInjection?.[entry.node.id], defaultInjection, onInjection,
               onRemove: onRemoveNode,
               onPurge: onPurgeNode,
               onRevert: onRevertNode,
@@ -3619,6 +3753,7 @@ function estimateBox(node) {
           return h(NodeBox, {
             key: entry.node.id,
             entry: shown,
+            injectionMode: nodeInjection?.[entry.node.id],
             x: spot.x,
             y: spot.y,
             onPressStart,
@@ -4241,8 +4376,95 @@ function estimateBox(node) {
         }).sort((a, b) => b.writtenAt.localeCompare(a.writtenAt) || b.index - a.index);
     }
 
-    function DiaryBook({ base, onSendToChat, onShowHistory, onReview, onLocate, focusNode, onFocusShown, names, onCanvas }) {
+    function DiaryReplies({ baseId, nodeId, onReplyAction, draftStore }) {
+      const [replies, setReplies] = React.useState([]);
+      const [draft, setDraft] = React.useState(draftStore.current[nodeId] || '');
+      const [busy, setBusy] = React.useState(false);
+      const [replyError, setReplyError] = React.useState('');
+      const [loading, setLoading] = React.useState(true);
+      const pendingReply = React.useRef(null);
+      const busyReply = React.useRef(false);
+      const mountedReply = React.useRef(true);
+      const transport = React.useRef(onReplyAction);
+      transport.current = onReplyAction;
+      React.useEffect(() => {
+        let cancelled = false;
+        mountedReply.current = true;
+        const read = async () => {
+          if (document.visibilityState === 'hidden') return;
+          try {
+            const answer = await transport.current('diaryreplies', { base: baseId, node: nodeId });
+            if (!cancelled) { setReplies(answer.replies || []); setLoading(false); }
+          } catch (error) {
+            if (!cancelled) { setReplyError('读取回复失败：' + (error && error.message ? error.message : error)); setLoading(false); }
+          }
+        };
+        read();
+        const timer = window.setInterval(read, 10000);
+        return () => { cancelled = true; mountedReply.current = false; window.clearInterval(timer); };
+      }, [baseId, nodeId]);
+      const sendReply = async (existing) => {
+        if (busyReply.current) return;
+        const text = existing ? existing.text : draft.trim();
+        if (!text) return;
+        const held = pendingReply.current;
+        const id = existing ? existing.id : (held && held.text === text ? held.id : crypto.randomUUID());
+        pendingReply.current = { id, text };
+        busyReply.current = true;
+        setBusy(true);
+        setReplyError('');
+        try {
+          const answer = await transport.current('diaryreply', { base: baseId, node: nodeId, id, text });
+          if (!mountedReply.current) {
+            if (answer.accepted && draftStore.current[nodeId] === text) delete draftStore.current[nodeId];
+            return;
+          }
+          setReplies((current) => current.filter((entry) => entry.id !== id).concat(answer.reply).sort((a, b) => a.at.localeCompare(b.at)));
+          if (answer.accepted) {
+            if (!existing || draft.trim() === text) { setDraft(''); delete draftStore.current[nodeId]; }
+            pendingReply.current = null;
+          } else setReplyError(answer.reply.error || '还没有确认送达，可在下方重试。');
+        } catch (error) {
+          if (mountedReply.current) setReplyError('发送未确认，原文已保留。可重试同一条：' + (error && error.message ? error.message : error));
+        } finally {
+          busyReply.current = false;
+          if (mountedReply.current) setBusy(false);
+        }
+      };
+      const replyButton = {
+        padding: '6px 11px', border: '1px solid var(--diary-rule)', borderRadius: 5,
+        color: 'inherit', background: 'transparent', font: 'inherit', fontSize: 12, cursor: 'pointer',
+      };
+      return h('section', { 'data-kb-diary-replies': nodeId, 'aria-label': '日记回复', style: { marginTop: 30, paddingTop: 22, borderTop: '1px solid var(--diary-rule)' } },
+        h('h3', { style: { fontSize: 16, fontWeight: 500, margin: '0 0 12px' } }, '这一页，想对 TA 说什么？'),
+        loading ? h('p', { style: { fontSize: 12, color: 'var(--diary-muted)' } }, '正在翻看回复…') : null,
+        replies.map((entry) => h('div', { key: entry.id, style: { marginBottom: 13, padding: '10px 12px', borderLeft: '2px solid var(--diary-rule)' } },
+          h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 11, color: 'var(--diary-muted)', marginBottom: 5 } },
+            h('span', null, '你'), h('time', { dateTime: entry.at }, new Date(entry.at).toLocaleString()),
+            h('span', { role: 'status' }, entry.status === 'sent' ? '已送到当前会话' : '尚未确认送达'),
+          ),
+          h('p', { style: { fontSize: 14, lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' } }, entry.text),
+          entry.status !== 'sent' ? h('button', { type: 'button', disabled: busy, style: { ...replyButton, marginTop: 7 }, onClick: () => sendReply(entry) }, '重试这条回复') : null,
+        )),
+        h('form', { onSubmit: (event) => { event.preventDefault(); sendReply(null); } },
+          h('textarea', {
+            'aria-label': '回复这篇日记', placeholder: '看到这里，想和 TA 说……', value: draft, maxLength: 4000, rows: 3, disabled: busy,
+            onChange: (event) => { setDraft(event.currentTarget.value); draftStore.current[nodeId] = event.currentTarget.value; },
+            style: { width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: 88, padding: '10px 12px', background: 'var(--diary-paper)', color: 'var(--diary-ink)', border: '1px solid var(--diary-rule)', borderRadius: 5, font: 'inherit', fontSize: 14, lineHeight: 1.8 },
+          }),
+          h('div', { style: { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginTop: 8 } },
+            h('button', { type: 'submit', disabled: busy || !draft.trim(), style: { ...replyButton, opacity: busy || !draft.trim() ? 0.5 : 1 } }, busy ? '正在送给 TA…' : '回复 TA'),
+            h('span', { style: { fontSize: 11, color: 'var(--diary-muted)' } }, '会发送到当前会话，TA 会在那里回应。'),
+          ),
+        ),
+        replyError ? h('p', { role: 'alert', style: { fontSize: 12, lineHeight: 1.7, color: '#b94444' } }, replyError) : null,
+      );
+    }
+
+
+    function DiaryBook({ base, onReplyAction, onSendToChat, onShowHistory, onReview, onLocate, focusNode, onFocusShown, names, onCanvas }) {
       const pages = diaryPages(base);
+      const replyDrafts = React.useRef({});
       const [selectedId, setSelectedId] = React.useState(null);
       const [month, setMonth] = React.useState('');
       const [sending, setSending] = React.useState(false);
@@ -4322,7 +4544,7 @@ function estimateBox(node) {
       return h('section', { ref: frameRef, className: 'kb-diary-book', 'aria-label': '日记本', 'data-kb-diary-book': base.id },
         h('style', null, `
           .kb-diary-book{--diary-paper:#fffdf7;--diary-ink:#343d4b;--diary-muted:#6a7380;--diary-rule:#dedbd2;--diary-side:#f2f3f4;color:var(--diary-ink);border:1px solid var(--diary-rule);border-radius:6px;overflow:hidden;container-type:inline-size}
-          .kb-diary-book button:focus-visible,.kb-diary-book select:focus-visible{outline:2px solid #527eab;outline-offset:2px}
+          .kb-diary-book button:focus-visible,.kb-diary-book select:focus-visible,.kb-diary-book textarea:focus-visible{outline:2px solid #527eab;outline-offset:2px}
           .kb-diary-layout{display:grid;grid-template-columns:170px minmax(0,1fr);min-height:420px;height:clamp(420px,65vh,800px)}
           .kb-diary-catalog{overflow-y:auto;min-width:0;background:var(--diary-side);border-right:1px solid var(--diary-rule);padding:12px 10px}
           .kb-diary-paper{overflow-y:auto;min-width:0;background:var(--diary-paper);padding:30px clamp(20px,5cqw,54px);overscroll-behavior:contain}
@@ -4377,6 +4599,7 @@ function estimateBox(node) {
                 current.node.change ? h('button', { type: 'button', style: buttonStyle, onClick: () => onReview(current.node.id) }, '标为已读') : null,
                 h('button', { type: 'button', style: buttonStyle, onClick: () => { onLocate(current.node.id); onCanvas(); } }, '在画布中编辑'),
               ),
+              h(DiaryReplies, { key: base.id + ':' + current.node.id, baseId: base.id, nodeId: current.node.id, onReplyAction, draftStore: replyDrafts }),
               h('div', { style: { display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 28, paddingTop: 16, borderTop: '1px solid var(--diary-rule)' } },
                 navButton('← 较早一篇', pages[currentIndex + 1]),
                 navButton('较新一篇 →', pages[currentIndex - 1]),
@@ -4403,7 +4626,7 @@ function estimateBox(node) {
           }, label)),
         ),
         h('div', { style: { display: view === 'book' ? 'block' : 'none' } },
-          h(DiaryBook, { base: props.base, onSendToChat: props.onSendToChat, onShowHistory: props.onShowHistory,
+          h(DiaryBook, { base: props.base, onReplyAction: props.onReplyAction, onSendToChat: props.onSendToChat, onShowHistory: props.onShowHistory,
             onReview: props.onReview, onLocate: props.onLocate, focusNode: view === 'book' ? props.focusNode : null,
             onFocusShown: props.onFocusShown, names: props.names, onCanvas: () => setView('canvas') }),
         ),
@@ -4491,6 +4714,8 @@ function estimateBox(node) {
       const [positions, setPositions] = React.useState({});
       // Per-node colours the user chose, keyed by base then node.
       const [colors, setColors] = React.useState({});
+      const [nodeInjection, setNodeInjection] = React.useState({});
+      const [injectionDefaults, setInjectionDefaults] = React.useState({});
       // Which arrangement each base uses. Presentation, stored with the positions and the colours.
       const [shapes, setShapes] = React.useState({});
       // Box widths. The base's is the room every node in it gets; a node's own overrides it. Kept apart
@@ -4537,7 +4762,7 @@ function estimateBox(node) {
         } catch (error) {
           // Which session this was, and what the host said: without the id a failed write names nothing.
       const which = typeof sessionId === 'string' && sessionId ? sessionId.slice(0, 12) : '(none)';
-      setSaving({ error: String((error && error.message) || error) + ' ｜ 会话 ' + which });
+      if (!quiet) setSaving({ error: String((error && error.message) || error) + ' ｜ 会话 ' + which });
           throw error;
         }
       }, [sessionId]);
@@ -4977,6 +5202,11 @@ function estimateBox(node) {
               if (left !== right) return left - right;
               return String(a.id).localeCompare(String(b.id));
             });
+            const policyResponse = await fetch(PREFIX + '/state?session=' + encodeURIComponent(sessionId), { signal: controller.signal });
+            const policy = await policyResponse.json();
+            if (!policyResponse.ok || !policy.ok) throw new Error(policy.error || '读取注入设置失败');
+            setNodeInjection(policy.nodeInject || {});
+            setInjectionDefaults(policy.inject || {});
             setState({ status: 'live', bases, count: names.length });
             // The session's own list, when it has one. Most sessions do not: a session that has never been
             // given its own switches has no file, and that is not a failure — it means "no opinion", and the
@@ -5646,6 +5876,11 @@ function estimateBox(node) {
               // branch renders, and the callbacks below are written against it.
               base.nodes && base.nodes.length ? null : h(Note, null, '这份库里还没有节点。'),
               h(DiaryOrTree, {
+                nodeInjection: nodeInjection[base.id] || {},
+                defaultInjection: injectionDefaults[base.id] || 'index',
+                onInjection: (nodeId, mode) => post('nodeInject', { base: base.id, node: nodeId, mode })
+                  .then((result) => setNodeInjection(result.nodeInject || {})).catch(() => {}),
+                onReplyAction: (action, payload) => post(action, payload, true),
             // Only the base whose canvas is actually on screen may take the request.
             //
             // `Tree` is mounted for every base, not just the open one, and each copy received the same
@@ -6168,14 +6403,14 @@ function estimateBox(node) {
           },
         }, label);
         return h('span', { style: { display: 'inline-flex', flex: '0 0 auto' } },
-          segment('按需索引', 'index', !full, 'first'),
-          segment('全文注入', 'full', full, 'last'));
+          segment('默认按需', 'index', !full, 'first'),
+          segment('默认全文', 'full', full, 'last'));
       };
 
       return h('div', { style: { font: 'inherit', color: 'inherit' } },
         h('div', { style: { fontSize: 13, opacity: 0.7, marginBottom: 10, lineHeight: 1.5 } },
           '每个工作区读哪些知识库。这里改的是默认值 —— 那个工作区的新会话都用它；'
-          + '某一次会话可以单独例外，在侧栏的知识库面板里设。'),
+          + '某一次会话可以单独例外，在侧栏的知识库面板里设。注入方式是库的默认值；在画布中编辑或右键节点，可单独选全文或按需，同工作区共享。'),
         problem ? h('div', {
           style: {
             marginBottom: 10, padding: '6px 9px', borderRadius: 7, fontSize: 12,
@@ -6333,7 +6568,7 @@ function estimateBox(node) {
       // shows up as a line that looks slightly off rather than as a failure.
       // Pure decisions the panel makes, exposed for the same reason the geometry is: a button cannot
       // be pressed by a check script, but the question the button answers can be asked directly.
-      __logic: { diaryPages, DiaryBook, DiaryOrTree,
+      __logic: { diaryPages, DiaryBook, DiaryOrTree, DiaryReplies,
         nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines, worthMarking, historyMarks,
       },
       __geometry: {

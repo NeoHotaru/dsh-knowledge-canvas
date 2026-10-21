@@ -1,5 +1,22 @@
 # dsh-knowledge-canvas
 
+## 0.4.1 update
+
+Mix full-text and on-demand nodes within one base, with explicit node overrides or inheritance from the base default. Policies are shared by the workspace, apply only to the selected node, and remain independent of attachment reading. On-demand indexes still consume context. Full-text limits and large-base fallback behavior are documented in [the manual](MANUAL.md).
+
+Automatic long-note cards are capped at 320px with scroll hints and an Edit action. Body/title/root fonts are 15/16/17px. Hover reading previews appear only below the 55% title-only threshold. Restored-session saves and stale overrides after physical node removal are fixed.
+
+
+## Canvas readability and larger bases (0.4.1)
+
+Node titles and bodies use larger text and stronger contrast. When zoomed out, hover a node for a screen-sized title and text preview; zoom in or edit to read everything. Fixed-height node bodies can scroll independently.
+
+Panning reuses layout, parent-edge routes and parsed Markdown. Node content, dimensions, placement and layout changes invalidate the relevant caches. These UI changes add no model calls and do not change knowledge storage or attachment policies.
+
+## Reply under a diary (0.4.1)
+
+Write under a diary page and choose Reply. The reply and an excerpt of that page are sent as a user message to the current Session; the agent answers in the conversation. The existing composer draft is untouched. Unsent drafts are kept per page while the panel remains mounted. Reply records are stored separately as sealed data without rewriting the diary. Unconfirmed delivery can be retried with the same request id. Replies are limited to 4000 characters and diary excerpts to 8000; images and unrelated diaries are not automatically attached.
+
 ## Notebook and attachment reading (0.4.0)
 
 Diary bases open in a notebook view with a monthly catalog, readable pages, earlier/newer navigation, revision history, and send/drag to chat. Narrow panels provide a catalog button. Switch back to the knowledge canvas to edit. This is a presentation change: encryption, session isolation, node storage and model-call behavior remain unchanged.

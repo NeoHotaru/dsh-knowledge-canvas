@@ -1,6 +1,6 @@
 {
   "name": "dsh-knowledge-canvas",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Tree-shaped knowledge bases for DeepSeek Harness: per-session activation, a node graph view, and review markers for model edits.",
   "repository": {
     "type": "git",
@@ -19,7 +19,14 @@
     "assets/",
     "CHANGELOG.md",
     "README.zh.md",
-    "test-notebook.mjs"
+    "test-notebook.mjs",
+    "test-diary-replies.mjs",
+    "test-canvas-performance.mjs",
+    "test-cold-session-routes.mjs",
+    "test-mixed-injection.mjs",
+    "IMPROVEMENTS.md",
+    "docs/improvements/",
+    "test-state-locks.mjs"
   ],
   "dsh": {
     "bundle": {
@@ -35,7 +42,7 @@
     }
   },
   "scripts": {
-    "test": "node test-store.mjs && node test-notebook.mjs",
+    "test": "node test-store.mjs && node test-notebook.mjs && node test-diary-replies.mjs && node test-canvas-performance.mjs && node test-cold-session-routes.mjs && node test-mixed-injection.mjs && node test-state-locks.mjs",
     "check": "node check-client-loads.mjs && node check-scope.mjs && node check-actions.mjs && node check-identifiers.mjs && node check-tdz.mjs && node check-props.mjs && node check-promise.mjs && node check-duplicate-keys.mjs && node check-placement.mjs",
     "check:all": "npm run check && node check-sprites.mjs && npm test",
     "prepublishOnly": "npm run check:all && node scripts/prepublish-check.mjs",

@@ -1,5 +1,35 @@
 # 变更记录
 
+## 0.4.1 — 2026-10-21
+
+- Retry transient Windows state-file locks with a bounded backoff, retaining atomic replacement and surfacing persistent failures.
+
+- Remove orphaned node injection overrides after physical deletion, undoing newly added nodes, and removing bases; preserve policies for soft-deleted nodes and prune stale IDs before allocating new nodes.
+- Tutorial v19 documents mixed injection limits, scrolling, font sizes and title-only previews.
+
+- Mark genuinely overflowing card bodies with a visible long-note/scroll hint and an Edit action. Use a clearer thin scrollbar; update hints after content/size changes and hide them in title-only mode.
+
+- Bound automatic canvas cards to 320px with full body scrolling so one long note cannot push the next layer several screens away. Keep explicit node heights, header/byline visibility, and contain scrolling within long bodies.
+
+- 新增节点级分层注入：库默认方式 + 节点全文/按需覆盖；编辑器及右键菜单即时保存，正文独立存储。
+
+- Resolve restored, nonresident sessions from a read-only persistence header before panel reads/writes. Close the header handle without replaying history or activating an agent. Resident sessions keep their existing fast path.
+- Background activity reads and diary replies no longer overwrite the canvas save banner on failure; explicit save errors and diary-local errors remain visible.
+
+- Increase canvas body text to 15px, regular titles to 16px and root titles to 17px, with matching layout height estimates.
+
+- Use an explicit CJK sans-serif stack for canvas text and a CJK-aware code font fallback. Render canvas zoom with layout zoom instead of scaling a painted text layer; preserve existing camera and pointer coordinates.
+
+- Make canvas node titles and bodies larger and increase body/date contrast. At reduced zoom, hover or focus a node for a screen-sized text preview; the canvas still keeps compact overview cards.
+- Cache layout, parent-edge routes and Markdown separately from camera movement. Reuse a parent-to-children index and subtree widths, and reject distant curve obstacles by their bounding boxes before precise tests.
+- Preserve full-detail measurements across overview zoom. Recompute when node content, dimensions, placement or layout changes; scroll a constrained node body without zooming the canvas.
+- Add a seeded collision-equivalence regression test. No model calls, knowledge storage migration or new image-reading behavior are introduced by these UI changes.
+
+- Reply to a diary directly from its sidebar page. The reply and the addressed diary excerpt are admitted as a user message to the current Session; the agent responds in the conversation. Existing composer drafts are untouched.
+- Keep per-page drafts while browsing and persist reply records separately as encrypted data. Confirmed messages are marked as delivered; failed or uncertain delivery can be retried with the same request id and content.
+- Session ownership is checked before reading or sending replies. Concurrent replies are serialized, the original diary is not rewritten, and unreadable reply records are preserved.
+- Tutorial v18 documents diary replies. Existing knowledge tools are unchanged.
+
 ## 0.4.0 — 2026-10-18
 
 - Diary bases now open as a notebook: month catalog, readable pages, earlier/newer navigation, collapsed recall hints, and edit-history access. Narrow panels use a catalog button; the original knowledge canvas remains available.
