@@ -12,21 +12,12 @@
     "client.js",
     "cordis.patch.yml",
     "lib/",
-    "check-*.mjs",
-    "test-store.mjs",
-    "MANUAL.md",
-    "README.md",
     "assets/",
-    "CHANGELOG.md",
+    "README.md",
     "README.zh.md",
-    "test-notebook.mjs",
-    "test-diary-replies.mjs",
-    "test-canvas-performance.mjs",
-    "test-cold-session-routes.mjs",
-    "test-mixed-injection.mjs",
-    "IMPROVEMENTS.md",
-    "docs/improvements/",
-    "test-state-locks.mjs"
+    "MANUAL.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
