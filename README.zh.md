@@ -1,5 +1,9 @@
 # dsh-knowledge-canvas
 
+## 0.4.2 安装修复
+
+修复0.4.0/0.4.1在干净profile中引用错误包名，以及客户端重复注册导致DSH无法启动的问题。已安装旧版时请先退出DSH，再在对应profile目录更新插件；无需删除知识库数据。
+
 ## 0.4.1 更新
 
 同一个库可按节点选择“全文注入 / 按需读取 / 跟随默认”。覆写按工作区共享，仅作用于所选节点；按需仍有目录成本，附件策略独立。每库全文额度为24,000字符，超额规则与边界见[使用手册](MANUAL.md)。
@@ -77,17 +81,17 @@ $ node report-kb-use.mjs
 
 **npm**（推荐）：包名 `dsh-knowledge-canvas`，在 DSH 的「添加插件」里填它。
 
+手动安装时，在对应profile目录执行 `pnpm add dsh-knowledge-canvas@latest`，还必须将 `dsh-knowledge-canvas` 加入该profile的 `dsh.profile.bundles`（保留已有条目）。仅加入dependencies不会应用插件补丁。安装或升级后重启DSH。
+
 **从源码**：
 
 ```json
 // profiles/desktop/package.json
-"dependencies": { "dsh-knowledge-tree": "link:<仓库路径>" },
-"dsh": { "profile": { "bundles": [ ..., "dsh-knowledge-tree" ] } }
+"dependencies": { "dsh-knowledge-canvas": "link:<仓库路径>" },
+"dsh": { "profile": { "bundles": [ ..., "dsh-knowledge-canvas" ] } }
 ```
 
-> 从源码 link 时用的名字是这个包**自己的** `package.json` 里的 `name`。
-> 发布的包叫 `dsh-knowledge-canvas`（`dsh-knowledge-tree` 在 npm 上已被别人占用），
-> 而本机那个目录里的 `name` 仍是 `dsh-knowledge-tree`。
+> 本仓库与发布包均使用 `dsh-knowledge-canvas`。内部Cordis id、客户端模块id、路由及数据目录保留旧标识以兼容现有数据；不要把这些内部标识当成安装包名。
 
 ## 面板上能做什么
 
@@ -109,7 +113,6 @@ $ node report-kb-use.mjs
 | Shift+Enter | 开始连线；在目标上按 Enter 完成 |
 | 拖动节点 | 移动；位置写进 `layout.json` |
 | 按住约 0.26 秒再拖 | 画**关联线**（橙色），不是改父子关系 |
-| 从节点右键拖出 | 同样画关联线 |
 | **Alt + 拖动节点** | 把目标变成它的父节点（灰线） |
 | 右键节点 | 菜单：新建子节点 / 看修改历史 |
 | 右键空白画布 | 菜单：新建父节点（顶层） |

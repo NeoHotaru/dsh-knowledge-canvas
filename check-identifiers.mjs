@@ -15,13 +15,12 @@
 //   3. Which scope. Each file is checked alone, because they are separate modules. That is exactly the
 //      shape of the bug this is meant to catch, so one shared table of names would defeat it.
 import { readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
 
-const ROOT = 'D:/DeepSeekHarness/dsh-knowledge-tree'
+const ROOT = new URL('./', import.meta.url)
 const FILES = [
   'client.js',
   'index.js',
-  ...readdirSync(join(ROOT, 'lib')).filter((name) => name.endsWith('.js')).map((name) => 'lib/' + name),
+  ...readdirSync(new URL('./lib/', import.meta.url)).filter((name) => name.endsWith('.js')).map((name) => 'lib/' + name),
 ]
 
 const KEYWORDS = new Set([
@@ -188,7 +187,7 @@ SYNTAX_NAMES.add(String.fromCharCode(36))
 
 const problems = []
 for (const file of FILES) {
-  const raw = readFileSync(join(ROOT, file), 'utf8')
+  const raw = readFileSync(new URL(file, ROOT), 'utf8')
   const { code, declared } = declaredIn(raw)
   const used = new Map()
   for (const match of code.matchAll(/(^|[^.\w$])([A-Za-z_$][\w$]*)/g)) {

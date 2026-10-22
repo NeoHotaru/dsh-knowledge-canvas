@@ -1,5 +1,13 @@
 # 变更记录
 
+## 0.4.2 — 2026-10-22
+
+- Fix npm-installed bundle resolution: Cordis imports `dsh-knowledge-canvas` while internal ids and data paths stay compatible.
+- Remove eager client activation (`immediately`) from the dependency-injected client to address duplicate factory registration reported in #7.
+- Add release manifest checks and a clean-profile tarball installation regression test; fix installation instructions, including required profile bundle registration.
+- Integrate repository-relative verification scripts, remove stale runtime copies and unused helpers, and ship only runtime assets and user documentation. Remove obsolete frame-probe traffic and unused gesture code; retain supported long-press and keyboard linking.
+- Prefix-cache feedback in #1 remains under investigation; this release makes no cache-hit or token-saving claim.
+
 ## 0.4.1 — 2026-10-21
 
 - Retry transient Windows state-file locks with a bounded backoff, retaining atomic replacement and surfacing persistent failures.

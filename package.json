@@ -1,6 +1,6 @@
 {
   "name": "dsh-knowledge-canvas",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Tree-shaped knowledge bases for DeepSeek Harness: per-session activation, a node graph view, and review markers for model edits.",
   "repository": {
     "type": "git",
@@ -12,21 +12,12 @@
     "client.js",
     "cordis.patch.yml",
     "lib/",
-    "check-*.mjs",
-    "test-store.mjs",
-    "MANUAL.md",
-    "README.md",
     "assets/",
-    "CHANGELOG.md",
+    "README.md",
     "README.zh.md",
-    "test-notebook.mjs",
-    "test-diary-replies.mjs",
-    "test-canvas-performance.mjs",
-    "test-cold-session-routes.mjs",
-    "test-mixed-injection.mjs",
-    "IMPROVEMENTS.md",
-    "docs/improvements/",
-    "test-state-locks.mjs"
+    "MANUAL.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "dsh": {
     "bundle": {
@@ -34,7 +25,6 @@
     },
     "client": {
       "platform": "web",
-      "immediately": true,
       "inject": [
         "@deepseek-ai/dsh-client-ui-layout",
         "@deepseek-ai/dsh-client-ui-sidebar"
@@ -42,7 +32,7 @@
     }
   },
   "scripts": {
-    "test": "node test-store.mjs && node test-notebook.mjs && node test-diary-replies.mjs && node test-canvas-performance.mjs && node test-cold-session-routes.mjs && node test-mixed-injection.mjs && node test-state-locks.mjs",
+    "test": "node test-store.mjs && node test-notebook.mjs && node test-diary-replies.mjs && node test-canvas-performance.mjs && node test-cold-session-routes.mjs && node test-mixed-injection.mjs && node test-state-locks.mjs && node test-bundle-install.mjs",
     "check": "node check-client-loads.mjs && node check-scope.mjs && node check-actions.mjs && node check-identifiers.mjs && node check-tdz.mjs && node check-props.mjs && node check-promise.mjs && node check-duplicate-keys.mjs && node check-placement.mjs",
     "check:all": "npm run check && node check-sprites.mjs && npm test",
     "prepublishOnly": "npm run check:all && node scripts/prepublish-check.mjs",

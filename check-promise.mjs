@@ -25,7 +25,7 @@ const SOURCES = [
   'lib/seed.js',
 ]
 
-const ROOT = 'D:/DeepSeekHarness/dsh-knowledge-tree/'
+const ROOT = new URL('./', import.meta.url)
 
 /** Calls that raise rather than return a value when the thing they were handed is an error. */
 const THROWS = /\b(unwrap|JSON\.parse)\s*\(/
@@ -92,12 +92,7 @@ function blank(source) {
 
 const problems = []
 for (const file of SOURCES) {
-  let raw
-  try {
-    raw = readFileSync(ROOT + file, 'utf8')
-  } catch {
-    continue
-  }
+  const raw = readFileSync(new URL(file, ROOT), 'utf8')
   const code = blank(raw)
   const rawLines = raw.split('\n')
   const lines = code.split('\n')

@@ -246,36 +246,12 @@ window.__ModuleLoader__.load({
       removed: { glyph: '−', color: '#c0392b', text: '已废弃' },
     };
 
-    /**
-       * The whale, as one strip of seven frames: idle, thinking, working, happy, sleeping, running, failed.
-       *
-       * A sprite strip rather than seven images because the panel picks a frame by index and shifts
-       * `background-position` — no per-frame element, no extra requests. Inlined as a data URI because this plugin
-       * has no asset loader of its own: `assets/icon.svg` is a repository file that nothing references at runtime,
-       * so a path would simply 404.
-       */
       const WHALE_VERSION = '2026-10-16'
       /** Where the grid lives. A function, not a constant: `PREFIX` is declared further down this file, so
        *  a const initialiser here would read it before it exists and take the plugin down at load. */
       const whaleSheet = (which) => PREFIX + '/whale' + (which ? '-' + which : '') + '.png?v=' + WHALE_VERSION
       const WHALE_COLS = 5
       const WHALE_ROWS = 3
-      /**
-       * Where each state sits in the sheet, and how many frames it has.
-       *
-       * Row 0 is the artist's walk cycle, so `idle` loops all five of its frames. The other rows are single
-       * expressions, and one frame is the honest description of an expression — animating it would be inventing
-       * motion the art does not have.
-       */
-      const WHALE_FRAMES = {
-        idle: { col: 0, row: 0, frames: 5, ms: 780 },
-        working: { col: 3, row: 1, frames: 1 },
-        happy: { col: 2, row: 1, frames: 1 },
-        sleeping: { col: 4, row: 1, frames: 1 },
-        running: { col: 0, row: 2, frames: 1 },
-        failed: { col: 1, row: 2, frames: 1 },
-        thinking: { col: 4, row: 2, frames: 1 },
-      }
       /**
        * The loops the mascot can play, and what each one costs to describe.
        *
@@ -1769,11 +1745,10 @@ function estimateBox(node) {
     }
 
     function NodeBox({
-      entry, x, y, onPressStart, onActivate, onLinkStart, onReview, onSpotlight, color, isFocus, onNodeMenu,
+      entry, x, y, onPressStart, onActivate, onReview, onSpotlight, color, isFocus, onNodeMenu,
       isSource, isTarget, isEdited, isArmed, boxWidth, boxHeight, liveWidth, liveHeight, onResizeStart,
       byline, injectionMode,
       onRename,
-      onHistory,
       /** False when the canvas is zoomed out far enough that a body would be illegible. */
       detail,
     }) {
@@ -1838,16 +1813,12 @@ function estimateBox(node) {
           // The right button is the menu's. It used to start a link here, which meant every right-click
           // also began a connection and the two gestures could not be told apart.
           if (event.button !== 0) return;
-          if (event.button !== 0) return;
           onPressStart(node.id, event);
         },
         onContextMenu: (event) => {
           // Two handlers for one key used to sit here — this one and the history one above — and in an
           // object literal the last wins, so the history menu was never reachable: every right-click fell
           // through to the canvas and offered 新建节点.
-          //
-          // A right-press starts a link (see onPointerDown), so the menu waits for the release. contextmenu
-          // fires after the gesture has ended, which makes this the place to ask whether a link was drawn.
           event.preventDefault();
           event.stopPropagation();
           // A menu rather than the history directly: right-click is the only gesture left that can mean "do
@@ -1857,7 +1828,6 @@ function estimateBox(node) {
         },
         tabIndex: 0,
         role: 'button',
-        'aria-label': node.title + '（回车编辑；连线用 Shift+回车或右键拖动）',
         onKeyDown: (event) => {
           if (event.key !== 'Enter' && event.key !== ' ') return;
           event.preventDefault();
@@ -2119,23 +2089,6 @@ function estimateBox(node) {
       onSetLinkNote,
       colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onRevertNode, onCreateNode, onPurgeNode,
       onSendToChat, widths, nodeWidths, onSetWidth, onAttachPicture, nodeInjection, defaultInjection, onInjection }) {
-      // How long this render took, reported to the host log every couple of seconds.
-      //
-      // Built because "the canvas is heavy with a large base" survived seven theories, all of them argued
-      // from the code and none of them checked against the machine. The number that settles it is a frame
-      // cost, and the only place to read one is here. It reports the average and the worst render, the number
-      // of renders, and the node count — which is enough to tell "too many renders" from "each render too
-      // expensive", and those two have opposite fixes.
-      //
-      // A diagnostic, not a feature. It costs one `performance.now()` pair per render and one request every
-      // two seconds, and it can be deleted the day the answer stops mattering.
-      const renderStart = performance.now();
-      /** Frame accounting for the diag line at the end of this function. A ref, so it survives the renders
-       * it is counting. Declared here rather than next to the diag line because the timer that closes lives
-       * at the other end of the function — and check-tdz.mjs is right to insist on the order. */
-      const renderStats = React.useRef({ frames: 0, total: 0, worst: 0, since: 0 });
-      const stats = renderStats.current;
-      if (stats.since === 0) stats.since = renderStart;
       const ordered = React.useMemo(() => layout(base.nodes || []), [base.nodes]);
       /**
        * `ordered` by id, built once per render.
@@ -2321,7 +2274,7 @@ function estimateBox(node) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [measureKey, base.nodes, edits, editingId, view.k >= DETAIL_ZOOM]);
       // Pan/zoom within one detail mode changes the camera, not the graph.
-      const { placed: layoutPlaced, sizeOf, width, height, unshifted } = React.useMemo(() => {
+      const { placed: layoutPlaced, sizeOf, width, height } = React.useMemo(() => {
       const placed = {};
       for (const item of ordered) placed[item.node.id] = { x: 0, y: 0 };
 
@@ -2533,11 +2486,7 @@ function estimateBox(node) {
       const width = maxX + 24;
       const height = maxY + 24;
 
-      // The space the pointer lives in: the positions above, before the shift. The drag works in
-      // this space, so a shift computed for drawing cannot invalidate what the drag recorded.
-      const unshifted = {};
-      for (const item of ordered) unshifted[item.node.id] = { ...placed[item.node.id] };
-        return { placed, sizeOf, width, height, unshifted };
+      return { placed, sizeOf, width, height };
       }, [ordered, sizes, widths, nodeWidths, base.id, shape, positions, view.k >= DETAIL_ZOOM]);
       const placed = { ...layoutPlaced };
 
@@ -2581,8 +2530,7 @@ function estimateBox(node) {
 
       const placedRef = React.useRef({});
       // The positions the nodes are actually drawn at. The bounds shift is baked into their
-      // left/top, so this is also the space the pointer arrives in — pointing this at the unshifted
-      // copy put the hold's idea of the node 275,219 away from where it is on screen.
+      // left/top, so this is also the space the pointer arrives in.
       placedRef.current = placed;
 
       // A search result asked to be shown. This is the one moment the positions are certainly known — the
@@ -2687,33 +2635,8 @@ function estimateBox(node) {
 
       const clampZoom = (value) => Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, value));
 
-      /**
-       * True while the view is moving, and for a moment after it stops.
-       *
-       * The canvas is one `transform: scale(k)` layer and every node in it carries a 9px radius and a 10px
-       * blur shadow, so the theory was that zooming re-rasterised those shadows every frame. The user's
-       * report killed it: **zooming felt fine and panning felt heavy**, and zooming is the one that redraws
-       * while panning is pure compositing. The real cause was event rate, fixed in the pan handler below.
-       *
-       * This is kept, because dropping the shadows and promoting the layer does reduce work while the view is
-       * in motion and costs nothing at rest — but it is a small optimisation resting on no measurement, not
-       * the fix. Do not read it as one.
-       */
-      const [movingView, setMovingView] = React.useState(false);
-      const settle = React.useRef(null);
-      /** Set while the view is being moved, so the diag line can say whether the sample was during motion. */
-      const viewMovedRef = React.useRef(false);
-      const markViewMoving = React.useCallback(() => {
-        viewMovedRef.current = true;
-        setMovingView(true);
-        if (settle.current) clearTimeout(settle.current);
-        settle.current = setTimeout(() => setMovingView(false), 180);
-      }, []);
-      React.useEffect(() => () => { if (settle.current) clearTimeout(settle.current); }, []);
-
       /** Zoom about one viewport point, so whatever sits under the cursor stays under it. */
       const zoomAt = (factor, viewX, viewY) => {
-        markViewMoving();
         setView((current) => {
           const k = clampZoom(current.k * factor);
           if (k === current.k) return current;
@@ -2797,7 +2720,6 @@ function estimateBox(node) {
         const move = (event) => {
           const current = pan.current;
           if (!current) return;
-          markViewMoving();
           queued = { view: current.view, startX: current.startX, startY: current.startY,
             clientX: event.clientX, clientY: event.clientY };
           if (!frame) frame = requestAnimationFrame(flush);
@@ -2956,12 +2878,6 @@ function estimateBox(node) {
       };
 
 
-      const onLinkStart = (id, event) => {
-        const point = localPoint(event);
-        link.current = { from: id };
-        setDrag({ from: id, x: point.x, y: point.y });
-      };
-
       /**
        * Open a node's history card, placed at a point given in canvas coordinates.
        *
@@ -3006,7 +2922,7 @@ function estimateBox(node) {
         setEditingId((current) => (current === id ? null : id));
       };
 
-      // One owner for the whole canvas gesture: left drags move, right drags link, a press on
+      // One owner for the whole canvas gesture: left drags move, a held press links, a press on
       // the background pans. Handling the first two in separate effects made pointerup
       // ambiguous, because both effects fired for the same release.
       React.useEffect(() => {
@@ -3263,33 +3179,6 @@ function estimateBox(node) {
           ? { display: 'inline-flex' }
           : { display: 'inline-flex', borderLeft: '1px solid ' + HAIRLINE },
       }, child))));
-
-      // Close the frame accounting opened at the top of this function, and report every two seconds.
-      {
-        const dt = performance.now() - renderStart;
-        stats.frames += 1;
-        stats.total += dt;
-        if (dt > stats.worst) stats.worst = dt;
-        const elapsed = performance.now() - stats.since;
-        if (elapsed > 2000 && stats.frames > 0) {
-          const text = 'render avg=' + (stats.total / stats.frames).toFixed(1) + 'ms'
-            + ' worst=' + stats.worst.toFixed(1) + 'ms'
-            + ' frames=' + stats.frames + ' in ' + Math.round(elapsed) + 'ms'
-            + ' nodes=' + ordered.length
-            + ' links=' + allLinks.length
-            + ' moving=' + (viewMovedRef.current ? 'yes' : 'no');
-          viewMovedRef.current = false;
-          stats.frames = 0;
-          stats.total = 0;
-          stats.worst = 0;
-          stats.since = performance.now();
-          fetch(PREFIX + '/diag', {
-            method: 'PUT',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ text }),
-          }).catch(() => {});
-        }
-      }
 
       return h(React.Fragment, null,
         // Component-local styles, rendered as an element so unmounting removes them. The two
@@ -3758,7 +3647,6 @@ function estimateBox(node) {
             y: spot.y,
             onPressStart,
             onActivate,
-            onLinkStart,
             // Passed straight through. The implementation lives in Body, because that is where
             // `post` and the loaded bases are — referring to them from here compiles fine and
             // throws only when the button is pressed, which is how this shipped broken once.
@@ -3807,43 +3695,6 @@ function estimateBox(node) {
                 y: spot.y,
               });
             },
-            onHistory: (nodeId, x, y) => setHistoryFor((current) => {
-              if (current && current.id === nodeId) return null;
-              // The pointer converted once, into the canvas's own coordinates. From then on the card is a
-              // thing on the canvas: it takes the same transform the nodes do, so panning and zooming carry
-              // it along. The one measurement that is right here is the canvas's own rectangle — that is what
-              // turns a screen point into a canvas point, and it is a fact rather than a calculation.
-              //
-              // No clamping against the window — that was right while the card was pinned to it, and wrong
-              // now. But the canvas clips its own children, so a card opened near an edge came out cut.
-              //
-              // The clamp has to be in canvas units *and* relative to the pan. `0` is the canvas's origin,
-              // not its visible edge: once the view has been panned, the top-left of what you can see is
-              // `-view / k`. Clamping to 0 therefore pushed the card hundreds of pixels off the top of the
-              // canvas — which is what made it appear somewhere else entirely, and what every earlier
-              // version got wrong in one way or another.
-              const frame = boxRef.current ? boxRef.current.getBoundingClientRect() : null;
-              if (!frame || !view.k) return { id: nodeId, x: 0, y: 0 };
-              const spot = {
-                x: (x - frame.left - view.x) / view.k,
-                y: (y - frame.top - view.y) / view.k,
-              };
-              const CARD_W = 300;
-              const CARD_MAX_H = 380;
-              // What is visible, in canvas units.
-              const left = -view.x / view.k;
-              const top = -view.y / view.k;
-              const right = (frame.width - view.x) / view.k;
-              const bottom = (frame.height - view.y) / view.k;
-              return {
-                id: nodeId,
-                // Placed at the pointer when it fits, pulled inside only when it would not. The lower bound
-                // is never allowed past the upper one, so a canvas smaller than the card still puts the card
-                // at its top-left rather than somewhere off it.
-                x: Math.max(left, Math.min(spot.x, Math.max(left, right - CARD_W))),
-                y: Math.max(top, Math.min(spot.y, Math.max(top, bottom - CARD_MAX_H))),
-              };
-            }),
             byline: entry.node.by
               ? (labels.get(entry.node.by) || { label: '', hue: 0 })
               : (('by' in entry.node) ? { label: '你', hue: 145 } : null),
