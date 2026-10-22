@@ -1,5 +1,9 @@
 # dsh-knowledge-canvas
 
+## 0.4.2 installation fix
+
+Fix clean-profile startup failures caused by an unresolved development package name and duplicate client factory registration. Exit DSH before updating a broken installation in its profile directory; knowledge files do not need to be removed.
+
 ## 0.4.1 update
 
 Mix full-text and on-demand nodes within one base, with explicit node overrides or inheritance from the base default. Policies are shared by the workspace, apply only to the selected node, and remain independent of attachment reading. On-demand indexes still consume context. Full-text limits and large-base fallback behavior are documented in [the manual](MANUAL.md).
@@ -63,7 +67,6 @@ Every node ends with a line beginning 「什么时候该想起它：」 — "whe
 | Shift+Enter | start a link; Enter on the target finishes it |
 | drag a node | moves it; the drop is written to `layout.json` |
 | hold ~0.26 s then drag | draws a **link** (orange), not a re-parent |
-| right-drag from a node | same link |
 | **Alt + drag a node** | makes the target its parent (grey line) |
 | right-click a node | menu: new child / change history |
 | right-click empty canvas | menu: new top-level node |
@@ -77,8 +80,12 @@ Four layouts: layers, radial, staircase, compact. Switching only recomputes the 
 ## Install
 
 ```bash
-npm install dsh-knowledge-canvas
+pnpm add dsh-knowledge-canvas@latest
 ```
+
+Run the command in the intended DSH profile directory. For manual installation, also add `dsh-knowledge-canvas` to `dsh.profile.bundles` in that profile's package.json, preserving existing entries. A dependency alone does not apply the bundle patch. The DSH Add Plugin UI is the recommended installation path.
+
+Source links also use the package name `dsh-knowledge-canvas`. Internal legacy module ids and data paths remain unchanged for compatibility.
 
 Restart DSH once after installing; the 「知识库」 panel appears in the sidebar. Panel-side changes need only a page reload; host-side changes (`index.js`, `lib/*`) need a restart — that distinction decides what you do after editing.
 

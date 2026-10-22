@@ -15,15 +15,17 @@ import { execSync } from 'node:child_process'
 import { readFileSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readBundleContract } from './bundle-contract.mjs'
 
 const here = dirname(dirname(fileURLToPath(import.meta.url)))
 const problems = []
 
 const pkg = JSON.parse(readFileSync(join(here, 'package.json'), 'utf8'))
+problems.push(...readBundleContract(here).problems)
 
 // 1. This must be the package that exists on npm.
 if (pkg.name !== 'dsh-knowledge-canvas') {
-  problems.push(`package name is "${pkg.name}", but the published package is dsh-knowledge-canvas — publish from dsh-knowledge-tree-pub`)
+  problems.push(`package name is "${pkg.name}", but the published package is dsh-knowledge-canvas`)
 }
 
 // 2. Every tool the code registers is named in the README.
