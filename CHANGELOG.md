@@ -1,5 +1,11 @@
 # 变更记录
 
+## 0.4.4 — 2026-10-23
+
+- Fix overlapping title-only nodes when a knowledge base or an individual node uses a custom width: overview layout now reserves the actual configured width.
+- Use the same effective node rectangle for layout, drawing and edge attachment across detail/overview zoom levels.
+- Add configured-width and title-wrapping regressions. No model calls, knowledge text or injection policies are changed; manual node positions remain under user control.
+
 ## 0.4.3 — 2026-10-23
 
 - Add subtree arrows, context-menu folding, hidden-descendant counts and Expand all. Nested folds survive parent expansion.
