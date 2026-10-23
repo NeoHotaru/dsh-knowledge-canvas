@@ -1,45 +1,19 @@
 # dsh-knowledge-canvas
 
-## 0.4.4 overview layout fix
-
-Title-only nodes now keep their configured width in automatic layout, preventing neighboring cards from overlapping after zooming out. Layout and edge geometry use the same node dimensions. This client-side fix adds no model calls.
-
-## 0.4.3 collapsible subtrees
-
-Use the title arrow or a node's context menu to collapse a branch, with a hidden-descendant count. Nested folds survive reopening their parent. Search and locate expand only the target's ancestor path; the toolbar can expand everything. State is stored per workspace and base, outside knowledge content and injection policies.
-
-Folding preserves node positions. An explicit Arrange visible action compacts the visible graph using its current layout while retaining hidden coordinates. Save or cancel an active descendant editor before folding its ancestor. Hidden association endpoints hide their lines rather than redirecting them.
-
-## 0.4.2 installation fix
-
-Fix clean-profile startup failures caused by an unresolved development package name and duplicate client factory registration. Exit DSH before updating a broken installation in its profile directory; knowledge files do not need to be removed.
-
-## 0.4.1 update
-
-Mix full-text and on-demand nodes within one base, with explicit node overrides or inheritance from the base default. Policies are shared by the workspace, apply only to the selected node, and remain independent of attachment reading. On-demand indexes still consume context. Full-text limits and large-base fallback behavior are documented in [the manual](MANUAL.md).
-
-Automatic long-note cards are capped at 320px with scroll hints and an Edit action. Body/title/root fonts are 15/16/17px. Hover reading previews appear only below the 55% title-only threshold. Restored-session saves and stale overrides after physical node removal are fixed.
-
-
-## Canvas readability and larger bases (0.4.1)
-
-Node titles and bodies use larger text and stronger contrast. When zoomed out, hover a node for a screen-sized title and text preview; zoom in or edit to read everything. Fixed-height node bodies can scroll independently.
-
-Panning reuses layout, parent-edge routes and parsed Markdown. Node content, dimensions, placement and layout changes invalidate the relevant caches. These UI changes add no model calls and do not change knowledge storage or attachment policies.
-
-## Reply under a diary (0.4.1)
-
-Write under a diary page and choose Reply. The reply and an excerpt of that page are sent as a user message to the current Session; the agent answers in the conversation. The existing composer draft is untouched. Unsent drafts are kept per page while the panel remains mounted. Reply records are stored separately as sealed data without rewriting the diary. Unconfirmed delivery can be retried with the same request id. Replies are limited to 4000 characters and diary excerpts to 8000; images and unrelated diaries are not automatically attached.
-
-## Notebook and attachment reading (0.4.0)
-
-Diary bases open in a notebook view with a monthly catalog, readable pages, earlier/newer navigation, revision history, and send/drag to chat. Narrow panels provide a catalog button. Switch back to the knowledge canvas to edit. This is a presentation change: encryption, session isolation, node storage and model-call behavior remain unchanged.
-
-DSH settings offer a per-workspace attachment policy: on-demand (default) or required. On-demand reading lets the model choose attachments; required reading includes supported text and images with explicit limits and increases token usage.
-
 **English** · [简体中文](README.zh.md)
 
 A knowledge base for DeepSeek Harness that the model retrieves from **by judgement, not by similarity** — and that you edit on a canvas in the sidebar.
+
+## Features
+
+- Edit knowledge on a canvas: parent/child relationships, associations, four layouts, and resizable nodes.
+- Collapse branches and reveal the path to search results. Long notes scroll; title-only nodes offer a reading preview.
+- Choose full-text or on-demand injection per base, with individual node overrides.
+- Review model edits and inspect which nodes were read, written or removed.
+- Read session-scoped diaries as a notebook and reply from the sidebar.
+- Attach images and files; choose on-demand or required attachment reading per workspace.
+
+[Usage manual](MANUAL.md) · [Changelog](CHANGELOG.md) · [GitHub Releases](https://github.com/NeoHotaru/dsh-knowledge-canvas/releases)
 
 ## The problem
 
@@ -78,14 +52,19 @@ Every node ends with a line beginning 「什么时候该想起它：」 — "whe
 | drag a node | moves it; the drop is written to `layout.json` |
 | hold ~0.26 s then drag | draws a **link** (orange), not a re-parent |
 | **Alt + drag a node** | makes the target its parent (grey line) |
-| right-click a node | menu: new child / change history |
+| right-click a node | fold/expand, injection policy, new child, change history |
+| title arrow on a branch | collapse or expand its descendants |
 | right-click empty canvas | menu: new top-level node |
 | drag a node out to the input box | hands that node to the conversation |
 | the three handles | width, height, both |
 
 Node size means three things in order: this node → the base's default → the canvas zoom. The toolbar's 「宽度」 is the second one.
 
-Four layouts: layers, radial, staircase, compact. Switching only recomputes the default placement.
+Four layouts: layers, radial, staircase, compact. Switching recomputes default placement; manual positions stay under your control.
+
+Collapse a branch using its title arrow or context menu. Nested folds are remembered; search, locate and unread navigation reveal the target's ancestor path. The toolbar can expand everything or arrange visible nodes. Folding affects the canvas only, not model access or injection.
+
+Long note bodies scroll independently and offer an Edit action. At title-only zoom levels, hovering or focusing a node opens a reading preview.
 
 ## Install
 
@@ -101,7 +80,7 @@ Restart DSH once after installing; the 「知识库」 panel appears in the side
 
 The first time you open a workspace, a base called 「怎么用这个知识库」 is seeded with everything the panel can do. It upgrades with each release, and nodes you edited are never overwritten.
 
-## Tools the model gets (eight)
+## Model tools
 
 | Tool | What it does |
 | --- | --- |
@@ -119,6 +98,8 @@ The first time you open a workspace, a base called 「怎么用这个知识库�
 
 Settings → 知识库, one block per workspace: the workspace's path, a **记录调用过程** switch (off by default; when on, every tool call is logged and the panel shows 「正在检索 n3（…）」), and per-base index/full switches.
 
+Each base has a full-text or on-demand default. A node may inherit that default or override it in the editor/context menu. Overrides are shared within the workspace and affect only that node. Indexes still consume context; full-text limits and large-base behavior are described in [the manual](MANUAL.md). Attachment reading is a separate setting.
+
 The workspace list is **the directories in the session list ∪ the directories on disk that have `.dsh-knowledge/`** — the second set is recovered from `$DSH_HOME/sessions/`, where each session has a directory named after its workspace path with separators turned into `-`.
 
 ## Diary mode (optional)
@@ -130,6 +111,8 @@ With it on, that conversation writes an entry of its own when a stretch of talk 
 - **One per conversation**: `diary-<hash>.json`. The switch is per conversation and so is the data — another conversation in the same workspace neither sees it nor can read it.
 - **Stored sealed** (AES-256-GCM). A model that `cat`s the file gets base64.
 - **The prompt gives conventions, not a voice.** The persona is yours; the plugin does not write letters on your behalf.
+
+Diaries open as a notebook with a monthly catalog, page navigation and revision history. Switch to the canvas to edit. A sidebar reply sends your text and an excerpt of that page to the current conversation, without replacing the composer draft; reply records are stored separately from the diary.
 
 ## What it will not do
 
@@ -152,7 +135,7 @@ With it on, that conversation writes an entry of its own when a stretch of talk 
 
 - **Host** (`index.js`, `lib/*`): injection, tools, routes, the seeded tutorial, the diary conventions.
 - **Panel** (`client.js`): canvas, gestures, editor, settings. **It reads those JSON files directly**, not through the host — so when the panel "cannot see a base", check what it read, not what the host answered.
-- The outline is assembled before every model call and holds titles, summaries and trigger lines; bodies need an explicit `knowledge_read`.
+- In on-demand mode, the outline carries titles, summaries and trigger lines; bodies are fetched with `knowledge_read`. Full-text mode includes the selected bodies within its limits.
 
 ### For contributors
 
