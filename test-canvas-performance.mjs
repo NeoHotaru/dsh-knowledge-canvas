@@ -28,3 +28,10 @@ for (let i = 0; i < 6000; i++) {
 assert.equal(g.curveHitsBox({x:0,y:0},{x:5,y:0},{x:10,y:0},{x:10,y:0,w:0,h:0}), true, 'touching a box still counts')
 assert.equal(g.curveHitsBox({x:0,y:0},{x:50,y:100},{x:100,y:0},{x:45,y:45,w:10,h:10}), true, 'a bow crossing outside the chord is retained')
 console.log('canvas collision broad phase: 6000 seeded comparisons, boundary contact and bowed crossing passed')
+
+// Overview geometry must keep the configured width instead of the default estimate.
+const overviewNote = { title: '需要完整展示而不能覆盖隔壁节点的很长标题'.repeat(3), body: '正文'.repeat(300) };
+assert.equal(g.oneLineBox(overviewNote, 300).w, 300, 'base width survives title-only rendering');
+assert.equal(g.oneLineBox(overviewNote, 480).w, 480, 'per-node width survives title-only rendering');
+assert.ok(g.oneLineBox(overviewNote, 480).h < g.oneLineBox(overviewNote, 120).h, 'title wraps according to its effective width');
+console.log('overview configured widths and title wrapping passed');

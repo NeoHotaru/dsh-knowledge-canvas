@@ -785,12 +785,14 @@ function parseMarkdown(source) {
      * large base fit; this one only keeps the edges attached to what is actually drawn, and the width stays
      * whatever the reader set.
      */
-    function oneLineBox(node) {
+    function oneLineBox(node, width) {
       const full = estimateBox(node)
+      // The overview must reserve the same effective width as NodeBox, including per-node overrides.
+      const boxWidth = Number.isFinite(width) ? width : full.w
       const title = String((node && node.title) || '')
-      const perLine = Math.max(8, (full.w - BOX_PADDING) / GLYPH_W)
+      const perLine = Math.max(8, (boxWidth - BOX_PADDING) / GLYPH_W)
       const titleLines = Math.ceil((title.length / perLine) + 1)
-      return { w: full.w, h: Math.max(BOX_H, Math.round(9 + titleLines * 22 + 9 + 15)) }
+      return { w: boxWidth, h: Math.max(BOX_H, Math.round(9 + titleLines * 22 + 9 + 15)) }
     }
 
     function boxOf(widths, nodeWidths, baseId, nodeId, node) {
@@ -2375,7 +2377,8 @@ function estimateBox(node) {
         const item = entryById.get(id);
         // Without a body drawn, the box is one line — and the geometry has to agree with what is on screen, or
         // every edge arrives at the edge of a box that is no longer there.
-        if (!detailRef.current) return oneLineBox(item ? item.node : {});
+        if (!detailRef.current) return oneLineBox(item ? item.node : {},
+          widthOf(widths, nodeWidths, base.id, id, item ? item.node : undefined));
         const box = boxOf(widths, nodeWidths, base.id, id, item ? item.node : undefined);
         if (Number.isFinite(box.h)) return { w: box.w, h: box.h };
         const found = sizes[id];
@@ -2720,13 +2723,10 @@ function estimateBox(node) {
        */
       const rectOf = (id) => {
         if (hiddenNodes.has(id)) return null;
-        const placedNode = entryById.get(id);
         const spot = placed[id];
         if (!spot) return null;
         // Same rule as `sizeOf`: the box the geometry uses is the box that is drawn.
-        const size = detailRef.current
-          ? (sizes[id] || { w: BOX_W, h: estimateBox(placedNode ? placedNode.node : {}).h })
-          : oneLineBox(placedNode ? placedNode.node : {});
+        const size = sizeOf(id);
         return { x: spot.x, y: spot.y, w: size.w, h: size.h };
       };
 
@@ -6591,6 +6591,7 @@ function estimateBox(node) {
         nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines, worthMarking, historyMarks,
       },
       __geometry: {
+        oneLineBox,
         segmentHitsBox,
         curveHitsBox,
         linkControlPoint,
