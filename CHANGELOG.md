@@ -1,5 +1,13 @@
 # 变更记录
 
+## 0.4.3 — 2026-10-23
+
+- Add subtree arrows, context-menu folding, hidden-descendant counts and Expand all. Nested folds survive parent expansion.
+- Reveal ancestor paths for search, locate and unread navigation without expanding unrelated branches or the target itself.
+- Persist canvas-only fold deltas atomically per workspace/base. Preserve folds across layout writes, reject invalid requests and prune physically deleted ids.
+- Preserve node positions on folding and offer explicit visible-node arrangement. Hide edges to hidden endpoints without retargeting them; protect unsaved descendant editors.
+- Add deep-tree, concurrency, failed-save rollback, session isolation, HTTP and prompt non-mutation regressions. Tutorial v21 documents the new controls. No model calls are added by folding.
+
 ## 0.4.2 — 2026-10-22
 
 - Fix npm-installed bundle resolution: Cordis imports `dsh-knowledge-canvas` while internal ids and data paths stay compatible.

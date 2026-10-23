@@ -1328,6 +1328,63 @@ function estimateBox(node) {
       return ordered;
     }
 
+    /** A linear, iterative forest index. Malformed orphan/cyclic data remains inspectable. */
+    function subtreeIndex(nodes) {
+      const byId = new Map((nodes || []).map((node) => [node.id, node]));
+      const parentOf = new Map();
+      for (const node of byId.values()) parentOf.set(node.id,
+        byId.has(node.parent) && node.parent !== node.id ? node.parent : null);
+      const checked = new Set();
+      for (const id of byId.keys()) {
+        const path = new Set();
+        let cursor = id;
+        while (cursor !== null && !checked.has(cursor)) {
+          if (path.has(cursor)) { parentOf.set(cursor, null); break; }
+          path.add(cursor); cursor = parentOf.get(cursor);
+        }
+        for (const member of path) checked.add(member);
+      }
+      const children = new Map(), roots = [];
+      for (const id of byId.keys()) children.set(id, []);
+      for (const [id, parent] of parentOf) {
+        if (parent === null) roots.push(id);
+        else children.get(parent).push(id);
+      }
+      const order = [], stack = roots.slice().reverse();
+      while (stack.length) {
+        const id = stack.pop(); order.push(id);
+        const kids = children.get(id);
+        for (let i = kids.length - 1; i >= 0; i -= 1) stack.push(kids[i]);
+      }
+      const descendants = new Map(order.map((id) => [id, 0]));
+      for (let i = order.length - 1; i >= 0; i -= 1) {
+        const id = order[i], parent = parentOf.get(id);
+        if (parent !== null) descendants.set(parent, descendants.get(parent) + descendants.get(id) + 1);
+      }
+      return { byId, parentOf, children, roots, order, descendants };
+    }
+
+    function foldedNodes(index, collapsedIds) {
+      const folded = new Set(Array.isArray(collapsedIds) ? collapsedIds : []);
+      const hidden = new Set();
+      for (const id of index.order) {
+        const parent = index.parentOf.get(id);
+        if (parent !== null && (hidden.has(parent) || folded.has(parent))) hidden.add(id);
+      }
+      return hidden;
+    }
+
+    function applyCollapse(index, collapsedIds, operation) {
+      const next = new Set(Array.isArray(collapsedIds) ? collapsedIds : []);
+      if (operation.expandAll) return [];
+      if (operation.reveal !== undefined) {
+        let parent = index.parentOf.get(operation.reveal);
+        while (parent !== undefined && parent !== null) { next.delete(parent); parent = index.parentOf.get(parent); }
+      } else if (operation.collapsed && index.descendants.get(operation.node) > 0) next.add(operation.node);
+      else if (operation.collapsed === false) next.delete(operation.node);
+      return [...next];
+    }
+
     function Glyph({ size = 16 }) {
       return h('svg', {
         viewBox: '0 0 16 16',
@@ -1747,7 +1804,7 @@ function estimateBox(node) {
     function NodeBox({
       entry, x, y, onPressStart, onActivate, onReview, onSpotlight, color, isFocus, onNodeMenu,
       isSource, isTarget, isEdited, isArmed, boxWidth, boxHeight, liveWidth, liveHeight, onResizeStart,
-      byline, injectionMode,
+      byline, injectionMode, descendantCount, collapsed, onToggleCollapse,
       onRename,
       /** False when the canvas is zoomed out far enough that a body would be illegible. */
       detail,
@@ -1908,6 +1965,18 @@ function estimateBox(node) {
             overflowWrap: 'anywhere', wordBreak: 'break-word',
           },
         },
+          descendantCount > 0 ? h('button', {
+            type: 'button',
+            'data-kb-collapse': node.id,
+            'aria-expanded': !collapsed,
+            'aria-label': (collapsed ? '展开子树：' : '折叠子树：') + node.title,
+            title: collapsed ? '展开子树' : '折叠子树',
+            onPointerDown: (event) => event.stopPropagation(),
+            onKeyDown: (event) => event.stopPropagation(),
+            onClick: (event) => { event.stopPropagation(); onToggleCollapse(node.id); },
+            style: { width: 22, height: 22, padding: 0, marginRight: 3, border: 'none', borderRadius: 4,
+              background: 'transparent', color: 'inherit', font: 'inherit', cursor: 'pointer', verticalAlign: 'baseline' },
+          }, collapsed ? '▸' : '▾') : null,
           node.title,
           // The id, because that is what the tools and the conversation call this node. Without it, "read
           // o14" is an instruction you cannot follow: the canvas shows titles, and nothing on screen says
@@ -1928,6 +1997,11 @@ function estimateBox(node) {
             title: '此节点单独指定为' + (injectionMode === 'full' ? '全文注入' : '按需读取') + '，不影响子节点',
             style: { marginLeft: 5, fontSize: 11, fontWeight: 400, whiteSpace: 'nowrap' },
           }, injectionMode === 'full' ? '全文' : '按需') : null,
+          descendantCount > 0 ? h('span', {
+            'data-kb-collapse-summary': collapsed ? 'collapsed' : 'expanded',
+            style: { display: 'block', height: 16, lineHeight: '16px', marginTop: 3, fontSize: 11,
+              fontWeight: 400, opacity: 0.8, whiteSpace: 'nowrap' },
+          }, collapsed ? '已收起 ' + descendantCount + ' 个节点' : descendantCount + ' 个后代节点') : null,
         ),
         // `overflowWrap: anywhere` so a long identifier or path breaks instead of running out of the
         // box and under its neighbour, which is what made the canvas look like it was stacking.
@@ -2088,8 +2162,17 @@ function estimateBox(node) {
        */
       onSetLinkNote,
       colors, onColor, focusId, onResetLayout, shape, onSetShape, onRemoveNode, onRevertNode, onCreateNode, onPurgeNode,
-      onSendToChat, widths, nodeWidths, onSetWidth, onAttachPicture, nodeInjection, defaultInjection, onInjection }) {
+      onSendToChat, widths, nodeWidths, onSetWidth, onAttachPicture, nodeInjection, defaultInjection, onInjection,
+      collapsedNodes, onCollapse, onArrange }) {
       const ordered = React.useMemo(() => layout(base.nodes || []), [base.nodes]);
+      const branches = React.useMemo(() => subtreeIndex(base.nodes || []), [base.nodes]);
+      const hiddenNodes = React.useMemo(() => foldedNodes(branches, collapsedNodes), [branches, collapsedNodes]);
+      const folded = new Set(Array.isArray(collapsedNodes) ? collapsedNodes : []);
+      const visibleOrdered = React.useMemo(() => ordered.filter((entry) => !hiddenNodes.has(entry.node.id)), [ordered, hiddenNodes]);
+      const [arrangeRequest, setArrangeRequest] = React.useState(false);
+      const arrangementEntries = arrangeRequest ? visibleOrdered : ordered;
+      const lastPlacement = React.useRef({});
+      const [foldNotice, setFoldNotice] = React.useState('');
       /**
        * `ordered` by id, built once per render.
        *
@@ -2111,6 +2194,14 @@ function estimateBox(node) {
       // once, and no routing scheme fixes that — only taking the others out of the way does.
       const [spotlight, setSpotlight] = React.useState(null);
       const [editingId, setEditingId] = React.useState(null);
+      const toggleCollapse = (id) => {
+        if (!folded.has(id) && editingId && foldedNodes(branches, [id]).has(editingId)) {
+          setFoldNotice('请先保存或取消正在编辑的节点，再折叠它的上级。');
+          return;
+        }
+        setFoldNotice('');
+        onCollapse({ node: id, collapsed: !folded.has(id) });
+      };
       // The canvas menu: where it sits on screen and where in the canvas the click landed. Both are
       // needed — the menu is drawn outside the zoomed layer so it stays legible, while the node has to
       // be placed in the canvas's own coordinates.
@@ -2202,7 +2293,8 @@ function estimateBox(node) {
 
       const declared = base.links || [];
       const allLinks = declared.concat(extraLinks || []).filter(
-        (link) => depthOf[link.from] !== undefined && depthOf[link.to] !== undefined);
+        (link) => depthOf[link.from] !== undefined && depthOf[link.to] !== undefined
+          && !hiddenNodes.has(link.from) && !hiddenNodes.has(link.to));
       const unsaved = new Set((extraLinks || []).map((link) => link.from + '>' + link.to));
 
       // Links are drawn as direct dashed lines between the two boxes.
@@ -2240,13 +2332,14 @@ function estimateBox(node) {
             + ':' + (nodeInjection?.[node.id] || ''));
         }
         parts.push('e' + (edits ? Object.keys(edits).join(',') : ''));
+        parts.push('visible:' + visibleOrdered.map((entry) => entry.node.id).join(','));
         return parts.join('|');
       })();
       React.useLayoutEffect(() => {
         const holder = boxRef.current;
         // Collapsed overview cards must not overwrite the full-detail measurements.
         if (!holder || !detailRef.current) return;
-        const found = {};
+        const found = Object.fromEntries(Object.entries(sizes).filter(([id]) => branches.byId.has(id)));
         let changed = false;
         holder.querySelectorAll('[data-node-id]').forEach((element) => {
           // An editor is not the node. Measuring it fed its own height back into the layout, so
@@ -2276,7 +2369,7 @@ function estimateBox(node) {
       // Pan/zoom within one detail mode changes the camera, not the graph.
       const { placed: layoutPlaced, sizeOf, width, height } = React.useMemo(() => {
       const placed = {};
-      for (const item of ordered) placed[item.node.id] = { x: 0, y: 0 };
+      for (const item of arrangementEntries) placed[item.node.id] = { x: 0, y: 0 };
 
       const sizeOf = (id) => {
         const item = entryById.get(id);
@@ -2290,14 +2383,14 @@ function estimateBox(node) {
       };
 
       const childIndex = new Map();
-      for (const item of ordered) {
+      for (const item of arrangementEntries) {
         const parent = item.node.parent;
         if (!childIndex.has(parent)) childIndex.set(parent, []);
         childIndex.get(parent).push(item);
       }
       const childrenOf = (id) => childIndex.get(id) || [];
-      const known = new Set(ordered.map((item) => item.node.id));
-      const roots = ordered.filter((item) => !item.node.parent || !known.has(item.node.parent));
+      const known = new Set(arrangementEntries.map((item) => item.node.id));
+      const roots = arrangementEntries.filter((item) => !item.node.parent || !known.has(item.node.parent));
 
       // Radial placement.
       //
@@ -2357,7 +2450,7 @@ function estimateBox(node) {
 
         let shelf = 10;
         const depths = [];
-        for (const item of ordered) {
+        for (const item of arrangementEntries) {
           if (!depths[item.depth]) depths[item.depth] = 0;
           depths[item.depth] = Math.max(depths[item.depth], sizeOf(item.node.id).h);
         }
@@ -2389,7 +2482,7 @@ function estimateBox(node) {
           rowTop[depth] = shelfY;
           shelfY += (depths[depth] || BOX_H) + GAP_Y;
         }
-        for (const item of ordered) placed[item.node.id].y = rowTop[item.depth] || 10;
+        for (const item of arrangementEntries) placed[item.node.id].y = rowTop[item.depth] || 10;
 
         let cursor = 10;
         for (const root of roots) {
@@ -2401,7 +2494,7 @@ function estimateBox(node) {
         // This is the arrangement the panel had before the radial one, and for a straight chain of
         // steps — which is exactly what a release flow is — it reads better than a fan.
         let stack = 10;
-        for (const item of ordered) {
+        for (const item of arrangementEntries) {
           placed[item.node.id] = { x: offsetX + item.depth * COLUMN, y: stack };
           stack += sizeOf(item.node.id).h + ROW_GAP;
         }
@@ -2421,17 +2514,19 @@ function estimateBox(node) {
       // arrangement, and it has to be part of what the pass checks. Applied afterwards it could sit on
       // top of a neighbour and nothing would move it.
       // A node the user dragged keeps where they put it; the automatic layout gives way to it.
-      for (const item of ordered) {
-        const spot = positions && positions[item.node.id];
+      for (const item of arrangementEntries) {
+        const spot = !arrangeRequest && positions && positions[item.node.id];
         if (spot) placed[item.node.id] = { x: spot.x, y: spot.y };
       }
 
       // Separating pass: anything still overlapping is pushed apart until it clears.
-      const ids = ordered.map((item) => item.node.id);
+      const ids = arrangementEntries.map((item) => item.node.id);
       for (let round = 0; round < 60; round += 1) {
         let bumped = false;
         for (let i = 0; i < ids.length; i += 1) {
           for (let j = i + 1; j < ids.length; j += 1) {
+            // Explicit positions are the reader's arrangement; never push those boxes while folding.
+            if (!arrangeRequest && (positions?.[ids[i]] || positions?.[ids[j]])) continue;
             const a = placed[ids[i]];
             const b = placed[ids[j]];
             const aSize = sizeOf(ids[i]);
@@ -2457,7 +2552,7 @@ function estimateBox(node) {
       // The bounds are taken here, before the overrides: where a node has been dragged to is the
       // user's business, but it must not move the canvas's origin out from under everything else.
       const automatic = {};
-      for (const item of ordered) automatic[item.node.id] = { ...placed[item.node.id] };
+      for (const item of arrangementEntries) automatic[item.node.id] = { ...placed[item.node.id] };
 
       // Bounds come from where the boxes actually ended up, including the space above and to the
       // left of the origin that a radial layout reaches into.
@@ -2465,7 +2560,7 @@ function estimateBox(node) {
       let minY = 0;
       let maxX = 0;
       let maxY = 0;
-      for (const item of ordered) {
+      for (const item of arrangementEntries) {
         const spot = automatic[item.node.id] || placed[item.node.id];
         const size = sizeOf(item.node.id);
         minX = Math.min(minX, spot.x);
@@ -2476,7 +2571,7 @@ function estimateBox(node) {
       // Shift everything into positive coordinates: the canvas renders from its own top-left, and
       // a node at a negative coordinate would be drawn outside it.
       if (minX < 0 || minY < 0) {
-        for (const item of ordered) {
+        for (const item of arrangementEntries) {
           placed[item.node.id].x -= minX;
           placed[item.node.id].y -= minY;
         }
@@ -2487,8 +2582,14 @@ function estimateBox(node) {
       const height = maxY + 24;
 
       return { placed, sizeOf, width, height };
-      }, [ordered, sizes, widths, nodeWidths, base.id, shape, positions, view.k >= DETAIL_ZOOM]);
+      }, [arrangementEntries, sizes, widths, nodeWidths, base.id, shape, positions, arrangeRequest, view.k >= DETAIL_ZOOM]);
       const placed = { ...layoutPlaced };
+      React.useLayoutEffect(() => {
+        if (arrangeRequest) {
+          onArrange({ ...lastPlacement.current, ...layoutPlaced });
+          setArrangeRequest(false);
+        } else lastPlacement.current = layoutPlaced;
+      }, [arrangeRequest, layoutPlaced]);
 
 
       // The latest placement, for callbacks that outlive the render that created them — the hold
@@ -2499,6 +2600,7 @@ function estimateBox(node) {
       const centred = React.useRef(null);
       React.useEffect(() => {
         if (!focusId || centred.current === focusId) return;
+        if (hiddenNodes.has(focusId)) { onCollapse({ reveal: focusId }); return; }
         const holder = boxRef.current;
         const spot = placed[focusId];
         if (!holder || !spot) return;
@@ -2510,7 +2612,7 @@ function estimateBox(node) {
           x: rect.width / 2 - (spot.x + size.w / 2) * current.k,
           y: rect.height / 2 - (spot.y + size.h / 2) * current.k,
         }));
-      }, [focusId, placed, sizes]);
+      }, [focusId, placed, sizes, hiddenNodes]);
 
       // Which node's edit history is open, and the entries it should show. The entries come from the node
       // itself — it carries its own last ten edits — so this is a lookup, not a fetch.
@@ -2583,6 +2685,7 @@ function estimateBox(node) {
       // React does support, and it works — so this now matches it rather than inventing a second shape.
       React.useEffect(() => {
         if (!focusNode) return undefined;
+        if (hiddenNodes.has(focusNode.nodeId)) { onCollapse({ reveal: focusNode.nodeId }); return undefined; }
         const spot = placedRef.current[focusNode.nodeId];
         const holder = boxRef.current;
         if (!spot || !holder) {
@@ -2602,7 +2705,7 @@ function estimateBox(node) {
         // otherwise indistinguishable from one that panned, because both end with the request cleared.
         onFocusShown('centred', focusNode.nodeId);
         return undefined;
-      }, [focusNode]);
+      }, [focusNode, hiddenNodes]);
 
       // The node being dragged follows the pointer live, and the edges follow it.
       // The pointer's space is the drawn space: the shift is inside the nodes' own left/top, not
@@ -2616,6 +2719,7 @@ function estimateBox(node) {
        * The lookup is the Map built at the top of this render, not `ordered.find` — see its comment.
        */
       const rectOf = (id) => {
+        if (hiddenNodes.has(id)) return null;
         const placedNode = entryById.get(id);
         const spot = placed[id];
         if (!spot) return null;
@@ -2647,6 +2751,14 @@ function estimateBox(node) {
 
       const fitTo = (contentWidth, contentHeight) => {
         const rect = boxRef.current && boxRef.current.getBoundingClientRect();
+        let left = 0, top = 0;
+        if (hiddenNodes.size > 0 && visibleOrdered.length > 0) {
+          const boxes = visibleOrdered.map((entry) => rectOf(entry.node.id)).filter(Boolean);
+          left = Math.min(...boxes.map((box) => box.x)) - 12;
+          top = Math.min(...boxes.map((box) => box.y)) - 12;
+          contentWidth = Math.max(...boxes.map((box) => box.x + box.w)) - left + 12;
+          contentHeight = Math.max(...boxes.map((box) => box.y + box.h)) - top + 12;
+        }
         if (!rect || !contentWidth || !contentHeight) {
           setView({ k: 1, x: 0, y: 0 });
           return;
@@ -2655,8 +2767,8 @@ function estimateBox(node) {
           (rect.width - 24) / contentWidth, (rect.height - 24) / contentHeight));
         setView({
           k,
-          x: Math.max(12, (rect.width - contentWidth * k) / 2),
-          y: Math.max(12, (rect.height - contentHeight * k) / 2),
+          x: Math.max(12, (rect.width - contentWidth * k) / 2) - left * k,
+          y: Math.max(12, (rect.height - contentHeight * k) / 2) - top * k,
         });
       };
 
@@ -3066,7 +3178,7 @@ function estimateBox(node) {
       // silently; that list is the whole mechanism, so it is written out rather than inferred.
       const routeKey = (() => {
         const boxes = [];
-        for (const entry of ordered) {
+        for (const entry of visibleOrdered) {
           const box = rectOf(entry.node.id);
           boxes.push({
             id: entry.node.id,
@@ -3082,11 +3194,11 @@ function estimateBox(node) {
 
       const routed = React.useMemo(() => {
         const parentEdges = [];
-        ordered.forEach((entry) => {
+        visibleOrdered.forEach((entry) => {
           const parent = entry.node.parent ? rectOf(entry.node.parent) : null;
           const self = rectOf(entry.node.id);
           if (parent && self) {
-            const others = ordered
+            const others = visibleOrdered
               .filter((item) => item.node.id !== entry.node.parent && item.node.id !== entry.node.id)
               .map((item) => rectOf(item.node.id)).filter(Boolean);
             parentEdges.push({
@@ -3105,7 +3217,7 @@ function estimateBox(node) {
           if (!from || !to) return null;
           // Every other box in the canvas is a candidate obstacle; routeLink decides which of them
           // the curve actually has to avoid, working from the curve rather than from the chord.
-          const others = ordered
+          const others = visibleOrdered
             .filter((entry) => entry.node.id !== link.from && entry.node.id !== link.to)
             .map((entry) => rectOf(entry.node.id))
             .filter(Boolean);
@@ -3143,7 +3255,7 @@ function estimateBox(node) {
       // from the rendered panel, it sat at exactly the old minimum. Sizing off the viewport is
       // the robust alternative, since the right pane is full height.
       const canvasMin = fullscreen ? '72vh' : '56vh';
-      const previewEntry = view.k < DETAIL_ZOOM && spotlight !== null && !moving && !drag && !pan.current
+      const previewEntry = view.k < DETAIL_ZOOM && spotlight !== null && !hiddenNodes.has(spotlight) && !moving && !drag && !pan.current
         ? entryById.get(spotlight) : null;
       const previewNode = previewEntry ? Object.assign({}, previewEntry.node, edits && edits[spotlight]) : null;
       const previewBody = previewNode ? String(previewNode.body || '')
@@ -3233,6 +3345,9 @@ function estimateBox(node) {
             toolButton('＋', '放大', () => zoomAt(1.2, 0, 0)),
           ]),
           toolButton('适应', '缩放到刚好放下', () => fitTo(width, height)),
+          folded.size > 0 ? toolButton('全部展开', '展开这份知识库中的所有分支', () => onCollapse({ expandAll: true })) : null,
+          folded.size > 0 ? toolButton('整理可见节点', '按当前排版整理可见节点；隐藏节点保留原位置', () => setArrangeRequest(true)) : null,
+          foldNotice ? h('span', { role: 'status', style: { fontSize: 12 } }, foldNotice) : null,
           // Labelled: a bare number in a row of buttons does not say what it measures.
           h('span', {
             // This used to say a single node's width was set "in its editor". It is not: the editor holds the
@@ -3439,7 +3554,7 @@ function estimateBox(node) {
               // Fixed, and clamped: the canvas can be panned and zoomed, the menu cannot.
               position: 'fixed',
               left: Math.min(Math.max(0, (nodeMenu.clientX || 0) + 4), Math.max(0, window.innerWidth - 172)),
-              top: Math.min(Math.max(0, (nodeMenu.clientY || 0) + 4), Math.max(0, window.innerHeight - 245)),
+              top: Math.min(Math.max(0, (nodeMenu.clientY || 0) + 4), Math.max(0, window.innerHeight - 280)),
               zIndex: 5,
               minWidth: 148,
               padding: 4,
@@ -3452,6 +3567,11 @@ function estimateBox(node) {
             },
           },
             [
+              ...(branches.descendants.get(nodeMenu.id) > 0 ? [[
+                folded.has(nodeMenu.id) ? '展开子树' : '折叠子树',
+                '仅改变画布显示，不影响知识读取或注入',
+                () => { const id = nodeMenu.id; setNodeMenu(null); toggleCollapse(id); },
+              ]] : []),
               ...[['跟随知识库', 'inherit'], ['全文注入', 'full'], ['按需读取', 'index']].map(([label, mode]) => [
                 ((nodeInjection?.[nodeMenu.id] || 'inherit') === mode ? '✓ ' : '') + label,
                 '仅设置这个节点，不影响子节点；同工作区共享',
@@ -3462,6 +3582,7 @@ function estimateBox(node) {
                 setNodeMenu(null);
                 onCreateChild(id).then((created) => {
                   if (!created) return;
+                  if (folded.has(id)) onCollapse({ node: id, collapsed: false });
                   // Placed by hand, not left to the automatic layout: an unplaced node is laid out from the whole
                   // tree's shape, which after any dragging is somewhere else entirely.
                   const spot = freeSpotNear(id);
@@ -3612,7 +3733,7 @@ function estimateBox(node) {
             'data-kb-band': drag && drag.kind === 'parent' ? 'parent' : 'link',
           }) : null,
         ),
-        ordered.map((entry) => {
+        visibleOrdered.map((entry) => {
           const spot = placed[entry.node.id];
           if (editingId === entry.node.id) {
             return h(NodeEditor, {
@@ -3670,6 +3791,9 @@ function estimateBox(node) {
             // The labels come from Body: they are assigned across every base, and Tree renders one.
             onRename: entry.node.by ? () => renameSession(entry.node.by) : null,
             detail: view.k >= DETAIL_ZOOM,
+            descendantCount: branches.descendants.get(entry.node.id) || 0,
+            collapsed: folded.has(entry.node.id),
+            onToggleCollapse: toggleCollapse,
             // Right-click on a node opens a small menu: create a child, create a parent, or read the history.
             //
             // The canvas's own menu is for "make something here"; this one is for "make something relative to
@@ -4563,6 +4687,11 @@ function estimateBox(node) {
       // only the ones actually moved are remembered — a new node from the model still lands
       // somewhere sensible instead of on top of something.
       const [positions, setPositions] = React.useState({});
+      const [collapsed, setCollapsed] = React.useState({});
+      const collapseWrites = React.useRef(null);
+      if (!collapseWrites.current || collapseWrites.current.session !== sessionId) {
+        collapseWrites.current = { session: sessionId, values: {}, confirmed: {}, versions: {}, pending: {}, queue: Promise.resolve() };
+      }
       // Per-node colours the user chose, keyed by base then node.
       const [colors, setColors] = React.useState({});
       const [nodeInjection, setNodeInjection] = React.useState({});
@@ -4619,6 +4748,31 @@ function estimateBox(node) {
       }, [sessionId]);
 
       /** Ask the user for a name, and take the host's answer as the truth. */
+      const changeCollapsed = (base, operation) => {
+        const held = collapseWrites.current;
+        const id = base.id;
+        const version = (held.versions[id] || 0) + 1;
+        held.versions[id] = version;
+        held.pending[id] = (held.pending[id] || 0) + 1;
+        const next = applyCollapse(subtreeIndex(base.nodes || []), held.values[id], operation);
+        held.values = { ...held.values, [id]: next };
+        setCollapsed(held.values);
+        held.queue = held.queue.catch(() => {}).then(() => post('collapse', { base: id, ...operation })).then((result) => {
+          held.pending[id] -= 1;
+          held.confirmed[id] = result.collapsed;
+          if (collapseWrites.current === held && held.versions[id] === version) {
+            held.values = { ...held.values, [id]: result.collapsed };
+            setCollapsed(held.values);
+          }
+        }, () => {
+          held.pending[id] -= 1;
+          if (collapseWrites.current === held && held.versions[id] === version) {
+            held.values = { ...held.values, [id]: held.confirmed[id] || [] };
+            setCollapsed(held.values);
+          }
+        });
+      };
+
       const renameSession = React.useCallback((sessionId) => {
         const current = names[sessionId] || '';
         const wanted = window.prompt('给这个会话起个名字（留空就是不起名）', current);
@@ -5082,6 +5236,14 @@ function estimateBox(node) {
             setEnabled(on);
             setHasOwnSelection(ownsSelection);
             setPositions((layout && layout.positions) || {});
+            const held = collapseWrites.current;
+            const restored = { ...((layout && layout.collapsed) || {}) };
+            const confirmed = { ...restored };
+            for (const [id, pending] of Object.entries(held.pending)) {
+              if (pending > 0) { restored[id] = held.values[id]; confirmed[id] = held.confirmed[id] || []; }
+            }
+            held.values = restored; held.confirmed = confirmed;
+            setCollapsed(restored);
             setColors((layout && layout.colors) || {});
             setShapes((layout && layout.shapes) || {});
             setWidths((layout && layout.widths) || {});
@@ -5897,6 +6059,12 @@ function estimateBox(node) {
             // Body owns which view is on screen, so the canvas only asks.
             onShowHistory: (nodeId) => showHistory(base.id, nodeId),
             positions: positions[base.id] || {},
+            collapsedNodes: collapsed[base.id],
+            onCollapse: (operation) => changeCollapsed(base, operation),
+            onArrange: (updated) => {
+              setPositions((current) => ({ ...current, [base.id]: updated }));
+              post('layout', { base: base.id, positions: updated }).catch(() => {});
+            },
             onMove: (nodeId, x, y) => {
               const updated = {
                 ...(positions[base.id] || {}),
@@ -6419,7 +6587,7 @@ function estimateBox(node) {
       // shows up as a line that looks slightly off rather than as a failure.
       // Pure decisions the panel makes, exposed for the same reason the geometry is: a button cannot
       // be pressed by a check script, but the question the button answers can be asked directly.
-      __logic: { diaryPages, DiaryBook, DiaryOrTree, DiaryReplies,
+      __logic: { diaryPages, DiaryBook, DiaryOrTree, DiaryReplies, Tree, NodeBox, subtreeIndex, foldedNodes, applyCollapse,
         nextUnread, parseMarkdown, inlineSpans, estimateBox, searchBases, diffLines, worthMarking, historyMarks,
       },
       __geometry: {

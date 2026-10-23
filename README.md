@@ -1,5 +1,11 @@
 # dsh-knowledge-canvas
 
+## 0.4.3 collapsible subtrees
+
+Use the title arrow or a node's context menu to collapse a branch, with a hidden-descendant count. Nested folds survive reopening their parent. Search and locate expand only the target's ancestor path; the toolbar can expand everything. State is stored per workspace and base, outside knowledge content and injection policies.
+
+Folding preserves node positions. An explicit Arrange visible action compacts the visible graph using its current layout while retaining hidden coordinates. Save or cancel an active descendant editor before folding its ancestor. Hidden association endpoints hide their lines rather than redirecting them.
+
 ## 0.4.2 installation fix
 
 Fix clean-profile startup failures caused by an unresolved development package name and duplicate client factory registration. Exit DSH before updating a broken installation in its profile directory; knowledge files do not need to be removed.
