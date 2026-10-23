@@ -1,5 +1,9 @@
 # dsh-knowledge-canvas
 
+## 0.4.4 overview layout fix
+
+Title-only nodes now keep their configured width in automatic layout, preventing neighboring cards from overlapping after zooming out. Layout and edge geometry use the same node dimensions. This client-side fix adds no model calls.
+
 ## 0.4.3 collapsible subtrees
 
 Use the title arrow or a node's context menu to collapse a branch, with a hidden-descendant count. Nested folds survive reopening their parent. Search and locate expand only the target's ancestor path; the toolbar can expand everything. State is stored per workspace and base, outside knowledge content and injection policies.
