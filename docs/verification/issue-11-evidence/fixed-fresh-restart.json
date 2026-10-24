@@ -1,0 +1,29 @@
+{
+  "pageErrors": [],
+  "consoleErrors": [],
+  "jsResponses": [
+    {
+      "url": "http://127.0.0.1:19864/manifest.webmanifest",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:19864/assets/vendor-DcuzkuQH.js",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:19864/assets/index-CN7NIWNw.js",
+      "status": 200
+    }
+  ],
+  "failedRequests": [],
+  "page": {
+    "title": "DeepSeek Harness",
+    "text": "新会话\nCtrl\n+\nAlt\n+\nN\n插件\n自动化任务\n工作区\n默认工作区\n新会话\n更多\n探索未至之境\n预览版\n默认工作区\n标准模式\n描述你想要构建的内容, / 调用指令, @ 文件或对话\n工作区内修改\n请选择模型\n开始使用\n\n登录 DeepSeek 账号，或添加 API Key，即可开始使用。你的项目和文件保存在本地。\n\n添加 API Key\n登录",
+    "loaderKeys": [
+      "mode",
+      "pendingQueue",
+      "load",
+      "create"
+    ]
+  }
+}

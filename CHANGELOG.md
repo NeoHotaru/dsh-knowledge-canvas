@@ -1,5 +1,11 @@
 # 变更记录
 
+## 0.4.5 — 2026-10-23
+
+- Fix issue #11: register the client factory as `dsh-knowledge-canvas`, matching the official host module graph. The previous name caused the host to retry the script and fail boot with a duplicate `dsh-knowledge-tree` factory registration, including in 0.4.4.
+- Preserve the Cordis entry, panel contributions, HTTP routes and `.dsh-knowledge/` data identifiers; no data migration is required.
+- Check the shipped client registration against the package name in release validation and packed-install tests. Real clean-host boot/restart evidence and its Electron testing limits are recorded in `docs/verification/issue-11-clean-host.md`.
+
 ## 0.4.4 — 2026-10-23
 
 - Fix overlapping title-only nodes when a knowledge base or an individual node uses a custom width: overview layout now reserves the actual configured width.

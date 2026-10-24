@@ -19,7 +19,9 @@
  * the hardest thing to diagnose from a screenshot.
  */
 window.__ModuleLoader__.load({
-  id: 'dsh-knowledge-tree',
+  // The host's client-module graph is keyed by the published package name.
+  // Keep the contribution, route and storage IDs below stable for existing users.
+  id: 'dsh-knowledge-canvas',
   factory(require) {
     const React = require('react');
     const h = React.createElement;
