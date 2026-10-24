@@ -1,6 +1,10 @@
 # Issue #11 · clean official host startup
 
-Status: verified fix prepared for 0.4.5. Source baseline: 22230ce (0.4.4).
+Status: released as 0.4.5 on 2026-10-23 (America/Los_Angeles). PR #12 merged as e9b5cca19fe44ab7d6f719b9afbacbb85d8f62e4. Source baseline: 22230ce (0.4.4).
+
+GitHub Release: https://github.com/NeoHotaru/dsh-knowledge-canvas/releases/tag/v0.4.5
+
+npm latest was verified as 0.4.5. Published tarball SHA-1: `db133e98d281b3de1aabf0462806f63bbd2baf21`. Downloaded `client.js`, `index.js`, `cordis.patch.yml` and `package.json` match release source byte-for-byte. All eight PR/push checks and the four merged-main checks passed (Windows/Linux × Node22/24). Issue #11 was closed by the merged PR and received the release/upgrade explanation: https://github.com/NeoHotaru/dsh-knowledge-canvas/issues/11#issuecomment-6381122220
 
 Issue: https://github.com/NeoHotaru/dsh-knowledge-canvas/issues/11
 
