@@ -44,7 +44,8 @@ await import(new URL('./client.js', import.meta.url))
 
 const problems = []
 if (!spec) problems.push('the module never called window.__ModuleLoader__.load')
-if (spec && spec.id !== 'dsh-knowledge-tree') {
+const packageName = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')).name
+if (spec && spec.id !== packageName) {
   problems.push(`unexpected loader id: ${spec && spec.id}`)
 }
 

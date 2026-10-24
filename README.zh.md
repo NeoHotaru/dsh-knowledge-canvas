@@ -75,7 +75,7 @@ $ node report-kb-use.mjs
 "dsh": { "profile": { "bundles": [ ..., "dsh-knowledge-canvas" ] } }
 ```
 
-> 本仓库与发布包均使用 `dsh-knowledge-canvas`。内部Cordis id、客户端模块id、路由及数据目录保留旧标识以兼容现有数据；不要把这些内部标识当成安装包名。
+> 本仓库、发布包与前端模块注册名均使用 `dsh-knowledge-canvas`。内部 Cordis id、标签页标识、路由及数据目录保留旧标识以兼容现有数据；不要把这些内部标识当成安装包名。
 
 ## 面板上能做什么
 

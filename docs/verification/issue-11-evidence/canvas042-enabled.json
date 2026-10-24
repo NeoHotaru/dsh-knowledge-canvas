@@ -1,0 +1,34 @@
+{
+  "pageErrors": [
+    "Error: client-modules: duplicate factory registration for \"dsh-knowledge-tree\" (bundle executed twice without invalidate?)\n    at register (http://127.0.0.1:19862/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=b193722c5803:708:12)\n    at ClientModuleSystem.target.load (http://127.0.0.1:19862/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=b193722c5803:697:11)\n    at <anonymous> (http://127.0.0.1:19862/plugins/??dsh-knowledge-canvas/client.js&rev=57b6f95c1550:21:25)",
+    "Error: client-modules: duplicate factory registration for \"dsh-knowledge-tree\" (bundle executed twice without invalidate?)\n    at register (http://127.0.0.1:19862/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=b193722c5803:708:12)\n    at ClientModuleSystem.target.load (http://127.0.0.1:19862/plugins/??@deepseek-ai/dsh-client-modules/client.js&rev=b193722c5803:697:11)\n    at <anonymous> (http://127.0.0.1:19862/plugins/??dsh-knowledge-canvas/client.js&rev=57b6f95c1550:21:25)"
+  ],
+  "consoleErrors": [
+    "JSHandle@error"
+  ],
+  "jsResponses": [
+    {
+      "url": "http://127.0.0.1:19862/manifest.webmanifest",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:19862/assets/vendor-DcuzkuQH.js",
+      "status": 200
+    },
+    {
+      "url": "http://127.0.0.1:19862/assets/index-CN7NIWNw.js",
+      "status": 200
+    }
+  ],
+  "failedRequests": [],
+  "page": {
+    "title": "DeepSeek Harness",
+    "text": "HARNESS\nFailed to load plugins\ndsh-knowledge-canvas\nweb boot: 1 entry did not activate\ndsh-knowledge-canvas: import failed: client-modules: could not load \"dsh-knowledge-canvas\": plugins/??@deepseek-ai/dsh-client-ui-trajectory/client.js,@deepseek-ai/dsh-api-remote-access/client.js,@deepseek-ai/dsh-session-log-export/client.js,@deepseek-ai/dsh-client-file-upload/client.js,@deepseek-ai/dsh-api-remotes/client.js,@deepseek-ai/dsh-client-ui-deliverables/client.js,dsh-knowledge-canvas/client.js,@deepseek-ai/dsh-typert-registry/client.js,@deepseek-ai/dsh-client-connection/client.js,@deepseek-ai/dsh-api-workspace-controller/client.js,@deepseek-ai/dsh-api-session-controller/client.js,@deepseek-ai/dsh-client-ui-directory-picker-native/client.js&rev=905733f02857: already executed without registering \"dsh-knowledge-canvas\"; plugins/??dsh-knowledge-canvas/client.js&rev=57b6f95c1550: loaded without registering \"dsh-knowledge-canvas\" via __ModuleLoader__.load",
+    "loaderKeys": [
+      "mode",
+      "pendingQueue",
+      "load",
+      "create"
+    ]
+  }
+}

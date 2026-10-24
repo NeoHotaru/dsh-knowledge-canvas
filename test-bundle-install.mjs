@@ -7,13 +7,16 @@ import { execSync, execFileSync } from 'node:child_process'
 import { readBundleContract, validateBundleContract } from './scripts/bundle-contract.mjs'
 
 const root = dirname(fileURLToPath(import.meta.url))
-const { pkg, patch, problems } = readBundleContract(root)
+const { pkg, patch, client, problems } = readBundleContract(root)
 assert.deepEqual(problems, [])
 // The exact two 0.4.1 defects must fail independently, before another release.
 assert.match(validateBundleContract(pkg, patch.replace('name: dsh-knowledge-canvas', 'name: dsh-knowledge-tree')).join('\n'), /published package/)
 const duplicate = structuredClone(pkg)
 duplicate.dsh.client.immediately = true
 assert.match(validateBundleContract(duplicate, patch).join('\n'), /duplicate factory/)
+// Issue #11: a successful script evaluation is insufficient. The host waits for
+// a factory under the package graph ID, and retries a missing ID as a standalone script.
+assert.match(validateBundleContract(pkg, patch, client.replace("id: 'dsh-knowledge-canvas'", "id: 'dsh-knowledge-tree'")).join('\n'), /client factory.*published package/)
 
 const temp = mkdtempSync(join(tmpdir(), 'knowledge-install-'))
 try {
@@ -43,14 +46,20 @@ globalThis.window = {__ModuleLoader__:{load(spec){
 }}};
 await import('dsh-knowledge-canvas/client');
 assert.equal(factories.size,1);
-assert.equal(factories.get('dsh-knowledge-tree').id,host.name);
+assert.equal(factories.get('dsh-knowledge-canvas').id,'dsh-knowledge-canvas');
+// Existing backend, panel and data identities must not migrate with the graph ID.
+const source=readFileSync('node_modules/dsh-knowledge-canvas/client.js','utf8');
+assert.ok(source.includes("const PACKAGE_ID = 'dsh-knowledge-tree'"));
+assert.ok(source.includes("const PREFIX = '/dsh-knowledge-tree'"));
+assert.ok(source.includes("const TAB_KIND = 'knowledge-tree'"));
+assert.ok(source.includes("const DIR = '.dsh-knowledge'"));
 const profile=JSON.parse(readFileSync('package.json','utf8'));
 assert.ok(profile.dsh.profile.bundles.includes('dsh-knowledge-canvas'));
 console.log('packed host import and single client factory registration passed');`
   const probePath = join(fixture, 'probe.mjs')
   writeFileSync(probePath, probe)
   execFileSync(process.execPath, [probePath], { cwd: fixture, stdio: 'pipe' })
-  console.log(`bundle install: both historical manifest regressions rejected; clean offline npm tarball install, published-name host/client imports, single factory and runtime file coverage passed (${packed.entryCount} files)`)
+  console.log(`bundle install: resolver, eager-loading and factory-name regressions rejected; clean offline npm tarball install, published-name host/client imports, single factory and runtime file coverage passed (${packed.entryCount} files)`)
 } finally {
   assert.equal(dirname(realpathSync(temp)), realpathSync(tmpdir()))
   assert.ok(basename(temp).startsWith('knowledge-install-'))
