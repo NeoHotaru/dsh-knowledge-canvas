@@ -6148,7 +6148,7 @@ function estimateBox(node) {
              */
             onSetLinkNote: (from, to, note) => {
               post('linkNote', { base: base.id, from, to, note })
-                .then(() => load())
+                .then(() => setTick((current) => current + 1))
                 .catch(() => {});
             },
           }),
