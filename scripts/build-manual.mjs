@@ -1,7 +1,7 @@
 // 把教程渲染成一份纯手册。
 //
 // 教程装在知识库里，需要打开面板、点开节点才能读；有人只想"给我一份能从头读到尾的文档"。同一份内容，两种形态：
-// 这里生成 MANUAL.md，而且 `check-manual.mjs` 会比对它和 lib/seed.js 是否一致 —— 手写两份必然漂，生成的那份不会。
+// 这里生成 MANUAL.md。源在 lib/seed.js。
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
