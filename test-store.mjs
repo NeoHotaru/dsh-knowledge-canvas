@@ -348,6 +348,23 @@ await saveBase(removal.path, removal.base)
 check('a write into a removed node says Restored',
   await activityWriteTool.execute({ base: 'rv', node: second, body: '复活后。' }, reviveExec)
     .then((value) => /Restored/.test(String(value)), (error) => 'refused: ' + error.message))
+const shot = join(reviveCwd, 'shot.png')
+await writeFile(shot, Buffer.alloc(2048, 7))
+const addedShot = String(await activityWriteTool.execute({
+  base: 'rv', title: '带图', body: '什么时候该想起它：看这张。', parent: 'root', image: shot,
+}, reviveExec))
+const shotSuffix = addedShot.match(/ Attached assets\/[a-f0-9]{16}\.png \(2 KB\)\./)
+check('adding a node mentions the attached image', addedShot.startsWith('Added ') && Boolean(shotSuffix), addedShot)
+const shotRemoval = await loadBase(reviveCwd, 'rv')
+const shotNode = shotRemoval.base.nodes.find((node) => node.title === '带图')
+removeNode(shotRemoval.base, shotNode.id)
+await saveBase(shotRemoval.path, shotRemoval.base)
+const restoredShot = String(await activityWriteTool.execute({ base: 'rv', node: shotNode.id, image: shot }, reviveExec))
+check('restoring a node mentions that same image text',
+  restoredShot.startsWith('Restored ') && shotSuffix && restoredShot.includes(shotSuffix[0]), restoredShot)
+const updatedShot = String(await activityWriteTool.execute({ base: 'rv', node: second, image: shot }, reviveExec))
+check('updating a node mentions that same image text',
+  updatedShot.startsWith('Updated ') && shotSuffix && updatedShot.includes(shotSuffix[0]), updatedShot)
 
 // The two writers that rebuild selection.json must not drop what they do not own.
 const flagCwd = await mkdtemp(join(tmpdir(), 'kbflag-'))
