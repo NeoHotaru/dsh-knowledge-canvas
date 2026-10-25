@@ -16,9 +16,6 @@
  *   clean tree while the model had quietly rewritten it.
  * - Node ids and base ids are validated against a strict pattern rather than escaped, because
  *   a base id becomes a file name.
- * - The prompt carries only the outline of the enabled bases. `dsh-system-prompt` states that
- *   prompt text is repeated per request and that any change can invalidate prefix reuse from
- *   the first changed token, so bodies are fetched with a tool instead of injected.
  * - Registration is logged to a file. A host-side failure is otherwise invisible from the Web
  *   UI: the tools simply do not appear, and nothing distinguishes "the host never loaded this
  *   half" from "registration was rejected". The log answers that in one restart.

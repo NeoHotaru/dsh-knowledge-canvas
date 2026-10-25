@@ -249,8 +249,6 @@ window.__ModuleLoader__.load({
     };
 
       const WHALE_VERSION = '2026-10-16'
-      /** Where the grid lives. A function, not a constant: `PREFIX` is declared further down this file, so
-       *  a const initialiser here would read it before it exists and take the plugin down at load. */
       const whaleSheet = (which) => PREFIX + '/whale' + (which ? '-' + which : '') + '.png?v=' + WHALE_VERSION
       const WHALE_COLS = 5
       const WHALE_ROWS = 3
@@ -271,10 +269,6 @@ window.__ModuleLoader__.load({
       const WHALE_WORK = WHALE_LOOPS.find((entry) => entry.loop === 'work')
 
       /** The one animation in the sheet, as CSS. `steps` is what keeps pixel art on its own pixels. */
-      // 240 = five frames of the walk cycle at the 48 px they are drawn at.
-      // Distances are frames times the display size: the walk cycle is 5 * 72, the three strips are 6 * 72. Written out
-      // rather than computed because CSS needs a literal, and a wrong number makes the loop skip frames instead of
-      // failing.
       const WHALE_CSS = '@keyframes kb-whale-idle { from { background-position-x: 0 }'
         + ' to { background-position-x: -360px } }'
         + ' @keyframes kb-whale-wave { from { background-position-x: 0 } to { background-position-x: -432px } }'
@@ -765,17 +759,6 @@ function parseMarkdown(source) {
       return parsed.date.slice(5);
     }
 
-    /**
-     * How wide a node box should be.
-     *
-     * A width set on *this node* is a decision about this node and is never second-guessed. A width set on
-     * the base is a floor rather than an exact answer — a long body may need more room, and treating 176 as
-     * exact turned every long note into a thin column, which is what happened once a base width had been
-     * set: the estimate could never fire.
-     *
-     * The host has the same function for the same reason — it is the input to the horizontal step between
-     * siblings — but the client half cannot import it, so it exists here too.
-     */
     /**
      * The box a node occupies when its body is not drawn.
      *
@@ -2518,7 +2501,6 @@ function estimateBox(node) {
       // Applied before the separating pass, not after: a node the user dragged is part of the
       // arrangement, and it has to be part of what the pass checks. Applied afterwards it could sit on
       // top of a neighbour and nothing would move it.
-      // A node the user dragged keeps where they put it; the automatic layout gives way to it.
       for (const item of arrangementEntries) {
         const spot = !arrangeRequest && positions && positions[item.node.id];
         if (spot) placed[item.node.id] = { x: spot.x, y: spot.y };
@@ -2597,9 +2579,6 @@ function estimateBox(node) {
       }, [arrangeRequest, layoutPlaced]);
 
 
-      // The latest placement, for callbacks that outlive the render that created them — the hold
-      // timer reads it a quarter of a second after the press, by which time the layout may have run
-      // again.
       // Centre the view on a node when the unread walk lands on it. Keyed on the id so asking for
       // the same node twice does not fight the user's own panning.
       const centred = React.useRef(null);
@@ -2629,9 +2608,6 @@ function estimateBox(node) {
        * outline, and a line with nothing on it cannot be acted on. The user is not required to, because they
        * are the only reader of their own panel; but they must be able to, and the visible line is 1.4px and
        * hopeless to hit, so each link gets an invisible fat copy to click.
-       */
-      /**
-       * The node whose edit history is being edited: ...
        */
       const [noteFor, setNoteFor] = React.useState(null);
 
@@ -3796,10 +3772,6 @@ function estimateBox(node) {
             descendantCount: branches.descendants.get(entry.node.id) || 0,
             collapsed: folded.has(entry.node.id),
             onToggleCollapse: toggleCollapse,
-            // Right-click on a node opens a small menu: create a child, create a parent, or read the history.
-            //
-            // The canvas's own menu is for "make something here"; this one is for "make something relative to
-            // this node", which is the only way to build structure without the model.
             onNodeMenu: (id, event) => {
               const holder = boxRef.current;
               if (!holder) return;
@@ -4674,16 +4646,12 @@ function estimateBox(node) {
       // how it behaves either way.
       const [hasOwnSelection, setHasOwnSelection] = React.useState(false);
       const [openId, setOpenId] = React.useState(null);
-      // Bumped to re-read the files: the tools write to disk, and this panel has no way to be
-      // told about it, so the user asks for the re-read.
       const [tick, setTick] = React.useState(0);
   // One assignment, because the renderer is a plain function: see `assetSession` near parseMarkdown.
   assetSession = sessionId;
       // A destructive action that is one stray click away is a bug in the affordance: the first click only arms it.
       const [revertArmed, setRevertArmed] = React.useState(false);
-      // Links drawn by hand. Held here, not in the file: the client has no write path.
       const [drafts, setDrafts] = React.useState({});
-      // Node bodies the user retyped, same story: shown at once, saved nowhere yet.
       const [edits, setEdits] = React.useState({});
       // Where the user dragged a node. Positions are otherwise derived from the structure, so
       // only the ones actually moved are remembered — a new node from the model still lands
@@ -4825,7 +4793,6 @@ function estimateBox(node) {
         });
       }, [drafts, openId, post]);
 
-      /** Flip one base's switch and persist it; the switch must never show a state the host refused. */
       /** Every node matching the query, searched in memory. */
       const matches = React.useMemo(() => searchBases(state.bases, query), [state.bases, query]);
 
@@ -4859,7 +4826,6 @@ function estimateBox(node) {
         });
       }, []);
 
-      /** Save a new display name. An empty or unchanged value just closes the editor. */
       /** The nodes the model touched that the user has not acknowledged yet. */
       const unreviewedIn = (base) => (base.nodes || [])
         .filter((node) => node.change)
@@ -5193,8 +5159,6 @@ function estimateBox(node) {
                   if (answer && answer.base) bases.push(answer.base);
                 }
               }
-              // The diary belongs to the conversation keeping it, so it is filtered here — the panel builds this list from the
-              // files on disk, which means the host-side filter in readPanelState never ran on this path.
               else if (!parsed.id.startsWith('diary-') || parsed.id === keepDiaryBase) bases.push(parsed);
             }
             // The user's arrangement wins over the default id order, so dragging the most important
