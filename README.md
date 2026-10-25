@@ -40,9 +40,9 @@ Every node ends with a line beginning 「什么时候该想起它：」 — "whe
 | Where | What |
 | --- | --- |
 | Top row | search, read counters, refresh |
-| One row per base | title, read progress, one switch (does this conversation read it), `⋯` menu (rename, delete, colour, export) |
-| Canvas toolbar | zoom, fit, **width** (the whole base's default width, not one node), shape, colour, layout |
-| 「定位到…」 at the bottom | type an id to jump to that node |
+| One row per base | title, read progress, one switch (does this conversation read it), `⋯` menu (rename, delete) |
+| Canvas toolbar | zoom, fit, **width** (the whole base's default width, not one node), four layout icons, 重排, and (when something is folded) 全部展开 / 整理可见节点 |
+| 「定位到…」 | a `<select>` on the canvas toolbar; pick an id to centre that node |
 
 | Gesture | Result |
 | --- | --- |
@@ -52,7 +52,7 @@ Every node ends with a line beginning 「什么时候该想起它：」 — "whe
 | drag a node | moves it; the drop is written to `layout.json` |
 | hold ~0.26 s then drag | draws a **link** (orange), not a re-parent |
 | **Alt + drag a node** | makes the target its parent (grey line) |
-| right-click a node | fold/expand, injection policy, new child, change history |
+| right-click a node | fold/expand (when it has children), injection, new child, history, revert |
 | title arrow on a branch | collapse or expand its descendants |
 | right-click empty canvas | menu: new top-level node |
 | drag a node out to the input box | hands that node to the conversation |
@@ -60,7 +60,7 @@ Every node ends with a line beginning 「什么时候该想起它：」 — "whe
 
 Node size means three things in order: this node → the base's default → the canvas zoom. The toolbar's 「宽度」 is the second one.
 
-Four layouts: layers, radial, staircase, compact. Switching recomputes default placement; manual positions stay under your control.
+Four layouts: layers, radial, staircase, compact. Switching clears that base's positions and writes an empty layout.
 
 Collapse a branch using its title arrow or context menu. Nested folds are remembered; search, locate and unread navigation reveal the target's ancestor path. The toolbar can expand everything or arrange visible nodes. Folding affects the canvas only, not model access or injection.
 
