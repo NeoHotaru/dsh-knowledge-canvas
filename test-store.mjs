@@ -363,6 +363,40 @@ check('live survives a change to one base injection mode', await state.readLive(
 check('and the injection mode is the one that was asked for',
   (await state.readInject(flagCwd)).one === 'full')
 
+// A missing `enabled` means every base is on. The old rebuilds turned that into `[]`, which means none of them.
+const absentCwd = await mkdtemp(join(tmpdir(), 'kbabsent-'))
+await mkdir(join(absentCwd, '.dsh-knowledge'), { recursive: true })
+await writeFile(join(absentCwd, '.dsh-knowledge', 'selection.json'),
+  JSON.stringify({ version: 1, diary: true, order: ['one'] }) + '\n')
+await state.writeLive(absentCwd, true)
+await state.writeInject(absentCwd, 'one', 'full')
+await state.writeOrder(absentCwd, ['one'])
+const absentFile = JSON.parse(await readFile(join(absentCwd, '.dsh-knowledge', 'selection.json'), 'utf8'))
+check('an absent enabled list stays absent',
+  !Object.hasOwn(absentFile, 'enabled') && (await state.readSelection(absentCwd)) === null)
+check('and the workspace diary carry is not written back',
+  absentFile.diary === undefined && absentFile.live === true
+    && absentFile.order.join() === 'one' && absentFile.inject.one === 'full',
+  JSON.stringify(absentFile))
+await state.writeInject(absentCwd, 'one', 'index')
+const clearedInject = JSON.parse(await readFile(join(absentCwd, '.dsh-knowledge', 'selection.json'), 'utf8'))
+check('clearing inject leaves an absent enabled list absent',
+  !Object.hasOwn(clearedInject, 'inject') && !Object.hasOwn(clearedInject, 'enabled') && clearedInject.live === true,
+  JSON.stringify(clearedInject))
+const raceSel = await mkdtemp(join(tmpdir(), 'kbselrace-'))
+await Promise.all([
+  state.writeSelection(raceSel, ['a', 'b']),
+  state.writeLive(raceSel, true),
+  state.writeOrder(raceSel, ['b', 'a']),
+  state.writeInject(raceSel, 'a', 'full'),
+  state.writeInject(raceSel, 'b', 'full'),
+])
+const racedSel = JSON.parse(await readFile(join(raceSel, '.dsh-knowledge', 'selection.json'), 'utf8'))
+check('parallel selection patches keep every field',
+  racedSel.live === true && racedSel.enabled.join() === 'a,b' && racedSel.order.join() === 'b,a'
+    && racedSel.inject.a === 'full' && racedSel.inject.b === 'full' && racedSel.diary === undefined,
+  JSON.stringify(racedSel))
+
 const bothCwd = await mkdtemp(join(tmpdir(), 'kbboth-'))
 await state.writeDiary(bothCwd, true, 'keeper')
 const keepCreate = TOOLS.find((tool) => tool.name === 'knowledge_create_base')
@@ -417,9 +451,9 @@ check('and toggling a base keeps it', (await state.readLive(liveCwd)) === true,
   JSON.stringify([...(await state.readSelection(liveCwd))]))
 check('the base switch still took effect', [...(await state.readSelection(liveCwd))].join() === 'one')
 await state.writeLive(liveCwd, false)
+const liveFile = JSON.parse(await readFile(join(liveCwd, '.dsh-knowledge', 'selection.json'), 'utf8'))
 check('turning it off drops the field rather than storing false',
-  (await state.readLive(liveCwd)) === false
-    && !JSON.stringify(await state.readSelection(liveCwd)).includes('live'))
+  (await state.readLive(liveCwd)) === false && liveFile.live === undefined && liveFile.enabled.join() === 'one')
 check('and the bases are still there', [...(await state.readSelection(liveCwd))].join() === 'one')
 // The diary belongs to a conversation. There is no workspace default for it — that fallback is exactly what made one
 // session's diary show up in all of them — so the tests state the two halves of that rule.
@@ -432,9 +466,9 @@ check('turning it on for one session sticks', (await state.readDiary(liveCwd, 'k
 check('and it does not leak into the workspace', (await state.readDiary(liveCwd)) === false
   && (await state.readDiary(liveCwd, 'other')) === false)
 await state.writeDiary(liveCwd, false, 'keeper')
+const diaryFile = JSON.parse(await readFile(state.sessionSelectionPath(liveCwd, 'keeper'), 'utf8'))
 check('turning it off drops the field rather than storing false',
-  (await state.readDiary(liveCwd, 'keeper')) === false
-    && !JSON.stringify(await state.readSelection(liveCwd, 'keeper')).includes('diary'))
+  (await state.readDiary(liveCwd, 'keeper')) === false && diaryFile.diary === undefined)
 // Scoped per session. The thing that must not happen is "one session writes, every session writes".
 check('a session starts off', (await state.readDiary(liveCwd, 's-1')) === false)
 await state.writeDiary(liveCwd, true, 's-1')
@@ -1831,8 +1865,17 @@ check('removing a node in a switched-off base is refused',
   typeof (await attempt('knowledge_remove_node', { base: 'shut', node: 'n1' })) === 'string')
 
 // The switch itself must never be gated, or a base could never be turned back on.
+// It used to rewrite selection.json as `{ version, enabled }` and drop order, inject and live.
+await state.writeLive(gateCwd, true)
+await state.writeOrder(gateCwd, ['shut', 'open'])
+await state.writeInject(gateCwd, 'open', 'full')
 check('the switch still works on a switched-off base',
   (await attempt('knowledge_select', { base: 'shut', enabled: true })) === null)
+const keptSel = JSON.parse(await readFile(join(gateCwd, '.dsh-knowledge', 'selection.json'), 'utf8'))
+check('the model switch keeps order, inject and live',
+  keptSel.live === true && keptSel.order.join() === 'shut,open' && keptSel.inject.open === 'full'
+    && keptSel.enabled.includes('open') && keptSel.enabled.includes('shut'),
+  JSON.stringify(keptSel))
 check('and it is on now',
   [...(await state.readSelection(gateCwd))].includes('shut'))
 check('so it can be read',
