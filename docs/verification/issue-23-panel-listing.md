@@ -1,6 +1,6 @@
 # Issue #23: attachment preferences must not break the panel
 
-Release candidate: 0.4.6, 2026-11-01.
+Released: 0.4.6, 2026-11-01.
 
 ## Reproduction and fix
 
@@ -26,3 +26,9 @@ Screenshots:
 ## Limits
 
 This is a client listing fix. It adds no model requests and changes no injection policies. Other malformed JSON syntax still follows the existing load-error path. Tests that write preferences need normal filesystem rename permissions on Windows; a sandbox EPERM is not a code regression.
+
+## Published package
+
+[PR #24](https://github.com/NeoHotaru/dsh-knowledge-canvas/pull/24) merged as `ef3fcf08997a2c31cc919b3a1b1bc28b5a1ff8ba`. All four Windows/Linux and Node 22/24 CI combinations passed for the PR and merged commit. The [0.4.6 release](https://github.com/NeoHotaru/dsh-knowledge-canvas/releases/tag/v0.4.6) includes the tested tarball.
+
+The public npm registry reports `latest=0.4.6`. Its downloaded tarball matches the local pack integrity, and `client.js`, `package.json`, `CHANGELOG.md`, and `cordis.patch.yml` match the tested source byte for byte. See [registry verification](issue-23-evidence/registry-046-verified.json). [Issue #23](https://github.com/NeoHotaru/dsh-knowledge-canvas/issues/23) was replied to and closed after this verification.
