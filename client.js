@@ -5173,7 +5173,10 @@ function estimateBox(node) {
           // this list from the files on disk and has no other way to know it.
           const keepDiaryBase = activityRef.current && activityRef.current.diary ? activityRef.current.diaryBase : null
             const names = (listing.entries || [])
-              .filter((entry) => entry.type === 'file' && entry.name.endsWith('.json'))
+              // Keep selection/layout for the state restoration below; attachment preferences
+              // are not bases and must never enter the JSON/base reader (see lib/store.js).
+              .filter((entry) => entry.type === 'file' && typeof entry.name === 'string'
+                && entry.name.endsWith('.json') && entry.name !== '.attachment-settings.json')
               .map((entry) => entry.name);
             const bases = [];
             let selection = { enabled: [] };
@@ -5195,7 +5198,8 @@ function estimateBox(node) {
               }
               // The diary belongs to the conversation keeping it, so it is filtered here — the panel builds this list from the
               // files on disk, which means the host-side filter in readPanelState never ran on this path.
-              else if (!parsed.id.startsWith('diary-') || parsed.id === keepDiaryBase) bases.push(parsed);
+              else if (parsed && typeof parsed.id === 'string'
+                && (!parsed.id.startsWith('diary-') || parsed.id === keepDiaryBase)) bases.push(parsed);
             }
             // The user's arrangement wins over the default id order, so dragging the most important
             // base to the top is a real change. Anything they have not placed keeps its id order,
