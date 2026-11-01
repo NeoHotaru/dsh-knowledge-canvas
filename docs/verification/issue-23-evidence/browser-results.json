@@ -1,0 +1,18 @@
+[
+  {
+    "mode": "on-demand",
+    "pageErrors": [],
+    "loadedBase": "eng-workflow",
+    "nodeVisible": true,
+    "attachmentPreferencesReadByPanel": false,
+    "scope": "Actual React component with mocked host file service and routes; not an Electron host integration test"
+  },
+  {
+    "mode": "required",
+    "pageErrors": [],
+    "loadedBase": "eng-workflow",
+    "nodeVisible": true,
+    "attachmentPreferencesReadByPanel": false,
+    "scope": "Actual React component with mocked host file service and routes; not an Electron host integration test"
+  }
+]

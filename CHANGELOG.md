@@ -1,5 +1,10 @@
 # 变更记录
 
+## 0.4.6 — 2026-11-01
+
+- Fix #23: the knowledge panel no longer treats `.attachment-settings.json` as a knowledge base after changing the attachment reading policy. Preserve selection and layout loading; ignore other parsed JSON values without a string base ID rather than failing the entire panel.
+- Add a regression that runs the panel's real loading effect against temporary workspace files, covering both attachment policies, selection/order/layout restoration, diary filtering and unrelated JSON values.
+
 ## 0.4.5 — 2026-10-23
 
 - Fix issue #11: register the client factory as `dsh-knowledge-canvas`, matching the official host module graph. The previous name caused the host to retry the script and fail boot with a duplicate `dsh-knowledge-tree` factory registration, including in 0.4.4.
