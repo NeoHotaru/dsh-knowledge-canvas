@@ -4,8 +4,9 @@
 
 **Floor: `0.0.1-rc.1`** — the earliest published version, measured rather than assumed.
 
-Measured with `probe-compat.py` over **all 35 published versions** of `@deepseek-ai/dsh-tools`
-(DSH publishes its whole monorepo at one version, so the tool package carries the real series).
+Measured with `scripts/probe-compat.py` over **all 38 published versions** of `@deepseek-ai/dsh-tools`
+(`0.0.1-rc.1` through `0.2.1-rc.3`; DSH publishes its whole monorepo at one version, so the tool package
+carries the real series).
 Every member this plugin uses is present from the first release:
 
 | member | where it is declared | evidence at `0.0.1-rc.1` |
@@ -28,9 +29,8 @@ claim than this one.
 
 - **Type declarations present ≠ same behaviour.** The probe reads `.d.ts` files. A version can declare a
   member and implement it differently; nothing here would see that.
-- **One version had no data**: `0.2.1-alpha.4` failed to download (an SSL error, not a missing member). It is
-  reported as NO DATA rather than as a pass — a version that could not be fetched is not a version that
-  passed.
+- **A version that cannot be fetched is not a pass.** This run walked all 38 published versions; every one
+  was OK (`versions with no data: 0`). A failed fetch is reported as NO DATA rather than as a pass.
 - **No upper bound.** There is no promise about future DSH versions. The members above are published API, so
   breakage should be announced rather than silent — but that is an expectation, not a guarantee.
 
@@ -39,8 +39,8 @@ claim than this one.
 Re-run the probe:
 
 ```sh
-python probe-compat.py            # walks every published version
-python probe-compat.py --from 0.2.1   # or from a given version onward
+python scripts/probe-compat.py              # walks every published version
+python scripts/probe-compat.py --from 0.2.1 # or from a given version onward
 ```
 
 It prints one line per version — `OK`, `missing` with the member names, or `NO DATA` — and the first version

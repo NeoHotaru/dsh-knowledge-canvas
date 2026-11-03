@@ -7,11 +7,11 @@ touches, concatenate their type declarations, and ask which of the members are p
 
 Two things the first version of this probe got wrong, both of which produced a confident wrong answer:
 
-  * `dist-tags.latest` for these packages is `0.0.1-rc.1` — far behind the app, which runs `0.2.0-rc.2`.
+  * `dist-tags.latest` for these packages is `0.0.1-rc.1`.
     Reading `latest` would have measured the wrong end of the range entirely.
   * A version whose declarations could not be fetched is reported as NO DATA, never as a pass.
 
-Run:  python probe-compat.py [--from <version>]
+Run:  python scripts/probe-compat.py [--from <version>]
 """
 import argparse
 import io
@@ -42,8 +42,8 @@ def versions():
     """The version list to walk.
 
     Anchored on `@deepseek-ai/dsh-tools`, not on `dsh`: the `dsh` package on npm publishes under a different
-    scheme and has only two versions (1.0.0, 1.0.1), while the app runs 0.2.0-rc.2 and `dsh-tools` has the
-    real series. Anchoring on `latest` is worse still — that tag sits at 0.0.1-rc.1, far behind the app.
+    scheme and has only two versions (1.0.0, 1.0.1), while `dsh-tools` has the real series. Anchoring on
+    `latest` is worse still — that tag sits at 0.0.1-rc.1, far behind the app.
     """
     meta = json.loads(fetch('%s/%s' % (REG, '@deepseek-ai%2Fdsh-tools')))
     return sorted(meta['versions'], key=lambda v: [int(p) if p.isdigit() else p
