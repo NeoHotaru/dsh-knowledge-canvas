@@ -293,7 +293,6 @@ window.__ModuleLoader__.load({
     // order and the click. Without this, clicking Save landed on the node underneath.
     const ELEVATION = 'var(--dsw-elevation-panel, 0 2px 10px rgba(0,0,0,0.28))';
     const HAIRLINE = 'rgba(128,128,128,0.24)';
-    const MUTED = 0.62;
     // The row menu. It floats over the rows below it, so it needs the opaque surface and the
     // elevation for the same reason the node editor does.
     //
@@ -698,13 +697,6 @@ function parseMarkdown(source) {
     }
 
     /**
-     * A label and a colour per session, for the byline shown under a node.
-     *
-     * The id is what the file stores and it is unreadable, so each one gets a letter. Letters are assigned
-     * over a traversal in id order rather than in file order, so adding a node tomorrow does not rename the
-     * sessions of today — a label that moves is worse than no label.
-     */
-    /**
      * A session id as the file name the host writes it under.
      *
      * Mirrors sessionFileStem in lib/session.js. It has to: the host names the file and the panel reads it,
@@ -726,19 +718,6 @@ function parseMarkdown(source) {
           if (typeof node.by === 'string' && node.by.length > 0 && !ids.includes(node.by)) ids.push(node.by);
         }
       }
-      // Oldest first, so the colours run in the order the sessions appeared rather than in id order.
-      const firstSeen = new Map();
-      for (const base of bases || []) {
-        for (const node of base.nodes || []) {
-          if (typeof node.by !== 'string' || node.by.length === 0) continue;
-          const when = whenOf(node.at);
-          if (!when) continue;
-          const seen = firstSeen.get(node.by);
-          if (seen === undefined || when.time < seen) firstSeen.set(node.by, when.time);
-        }
-      }
-      // Sorted by when each session first wrote, so the reading order matches the order they appeared.
-      ids.sort((left, right) => (firstSeen.get(left) || 0) - (firstSeen.get(right) || 0));
 
       const labels = new Map();
       for (const id of ids) {
@@ -2252,7 +2231,7 @@ function estimateBox(node) {
           });
         };
         const up = () => {
-          const width = Math.round(Math.min(720, Math.max(120, resizing.width)));
+          const width = Math.round(Math.min(MAX_BOX_W, Math.max(MIN_BOX_W, resizing.width)));
           const height = Math.round(Math.min(2000, Math.max(40, resizing.height)));
           setResizing(null);
           const changed = (resizing.axis !== 'y' && width !== resizing.startWidth)
@@ -2274,15 +2253,8 @@ function estimateBox(node) {
       }, [resizing, view.k, onSetWidth]);
       const [moving, setMoving] = React.useState(null);
       const [armed, setArmed] = React.useState(null);
-      // The numbers from the last completed drag, so they can be read after the button is released
-      // rather than only during the gesture.
-      const [lastDrag, setLastDrag] = React.useState(null);
       const boxRef = React.useRef(null);
       const press = React.useRef(null);
-      // The two terms the drop position is computed from, kept for the readout: the pointer in
-      // canvas coordinates and the grab offset taken at the hold.
-      const lastPointer = React.useRef(null);
-      const grabOffset = React.useRef(null);
       const pan = React.useRef(null);
       const link = React.useRef(null);
       const timer = React.useRef(null);
@@ -2453,7 +2425,6 @@ function estimateBox(node) {
           return span;
         };
 
-        let shelf = 10;
         const depths = [];
         for (const item of arrangementEntries) {
           if (!depths[item.depth]) depths[item.depth] = 0;
@@ -2968,7 +2939,7 @@ function estimateBox(node) {
         // The new node has no measurements yet — nothing has been rendered. Its title is what it will be created
         // with, so this is the estimate the layout itself would use.
         const guess = estimateBox({ title: '新节点', body: '' });
-        const w = Math.max(120, guess.w);
+        const w = Math.max(MIN_BOX_W, guess.w);
         const h = Math.max(72, guess.h);
         const gap = 22;
         const others = ordered
@@ -3045,7 +3016,6 @@ function estimateBox(node) {
           const left = press.current;
           if (left) {
             left.last = point;
-            lastPointer.current = point;
             // Alt held: the drag is building structure, not moving the box and not drawing an association.
             // Same preview machinery as a link — the band plus the highlighted target — with `kind` marking it so
             // the line is drawn grey. Orange already means "these two are related"; a parent edge is a different
@@ -3130,15 +3100,6 @@ function estimateBox(node) {
                 press.current = null;
                 return;
               }
-              setLastDrag({
-                id: left.id,
-                x: left.x,
-                y: left.y,
-                // The shifted position, the one the drag reads — not the pre-shift layout.
-                auto: placedRef.current ? placedRef.current[left.id] : null,
-                point: lastPointer.current,
-                grab: grabOffset.current,
-              });
               onMove(left.id, left.x, left.y);
             } else {
               setEditingId((existing) => (existing === left.id ? null : left.id));
@@ -3367,15 +3328,15 @@ function estimateBox(node) {
           h('span', { style: { fontSize: 11, opacity: 0.6 } }, '宽度'),
           h('input', {
             type: 'number',
-            min: 120,
-            max: 720,
+            min: MIN_BOX_W,
+            max: MAX_BOX_W,
             step: 10,
             value: Math.round(widthOf(widths, {}, base.id, '')),
             'aria-label': '这份知识库里节点的宽度',
             onChange: (event) => {
               const next = Number(event.target.value);
               if (!Number.isFinite(next)) return;
-              if (next < 120 || next > 720) return;
+              if (next < MIN_BOX_W || next > MAX_BOX_W) return;
               onSetWidth(null, Math.round(next));
             },
             style: {
