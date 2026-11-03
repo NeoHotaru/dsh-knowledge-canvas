@@ -19,10 +19,9 @@ A knowledge base for DeepSeek Harness that the model retrieves from **by judgeme
 
 **You explain something, and the next conversation still does not know it — or worse, it thinks it does, and the note is stale.**
 
-This is not a context-window problem. Measured in one workspace:
+This is not a context-window problem. Counted from one workspace's `<workspace>/.dsh-knowledge/activity.log`:
 
 ```
-$ node report-kb-use.mjs
 50 tool call(s) in the log, 1 session(s)
   写 13 次（ops / …）
   读 1 次（read-animation）
@@ -139,15 +138,15 @@ Diaries open as a notebook with a monthly catalog, page navigation and revision 
 
 ### For contributors
 
-- `npm run check:all` runs four things: identifiers, sprite aspect ratios, a public-tree check (no local paths, addresses or private ids), and its assertions over store/routes/tools (the count is what the run prints).
+- `npm run check:all` runs `npm run check` (nine scripts), `check-sprites.mjs`, and `npm test` (nine suites).
 - **Change a gesture, change the tutorial line that describes it** (`lib/seed.js`, the table at the top), or the tutorial describes something that does not exist.
 - The tutorial is recognised **by content** (whichever base shares most of the seed's node ids), not by file name — that rule came from three workspaces keeping it under three different names.
 
 ## Development
 
 ```bash
-npm run check:all     # identifiers + sprites + public tree + assertions
-npm test              # assertions only
+npm run check:all     # npm run check (nine scripts) + check-sprites.mjs + npm test (nine suites)
+npm test              # nine suites
 ```
 
 Publishing needs a real terminal (2FA needs a TTY), and after publishing the version stays `Validating` until npm's automated review finishes:

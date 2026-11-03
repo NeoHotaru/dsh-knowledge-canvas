@@ -5,12 +5,17 @@
 // "read but did not act" and "never had the answer in the base" look identical from here, and telling them
 // apart needs a person.
 //
-//   node report-kb-use.mjs            every session in the log
-//   node report-kb-use.mjs <prefix>   only sessions whose id starts with it
+//   node report-kb-use.mjs                         <cwd>/.dsh-knowledge/activity.log
+//   node report-kb-use.mjs <prefix>                that log; sessions whose id starts with the prefix
+//   node report-kb-use.mjs <log> [prefix]          an explicit log path, then an optional prefix
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
-const LOG = 'D:/DeepSeekHarness/.dsh-knowledge/activity.log'
-const filter = process.argv[2] || ''
+const args = process.argv.slice(2)
+const defaultLog = join(process.cwd(), '.dsh-knowledge', 'activity.log')
+const firstIsLog = Boolean(args[0]) && (args[0].includes('/') || args[0].includes('\\') || args[0].endsWith('.log'))
+const LOG = firstIsLog ? args[0] : defaultLog
+const filter = (firstIsLog ? args[1] : args[0]) || ''
 
 let text
 try {

@@ -19,10 +19,9 @@
 
 **你把一件事讲清楚了，下一段对话它还是不知道 —— 或者更糟，它以为知道，而那条已经过时了。**
 
-这不是上下文长度的问题。在一个工作区里实测过：
+这不是上下文长度的问题。从一个工作区的 `<工作区>/.dsh-knowledge/activity.log` 数出来的：
 
 ```
-$ node report-kb-use.mjs
 50 tool call(s) in the log, 1 session(s)
   写 13 次（ops / …）
   读 1 次（read-animation）
@@ -59,7 +58,7 @@ $ node report-kb-use.mjs
 
 ### 四、它会告诉你到底有没有用
 
-`report-kb-use.mjs` 读插件的 `activity.log`，回答：这个会话里读了几次、写了几次、以及第一次写入之前有没有读过。上面"问题"里那个数字就是这么来的 —— 也是这个插件不声称任何它没量过的东西的原因。
+`<工作区>/.dsh-knowledge/activity.log` 记着这个会话里读了几次、写了几次，以及第一次写入之前有没有读过。上面「问题」里那个数字就是这么来的 —— 也是这个插件不声称任何它没量过的东西的原因。
 
 ## 装
 
@@ -191,7 +190,7 @@ $ node report-kb-use.mjs
 
 ### 给改代码的人
 
-- `npm run check:all` 跑四样：标识符、精灵图宽高比、公开树检查、以及存储/路由/工具三层断言（数目以运行输出为准）。
+- `npm run check:all` 跑 `npm run check`（九个脚本）、`check-sprites.mjs`，以及 `npm test`（九个套件）。
 - **改了手势，就改教程里对应那句**（`lib/seed.js` 顶层的操作表），否则教程会描述一个不存在的操作。
 - 旧工作区的教程**按内容认**（谁的节点 id 与种子重合过半，谁就是教程），不是按文件名 —— 这一条是被三个工作区用三种文件名教育出来的。
 
@@ -209,7 +208,7 @@ $ node report-kb-use.mjs
    （这需要先在设置里打开「记录调用过程」）
 ```
 
-**判断它有没有用的那个数字**：`node report-kb-use.mjs` —— 它数日志里"写了几次、读了几次"，以及**第一次写入之前有没有读过**。
+**判断它有没有用的那个数字**：打开 `<工作区>/.dsh-knowledge/activity.log`（先在设置里打开「记录调用过程」）。里面是写了几次、读了几次，以及第一次写入之前有没有读过。
 
 ---
 
@@ -233,7 +232,7 @@ npm 的自动审查没结束，版本状态是 `Validating`。这期间 tarball 
 ## 开发
 
 ```sh
-npm run check:all      # 4 项检查 + 断言全绿
+npm run check:all      # npm run check（九个脚本）+ check-sprites.mjs + npm test（九个套件）
 ```
 
 改 `index.js` / `lib/*` 后**必须重启 Harness**（宿主那一半在进程启动时加载一次）；
