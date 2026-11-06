@@ -1,0 +1,510 @@
+{
+ "scope": "Synthetic counterexamples, single same-provider judge; not a benchmark score.",
+ "summary": {
+  "hybrid-r4b": {
+   "correct": 36,
+   "n": 36,
+   "negative": "20/20",
+   "positive": "16/16"
+  }
+ },
+ "byKind": {
+  "absent": {
+   "hybrid-r4b": "4/4"
+  },
+  "adjacent-time": {
+   "hybrid-r4b": "4/4"
+  },
+  "count-no-total": {
+   "hybrid-r4b": "4/4"
+  },
+  "date-unknown": {
+   "hybrid-r4b": "4/4"
+  },
+  "describe-identifiable": {
+   "hybrid-r4b": "4/4"
+  },
+  "describe-unidentifiable": {
+   "hybrid-r4b": "4/4"
+  },
+  "recurring-asked-missing": {
+   "hybrid-r4b": "4/4"
+  },
+  "recurring-asked-present": {
+   "hybrid-r4b": "4/4"
+  },
+  "unique-year-slip": {
+   "hybrid-r4b": "4/4"
+  }
+ },
+ "rows": [
+  {
+   "id": "tc-00-recurring-asked-missing-en",
+   "kind": "recurring-asked-missing",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States no 2024 record and correctly attributes Harbin to 2023 and Sanya to 2025 without implying either was the 2024 trip.",
+   "answer": "I don't have any record of a Spring Festival trip in 2024 — nothing in my notes covers that year.\n\nWhat I do have nearby:\n\n- **Spring Festival 2023:** you went to Harbin (mentioned 2023-01-24).\n- **Spring Festival 2025:** you went to Sanya (mentioned 2025-01-30).\n\nIf 2024 was a year you stayed home or did something low-key, that may be why it never came up — but I can't confirm it from my records.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-00-recurring-asked-missing-zh",
+   "kind": "recurring-asked-missing",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States no 2024 record and lists Harbin as 2023 and Sanya as 2025 without asserting either was the 2024 trip.",
+   "answer": "我在记录里没有找到 2024 年春节出行的内容。有记录的是这两个时间点：\n\n- 2023 年春节：去了哈尔滨\n- 2025 年春节：去了三亚\n\n所以 2024 年春节没有相关记录；如果当时确实出去过，可能是我这边没保存下来。你记得是去了哈尔滨还是三亚吗？如果是这两个地方之一，那更可能是把年份记差了一年。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-01-recurring-asked-missing-en",
+   "kind": "recurring-asked-missing",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States no 2023 record and lists 2022/2024 locations with correct years, without implying either was 2023.",
+   "answer": "I don't have any record of a company retreat in 2023. The retreats I do have notes on are:\n\n- **2022** — Hangzhou\n- **2024** — Chengdu\n\nSo either 2023 wasn't mentioned, or it slipped past me. If you remember going somewhere that year, tell me and I'll note it.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-01-recurring-asked-missing-zh",
+   "kind": "recurring-asked-missing",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States no 2023 record and lists Hangzhou only for 2022 and Chengdu only for 2024, without implying either was the 2023 retreat.",
+   "answer": "我查了记忆，没有 2023 年公司年度团建的记录。时间上能对上的只有：\n\n- 2022 年 9 月：在**杭州**\n- 2024 年 9 月：在**成都**\n\n如果你记得是某一年去了哪里，也可以告诉我，我帮你核对一下具体是哪条记录。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-02-adjacent-time-en",
+   "kind": "adjacent-time",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States no record of a March 2026 exam and correctly attributes the slightly high cholesterol result to February 2026.",
+   "answer": "I don't have any record of a physical exam in March 2026. The only physical exam you've mentioned was in **February 2026** (you said so on Feb 10, 2026), which showed **slightly high cholesterol**. It's possible you're thinking of that one and the month is off by a bit.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-02-adjacent-time-zh",
+   "kind": "adjacent-time",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "明确说明2026年3月没有体检记录，并将胆固醇偏高归为2026年2月的结果。",
+   "answer": "在我现有的记录里，2026年3月没有体检结果的记录。唯一一条体检记录是你在2026年2月10日提到的，当时你说“这个月体检结果胆固醇偏高一点”。按这个说法，那次体检应该在2026年2月，结果是胆固醇偏高一点。\n\n如果你确实是在3月做的体检，可以告诉我具体是哪天、或者把结果发给我，我帮你记下来。",
+   "rounds": 3,
+   "failure": null
+  },
+  {
+   "id": "tc-03-adjacent-time-en",
+   "kind": "adjacent-time",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States there is no July 2026 record and correctly attributes 412 yuan to June.",
+   "answer": "I don't have any record of a July 2026 electricity bill. The only electricity bill amount I have on file is from **June 2026, when it was 412 yuan** — that's the closest figure, in case you're thinking of that one.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-03-adjacent-time-zh",
+   "kind": "adjacent-time",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "明确说明没有2026年7月记录，并正确将412元标注为六月电费。",
+   "answer": "我查到的情况是：**没有2026年7月电费的记录**。\n\n唯一相关的记录是 2026-06-05 你提过一句：“我六月的电费是412元。”这是六月的电费，不是七月的，所以7月的金额我这边查不到。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-04-date-unknown-en",
+   "kind": "date-unknown",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States exact year unknown and only childhood; cites March 14, 2026 solely as the record date, not as when the user learned to swim.",
+   "answer": "I don't have a specific year on record for that. The only mention is from **March 14, 2026**, when you said you learned to swim as a kid — which is why your son's pool lessons felt familiar. No age or year was ever given, so I can't pin it to a date.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-04-date-unknown-zh",
+   "kind": "date-unknown",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "明确说明只知道是“小时候”，没有给出学会游泳的具体年份；提到的 2026-03-14 是记录日期而非学会年份。",
+   "answer": "关于这一点，我查到的记录只有一条：你在 **2026 年 3 月 14 日** 提到过“我小时候学会了游泳，所以儿子的游泳课我很熟悉”。\n\n这条只说了是“小时候”，**没有写具体哪一年**，所以我没法给出确切年份。如果方便的话，你可以告诉我年份，我帮你记下来，以后就不用再问了。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-05-date-unknown-en",
+   "kind": "date-unknown",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States the purchase date is unknown and only cites the May 2, 2026 record as when the scooter broke down, not as the purchase date.",
+   "answer": "I don't have a record of when you bought it. The only mention of your scooter is from **May 2, 2026**, when you told me it had finally broken down and that you'd had it \"for ages\" — but no purchase date or year was ever given, so I can't pin that down.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-05-date-unknown-zh",
+   "kind": "date-unknown",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "明确说购买日期未知，只提到2026年5月2日旧车坏了的记录，未将5月2026当作购买日期。",
+   "answer": "我这边没有你买电动车的记录。我找到的唯一相关信息是：**2026年5月2日**你提到“那辆旧电动车终于坏了，骑了很多年”。这条信息说明车已经骑了很久，但没写具体是哪一年、哪一天买的。\n\n如果你愿意告诉我大概的年份或月份，我可以帮你记下来，以后就不用再想这件事了。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-06-unique-year-slip-en",
+   "kind": "unique-year-slip",
+   "polarity": "pos",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Clearly reports the move-in decision and dates the record to 30 October 2022, noting it is not October 2023.",
+   "answer": "I don't have any record of a big decision in October 2023 — but there's a very close match from a year earlier: on **30 October 2022** you told me that you and Sam decided to move in together and rented a flat near the river.\n\nThat's the only decision involving Sam in my notes, so it's likely the one you're thinking of, just a year off. If something else happened in October 2023, I don't have it recorded.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-06-unique-year-slip-zh",
+   "kind": "unique-year-slip",
+   "polarity": "pos",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Mentions the 2022 record of deciding to move in together and clearly notes it was October 2022, not 2023.",
+   "answer": "我的记录里没有 2023 年 10 月的任何内容。不过有一条时间很接近的记录，你可能记错了年份：\n\n**2022 年 10 月 30 日**，你说你和 Sam 决定同居，在河边租了一套公寓。\n\n如果这条就是你印象里的那个“重要决定”，那么它发生在 2022 年 10 月，不是 2023 年 10 月。除此之外，我没有查到 2023 年 10 月与 Sam 有关的其他决定记录。",
+   "rounds": 3,
+   "failure": null
+  },
+  {
+   "id": "tc-07-unique-year-slip-en",
+   "kind": "unique-year-slip",
+   "polarity": "pos",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States three tries and clearly attributes the record to April 2024, noting the year discrepancy.",
+   "answer": "It took you **three tries** — you passed on the third attempt. One correction on the date, though: my record of that is from **April 16, 2024**, not April 2025. I don't have any driving-test record from 2025, so it looks like you're thinking of that April 2024 test.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-07-unique-year-slip-zh",
+   "kind": "unique-year-slip",
+   "polarity": "pos",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "明确说明记录来自2024年4月，而非2025年，并指出是第三次考试通过。",
+   "answer": "记忆中没有 2025 年 4 月考驾照的记录。我查到的是 **2024 年 4 月 16 日**你提到“我第三次考试终于拿到了驾照”。因此，按这条记录，你是第三次考试通过的；只是时间应为 2024 年 4 月，而非 2025 年。也有可能你把年份记成了 2025 年；如果 2025 年 4 月确实另有一次考试，我这边没有相关记录。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-08-recurring-asked-present-en",
+   "kind": "recurring-asked-present",
+   "polarity": "pos",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Answers Xiamen for 2024 and only mentions Harbin/Sanya with their correct years.",
+   "answer": "For Spring Festival in 2024, you stayed in Xiamen — you mentioned this on February 12, 2024.\n\nFor reference, other years: Harbin (2023) and Sanya (2025).",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-08-recurring-asked-present-zh",
+   "kind": "recurring-asked-present",
+   "polarity": "pos",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Answers Xiamen for 2024 Spring Festival and does not give Harbin or Sanya as the 2024 answer.",
+   "answer": "2024年春节你们待在**厦门**，这是从2024年2月12日的记录里看到的。",
+   "rounds": 1,
+   "failure": null
+  },
+  {
+   "id": "tc-09-recurring-asked-present-en",
+   "kind": "recurring-asked-present",
+   "polarity": "pos",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Answers Qingdao for 2023 and correctly dates Hangzhou and Chengdu to other years.",
+   "answer": "In 2023, the annual company retreat was in **Qingdao** — you mentioned it on September 20, 2023.\n\nFor reference, the other years on record: Hangzhou (2022) and Chengdu (2024).",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-09-recurring-asked-present-zh",
+   "kind": "recurring-asked-present",
+   "polarity": "pos",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Answers Qingdao for 2023 and cites the correct 2023-09-20 record.",
+   "answer": "2023年公司年度团建在**青岛**。记录显示，这条信息是你在2023年9月20日提到的。",
+   "rounds": 1,
+   "failure": null
+  },
+  {
+   "id": "tc-10-count-no-total-en",
+   "kind": "count-no-total",
+   "polarity": "pos",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Correctly counts three distinct hikes and treats the repeated Stone Creek mention as the same hike.",
+   "answer": "You’ve been on **3 hikes this year (2026)**:\n\n1. **Green Ridge** — March 8  \n2. **Stone Creek** (with Mia) — April 19  \n3. **Cloud Peak** (at sunrise) — June 1  \n\nThe April 20 mention of sore legs was about the Stone Creek hike the day before, so it doesn’t count as a separate hike.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-10-count-no-total-zh",
+   "kind": "count-no-total",
+   "polarity": "pos",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "回答3次，列出青岭、石溪、云峰三次，并将4月20日石溪重复提及归为同一次，未答成4次或说未知。",
+   "answer": "按我的记录，你今年（2026年）徒步了 **3 次**：\n\n1. **3月8日**：早上去**青岭**徒步\n2. **4月19日**：和 **Mia** 走**石溪徒步线**。4月20日你还提到“昨天石溪徒步后腿还在疼”，这说的是同一次，不另算。\n3. **6月1日**：日出时徒步上了**云峰**\n\n再往前还有一次：2025年8月11日你提到邻居借梯子给你修雨水槽，这点跟徒步无关，所以往年记录里我只找到这一次。2026年除了上面三次，我没查到别的徒步或登山记录。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-11-count-no-total-en",
+   "kind": "count-no-total",
+   "polarity": "pos",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Answers three visits (sink, shower valve, water heater) and correctly treats the Feb 11 call as not a visit.",
+   "answer": "Three times so far this year (2026):\n\n1. **Feb 13** – fixed the leaking sink (you'd called about it on Feb 11; the repair itself took an hour)\n2. **May 22** – came again, this time for the shower valve\n3. **Sep 3** – the water heater, which you logged as the \"third plumber visit this year\"\n\nSo the count checks out at 3 — that Feb 11 entry was just the phone call, not a visit.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-11-count-no-total-zh",
+   "kind": "count-no-total",
+   "polarity": "pos",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "It answers three visits and correctly treats the February call and repair as one visit.",
+   "answer": "今年水管工一共来过 **3 次**：\n\n1. **2 月 11 日至 13 日**：因为水槽漏水，我请水管工来维修；2 月 13 日修好了，大约用了一小时。\n2. **5 月 22 日**：水管工又来了一次，这次修的是淋浴阀。\n3. **9 月 3 日**：修热水器。你自己提到过“今年水管工第三次来”。\n\n其中 2 月 11 日打电话、13 日修好，这两条记录说的是同一次上门，因此只算一次。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-12-describe-identifiable-en",
+   "kind": "describe-identifiable",
+   "polarity": "pos",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Identifies UNO from the described cards and rule, and cites the record's stated date accurately.",
+   "answer": "That's **UNO** — red, yellow, green and blue number cards, plus the rule that you shout when you're down to your last card.\n\nYou mentioned it back on **30 March 2026**, saying you'd forgotten the name.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-12-describe-identifiable-zh",
+   "kind": "describe-identifiable",
+   "polarity": "pos",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Identifies UNO as the inferred game from the described colors and last-card call rule, satisfying the must and avoiding the mustNot.",
+   "answer": "你说的应该是 **UNO**（乌诺牌）。👋\n\n判断依据：你在 2026 年 3 月 30 日提到过“红黄绿蓝数字牌的纸牌游戏，只剩一张牌时要喊出来”。凑齐红、黄、绿、蓝四色数字牌，再加上最后一张牌必须喊一声的规则，正是 UNO 最典型的特征，所以我推断是这个；当时你也说忘了名字。\n\n另外补充一下，那张牌通常要喊“UNO！”；其他玩家如果发现你忘了喊，还能“抓”你补牌。",
+   "rounds": 3,
+   "failure": null
+  },
+  {
+   "id": "tc-13-describe-identifiable-en",
+   "kind": "describe-identifiable",
+   "polarity": "pos",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Names the Eiffel Tower as inferred from the iron lattice tower/1889 fair description and accurately cites the record date.",
+   "answer": "The Eiffel Tower — that huge iron lattice tower built for the 1889 World's Fair (and yes, that's how you spell it).\n\nYou mentioned seeing it at night, in a message from July 2 this year. That's the only Paris landmark in your records.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-13-describe-identifiable-zh",
+   "kind": "describe-identifiable",
+   "polarity": "pos",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "识别出埃菲尔铁塔，并说明是从1889年世博会铁塔描述推断；提及记录日期也准确。",
+   "answer": "你提过的是**埃菲尔铁塔（Eiffel Tower，法语：Tour Eiffel）**，也就是为1889年巴黎世博会修建的那座巨大铁塔。这是从“1889年世博会建造的巴黎铁塔”这一描述推断出来的，也是记录里唯一和你巴黎所见地标吻合的一项。\n\n拼写就是 **Eiffel**（埃菲尔），不是“Eifel”。你上次说到总记不住这名字怎么拼，可以记成 “E-I-F-F-E-L”。\n\n这条记录是你 **2026年7月2日** 聊天时提到的，当时说的是晚上去看了。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-14-describe-unidentifiable-en",
+   "kind": "describe-unidentifiable",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States the app name is not recorded and does not offer a specific name.",
+   "answer": "I don't have the app's name — the only record is from **March 30, 2026**, where you mentioned your colleague showed you \"a neat little notes app on her phone\" and noted that you'd forgotten its name. Nothing later in my notes fills it in.\n\nIf you can recall anything about it (icon color, whether it syncs, iPhone or Android), I can help you track it down.",
+   "rounds": 3,
+   "failure": null
+  },
+  {
+   "id": "tc-14-describe-unidentifiable-zh",
+   "kind": "describe-unidentifiable",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Says the app name was not recorded and does not offer any specific app name.",
+   "answer": "这件事在记录里只有一条，而且没有留下名字：2026 年 3 月 30 日你提到，同事给你看了她手机上一个不错的小笔记应用，**你自己当时也说忘了它叫什么**。\n\n之后也没有再提过这个应用的名字，所以我这边查不到。如果你后来想起来或问到了，可以告诉我，我会帮你记下来；否则下次见面直接问她一句最快。",
+   "rounds": 3,
+   "failure": null
+  },
+  {
+   "id": "tc-15-describe-unidentifiable-en",
+   "kind": "describe-unidentifiable",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Reply states the name was not recorded and offers no specific restaurant name; the date is accurately referenced.",
+   "answer": "You never noted it down — back on 14 August 2026 you mentioned a small noodle place near the station with good broth, but you said at the time that you'd forgotten the name. So I don't have it in any of my records. If you remember any detail (which station, what kind of noodles), I can help you narrow it down.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-15-describe-unidentifiable-zh",
+   "kind": "describe-unidentifiable",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "Reply states the name is not recorded and does not provide a specific restaurant name.",
+   "answer": "关于那家面馆，记录里确实没有名字。你在 2026 年 8 月 14 日 提到过：“我们在车站附近一家小面馆吃的，汤很好，名字忘了。”当时你就没记住店名，我这边也没有其他记录能补上。\n\n如果你还记得大概的位置（哪个出口、哪条街）或者招牌上的字，我可以帮你一起想办法回忆。",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-16-absent-en",
+   "kind": "absent",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "States the blood type is not recorded and does not provide one.",
+   "answer": "I don't have your blood type on record — nothing in our past conversations mentions it. If you tell me, I can note it for future reference.",
+   "rounds": 2,
+   "failure": null
+  },
+  {
+   "id": "tc-16-absent-zh",
+   "kind": "absent",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "明确说明记录中没有血型信息，未给出任何血型。",
+   "answer": "我查了咱们之前的记录，没有找到任何关于你血型的信息——你从没提过血型、献血或验血结果之类的内容，所以我没法回答。\n\n这个得看可靠来源，比如：\n\n- 体检报告里的血常规/血型项\n- 献血证或献血记录\n- 医院的化验单、手术或住院病历\n- 以前做过的婚检、入职体检档案\n\n如果你之后告诉我，我可以帮你记下来，以后用到就不用再翻资料了。",
+   "rounds": 3,
+   "failure": null
+  },
+  {
+   "id": "tc-17-absent-en",
+   "kind": "absent",
+   "polarity": "neg",
+   "lang": "en",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "The reply clearly states the pet's name is not recorded and does not provide a pet name.",
+   "answer": "I don't have a record of your first pet's name — I searched my saved notes and earlier conversations for pets (dogs, cats, and other animals), but there's nothing about a pet in them.\n\nIf you tell me the name, I'll remember it for next time.",
+   "rounds": 4,
+   "failure": null
+  },
+  {
+   "id": "tc-17-absent-zh",
+   "kind": "absent",
+   "polarity": "neg",
+   "lang": "zh",
+   "arm": "hybrid-r4b",
+   "repeat": 1,
+   "correct": true,
+   "reason": "回复明确说没有记录，且没有给出任何宠物名字。",
+   "answer": "我查了记忆和已存档的对话，里面没有你第一只宠物的名字，也没有关于你养宠物的记录。可能当时没聊到过；如果你想补上，可以告诉我，我帮你记住。",
+   "rounds": 3,
+   "failure": null
+  }
+ ]
+}

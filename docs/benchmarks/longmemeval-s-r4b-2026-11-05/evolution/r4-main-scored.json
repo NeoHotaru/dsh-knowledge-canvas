@@ -1,0 +1,4695 @@
+{
+ "scope": "r4a guidance rules were written after seeing wrong rows of the 16+6 pilot, so unseen14+4 (ids not in pilotIds) is the clean estimate; whole 30+10 is also reported. Pilot answers kept unchanged.",
+ "goal": "Strict blind correctness >=90% with official F1 retained, per repeat, failures and conflicts in the denominator.",
+ "heldout30": {
+  "full": {
+   "n": 30,
+   "correct": 25,
+   "fraction": 0.8333,
+   "wilson95": [
+    0.6644,
+    0.9266
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "officialF1": 0.6659,
+   "byRepeat": {
+    "1": {
+     "n": 30,
+     "correct": 25,
+     "fraction": 0.8333,
+     "wilson95": [
+      0.6644,
+      0.9266
+     ],
+     "failures": 0,
+     "referenceConflicts": 0,
+     "officialF1": 0.6659
+    }
+   }
+  },
+  "hybrid-v3": {
+   "n": 30,
+   "correct": 24,
+   "fraction": 0.8,
+   "wilson95": [
+    0.6269,
+    0.9049
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "officialF1": 0.6543,
+   "byRepeat": {
+    "1": {
+     "n": 30,
+     "correct": 24,
+     "fraction": 0.8,
+     "wilson95": [
+      0.6269,
+      0.9049
+     ],
+     "failures": 0,
+     "referenceConflicts": 0,
+     "officialF1": 0.6543
+    }
+   }
+  },
+  "hybrid-r4a": {
+   "n": 60,
+   "correct": 48,
+   "fraction": 0.8,
+   "wilson95": [
+    0.6822,
+    0.8817
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "officialF1": 0.6532,
+   "byRepeat": {
+    "1": {
+     "n": 30,
+     "correct": 23,
+     "fraction": 0.7667,
+     "wilson95": [
+      0.5907,
+      0.8821
+     ],
+     "failures": 0,
+     "referenceConflicts": 0,
+     "officialF1": 0.6355
+    },
+    "2": {
+     "n": 30,
+     "correct": 25,
+     "fraction": 0.8333,
+     "wilson95": [
+      0.6644,
+      0.9266
+     ],
+     "failures": 0,
+     "referenceConflicts": 0,
+     "officialF1": 0.6709
+    }
+   }
+  }
+ },
+ "heldout30Contrasts": [
+  {
+   "first": "hybrid-v3",
+   "second": "hybrid-r4a",
+   "questions": 30,
+   "difference": 0.0,
+   "discordant": {
+    "hybrid-r4a-better": 2,
+    "hybrid-v3-better": 2
+   },
+   "clusterBootstrap95": [
+    -0.05,
+    0.05
+   ],
+   "clusters": 10
+  },
+  {
+   "first": "full",
+   "second": "hybrid-r4a",
+   "questions": 30,
+   "difference": -0.0333,
+   "discordant": {
+    "hybrid-r4a-better": 1,
+    "full-better": 2
+   },
+   "clusterBootstrap95": [
+    -0.1167,
+    0.0333
+   ],
+   "clusters": 10
+  }
+ ],
+ "heldoutUnseen14": {
+  "full": {
+   "n": 14,
+   "correct": 11,
+   "fraction": 0.7857,
+   "wilson95": [
+    0.5241,
+    0.9243
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "officialF1": 0.7057,
+   "byRepeat": {
+    "1": {
+     "n": 14,
+     "correct": 11,
+     "fraction": 0.7857,
+     "wilson95": [
+      0.5241,
+      0.9243
+     ],
+     "failures": 0,
+     "referenceConflicts": 0,
+     "officialF1": 0.7057
+    }
+   }
+  },
+  "hybrid-v3": {
+   "n": 14,
+   "correct": 11,
+   "fraction": 0.7857,
+   "wilson95": [
+    0.5241,
+    0.9243
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "officialF1": 0.6743,
+   "byRepeat": {
+    "1": {
+     "n": 14,
+     "correct": 11,
+     "fraction": 0.7857,
+     "wilson95": [
+      0.5241,
+      0.9243
+     ],
+     "failures": 0,
+     "referenceConflicts": 0,
+     "officialF1": 0.6743
+    }
+   }
+  },
+  "hybrid-r4a": {
+   "n": 28,
+   "correct": 20,
+   "fraction": 0.7143,
+   "wilson95": [
+    0.5294,
+    0.8475
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "officialF1": 0.6731,
+   "byRepeat": {
+    "1": {
+     "n": 14,
+     "correct": 10,
+     "fraction": 0.7143,
+     "wilson95": [
+      0.4535,
+      0.8828
+     ],
+     "failures": 0,
+     "referenceConflicts": 0,
+     "officialF1": 0.6684
+    },
+    "2": {
+     "n": 14,
+     "correct": 10,
+     "fraction": 0.7143,
+     "wilson95": [
+      0.4535,
+      0.8828
+     ],
+     "failures": 0,
+     "referenceConflicts": 0,
+     "officialF1": 0.6777
+    }
+   }
+  }
+ },
+ "heldoutUnseen14Contrasts": [
+  {
+   "first": "hybrid-v3",
+   "second": "hybrid-r4a",
+   "questions": 14,
+   "difference": -0.0714,
+   "discordant": {
+    "hybrid-v3-better": 1
+   },
+   "clusterBootstrap95": [
+    -0.2308,
+    0.0
+   ],
+   "clusters": 8
+  },
+  {
+   "first": "full",
+   "second": "hybrid-r4a",
+   "questions": 14,
+   "difference": -0.0714,
+   "discordant": {
+    "full-better": 1
+   },
+   "clusterBootstrap95": [
+    -0.2308,
+    0.0
+   ],
+   "clusters": 8
+  }
+ ],
+ "adversarial10": {
+  "full": {
+   "n": 10,
+   "correct": 9,
+   "fraction": 0.9,
+   "wilson95": [
+    0.5958,
+    0.9821
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "byRepeat": {
+    "1": {
+     "n": 10,
+     "correct": 9,
+     "fraction": 0.9,
+     "wilson95": [
+      0.5958,
+      0.9821
+     ],
+     "failures": 0,
+     "referenceConflicts": 0
+    }
+   }
+  },
+  "hybrid-v3": {
+   "n": 10,
+   "correct": 8,
+   "fraction": 0.8,
+   "wilson95": [
+    0.4902,
+    0.9433
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "byRepeat": {
+    "1": {
+     "n": 10,
+     "correct": 8,
+     "fraction": 0.8,
+     "wilson95": [
+      0.4902,
+      0.9433
+     ],
+     "failures": 0,
+     "referenceConflicts": 0
+    }
+   }
+  },
+  "hybrid-r4a": {
+   "n": 20,
+   "correct": 14,
+   "fraction": 0.7,
+   "wilson95": [
+    0.481,
+    0.8545
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "byRepeat": {
+    "1": {
+     "n": 10,
+     "correct": 6,
+     "fraction": 0.6,
+     "wilson95": [
+      0.3127,
+      0.8318
+     ],
+     "failures": 0,
+     "referenceConflicts": 0
+    },
+    "2": {
+     "n": 10,
+     "correct": 8,
+     "fraction": 0.8,
+     "wilson95": [
+      0.4902,
+      0.9433
+     ],
+     "failures": 0,
+     "referenceConflicts": 0
+    }
+   }
+  }
+ },
+ "adversarial10Contrasts": [
+  {
+   "first": "hybrid-v3",
+   "second": "hybrid-r4a",
+   "questions": 10,
+   "difference": -0.1,
+   "discordant": {
+    "hybrid-r4a-better": 1,
+    "hybrid-v3-better": 3
+   },
+   "clusterBootstrap95": [
+    -0.4,
+    0.2
+   ],
+   "clusters": 10
+  },
+  {
+   "first": "full",
+   "second": "hybrid-r4a",
+   "questions": 10,
+   "difference": -0.2,
+   "discordant": {
+    "full-better": 3
+   },
+   "clusterBootstrap95": [
+    -0.45,
+    0.0
+   ],
+   "clusters": 10
+  }
+ ],
+ "adversarialUnseen4": {
+  "full": {
+   "n": 4,
+   "correct": 4,
+   "fraction": 1.0,
+   "wilson95": [
+    0.5101,
+    1.0
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "byRepeat": {
+    "1": {
+     "n": 4,
+     "correct": 4,
+     "fraction": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ],
+     "failures": 0,
+     "referenceConflicts": 0
+    }
+   }
+  },
+  "hybrid-v3": {
+   "n": 4,
+   "correct": 4,
+   "fraction": 1.0,
+   "wilson95": [
+    0.5101,
+    1.0
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "byRepeat": {
+    "1": {
+     "n": 4,
+     "correct": 4,
+     "fraction": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ],
+     "failures": 0,
+     "referenceConflicts": 0
+    }
+   }
+  },
+  "hybrid-r4a": {
+   "n": 8,
+   "correct": 7,
+   "fraction": 0.875,
+   "wilson95": [
+    0.5291,
+    0.9776
+   ],
+   "failures": 0,
+   "referenceConflicts": 0,
+   "byRepeat": {
+    "1": {
+     "n": 4,
+     "correct": 3,
+     "fraction": 0.75,
+     "wilson95": [
+      0.3006,
+      0.9544
+     ],
+     "failures": 0,
+     "referenceConflicts": 0
+    },
+    "2": {
+     "n": 4,
+     "correct": 4,
+     "fraction": 1.0,
+     "wilson95": [
+      0.5101,
+      1.0
+     ],
+     "failures": 0,
+     "referenceConflicts": 0
+    }
+   }
+  }
+ },
+ "adversarialUnseen4Contrasts": [
+  {
+   "first": "hybrid-v3",
+   "second": "hybrid-r4a",
+   "questions": 4,
+   "difference": -0.125,
+   "discordant": {
+    "hybrid-v3-better": 1
+   },
+   "clusterBootstrap95": [
+    -0.375,
+    0.0
+   ],
+   "clusters": 4
+  },
+  {
+   "first": "full",
+   "second": "hybrid-r4a",
+   "questions": 4,
+   "difference": -0.125,
+   "discordant": {
+    "full-better": 1
+   },
+   "clusterBootstrap95": [
+    -0.375,
+    0.0
+   ],
+   "clusters": 4
+  }
+ ],
+ "byCategory": {
+  "full": {
+   "1": {
+    "n": 7,
+    "correct": 5,
+    "fraction": 0.7143,
+    "wilson95": [
+     0.3589,
+     0.9178
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.6224
+   },
+   "2": {
+    "n": 8,
+    "correct": 7,
+    "fraction": 0.875,
+    "wilson95": [
+     0.5291,
+     0.9776
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.7743
+   },
+   "3": {
+    "n": 7,
+    "correct": 5,
+    "fraction": 0.7143,
+    "wilson95": [
+     0.3589,
+     0.9178
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.491
+   },
+   "4": {
+    "n": 8,
+    "correct": 8,
+    "fraction": 1.0,
+    "wilson95": [
+     0.6756,
+     1.0
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.7487
+   }
+  },
+  "hybrid-v3": {
+   "1": {
+    "n": 7,
+    "correct": 4,
+    "fraction": 0.5714,
+    "wilson95": [
+     0.2505,
+     0.8418
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.5952
+   },
+   "2": {
+    "n": 8,
+    "correct": 7,
+    "fraction": 0.875,
+    "wilson95": [
+     0.5291,
+     0.9776
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.7743
+   },
+   "3": {
+    "n": 7,
+    "correct": 5,
+    "fraction": 0.7143,
+    "wilson95": [
+     0.3589,
+     0.9178
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.496
+   },
+   "4": {
+    "n": 8,
+    "correct": 8,
+    "fraction": 1.0,
+    "wilson95": [
+     0.6756,
+     1.0
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.7243
+   }
+  },
+  "hybrid-r4a": {
+   "1": {
+    "n": 14,
+    "correct": 10,
+    "fraction": 0.7143,
+    "wilson95": [
+     0.4535,
+     0.8828
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.5881
+   },
+   "2": {
+    "n": 16,
+    "correct": 13,
+    "fraction": 0.8125,
+    "wilson95": [
+     0.5699,
+     0.9341
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.8108
+   },
+   "3": {
+    "n": 14,
+    "correct": 9,
+    "fraction": 0.6429,
+    "wilson95": [
+     0.3876,
+     0.8366
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.4922
+   },
+   "4": {
+    "n": 16,
+    "correct": 16,
+    "fraction": 1.0,
+    "wilson95": [
+     0.8064,
+     1.0
+    ],
+    "failures": 0,
+    "referenceConflicts": 0,
+    "officialF1": 0.6934
+   }
+  }
+ },
+ "overhead": {
+  "full": {
+   "answers": 40,
+   "meanRounds": 1,
+   "meanToolCalls": 0,
+   "meanInput": 24565,
+   "meanOutput": 532,
+   "meanElapsedMs": 3989,
+   "facetsPerSearch": 0,
+   "passagesPerSearch": 0,
+   "contextPerSearch": 0,
+   "resultCharsPerSearch": 0
+  },
+  "hybrid-v3": {
+   "answers": 40,
+   "meanRounds": 1.75,
+   "meanToolCalls": 1.45,
+   "meanInput": 20320,
+   "meanOutput": 367,
+   "meanElapsedMs": 3319,
+   "facetsPerSearch": 1,
+   "passagesPerSearch": 11.0,
+   "contextPerSearch": 15.9,
+   "resultCharsPerSearch": 10119
+  },
+  "hybrid-r4a": {
+   "answers": 80,
+   "meanRounds": 2.21,
+   "meanToolCalls": 1.71,
+   "meanInput": 40483,
+   "meanOutput": 547,
+   "meanElapsedMs": 4973,
+   "facetsPerSearch": 3.67,
+   "passagesPerSearch": 27.8,
+   "contextPerSearch": 27.9,
+   "resultCharsPerSearch": 18733
+  }
+ },
+ "rows": [
+  {
+   "id": "conv-42-qa-25",
+   "conversation": "conv-42",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "The weekend of June 4–5, 2022",
+   "failure": null,
+   "rounds": 2,
+   "input": 25017,
+   "output": 476,
+   "elapsedMs": 4294,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 30,
+     "context": 38,
+     "chars": 19173
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to the weekend after 3 June 2022, supported by the 3 June chat where Joanna says she is hiking with buddies that weekend.",
+   "officialF1": 0.4444444444444445
+  },
+  {
+   "id": "conv-42-qa-25",
+   "conversation": "conv-42",
+   "category": 2,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "The weekend of 4–5 June 2022",
+   "failure": null,
+   "rounds": 1,
+   "input": 24786,
+   "output": 748,
+   "elapsedMs": 4774,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to the weekend after 3 June 2022, supported by the 3 June chat where Joanna says she is hiking with buddies that weekend.",
+   "officialF1": 0.4444444444444445
+  },
+  {
+   "id": "conv-50-qa-26",
+   "conversation": "conv-50",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "21 August 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 20130,
+   "output": 252,
+   "elapsedMs": 2856,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 13,
+     "chars": 12303
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence states on 22 August 2023 that the podcast was recorded 'yesterday,' i.e., 21 August 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-50-qa-26",
+   "conversation": "conv-50",
+   "category": 2,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "21 August 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 26428,
+   "output": 168,
+   "elapsedMs": 1253,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence states on 22 August 2023 that the podcast was recorded 'yesterday,' i.e., 21 August 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-41-qa-180",
+   "conversation": "conv-41",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 28812,
+   "output": 130,
+   "elapsedMs": 2631,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-41-qa-180",
+   "conversation": "conv-41",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 23843,
+   "output": 297,
+   "elapsedMs": 3082,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 20,
+     "chars": 14078
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-48-qa-49",
+   "conversation": "conv-48",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "About three years",
+   "failure": null,
+   "rounds": 1,
+   "input": 9068,
+   "output": 149,
+   "elapsedMs": 1385,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference: about three years.",
+   "officialF1": 0.6666666666666666
+  },
+  {
+   "id": "conv-48-qa-49",
+   "conversation": "conv-48",
+   "category": 4,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "about three years",
+   "failure": null,
+   "rounds": 1,
+   "input": 26022,
+   "output": 278,
+   "elapsedMs": 2248,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference: Jolene says she has been doing yoga and meditation for about three years.",
+   "officialF1": 0.6666666666666666
+  },
+  {
+   "id": "conv-43-qa-58",
+   "conversation": "conv-43",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 25812,
+   "output": 495,
+   "elapsedMs": 4474,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 3,
+     "passages": 24,
+     "context": 27,
+     "chars": 16740
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "The evidence shows John attended the Harry Potter trivia, with the reference date August 2023.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-43-qa-58",
+   "conversation": "conv-43",
+   "category": 2,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 28878,
+   "output": 1274,
+   "elapsedMs": 8198,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "The evidence shows John attended the Harry Potter trivia, with the reference date August 2023.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-50-qa-39",
+   "conversation": "conv-50",
+   "category": 3,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "A Dodge Charger",
+   "failure": null,
+   "rounds": 1,
+   "input": 26434,
+   "output": 226,
+   "elapsedMs": 2255,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to Dodge Charger; evidence supports Dave preferring classic/muscle cars.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-50-qa-39",
+   "conversation": "conv-50",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "A Dodge Charger",
+   "failure": null,
+   "rounds": 3,
+   "input": 34251,
+   "output": 546,
+   "elapsedMs": 5126,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 17,
+     "chars": 13067
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to Dodge Charger; consistent with Dave's classic-car and muscle-car enthusiasm.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-44-qa-125",
+   "conversation": "conv-44",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 3,
+   "input": 68213,
+   "output": 1354,
+   "elapsedMs": 10780,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 30,
+     "context": 46,
+     "chars": 22729
+    },
+    {
+     "facets": 5,
+     "passages": 50,
+     "context": 79,
+     "chars": 37224
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-44-qa-125",
+   "conversation": "conv-44",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 28047,
+   "output": 416,
+   "elapsedMs": 2821,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-42-qa-1",
+   "conversation": "conv-42",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Movies, reading, nature, and dairy-free desserts",
+   "failure": null,
+   "rounds": 2,
+   "input": 32041,
+   "output": 878,
+   "elapsedMs": 8228,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 6,
+     "passages": 24,
+     "context": 12,
+     "chars": 10840
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Movies and dairy-free desserts match the reference, and reading and nature are supported as shared interests in the conversation.",
+   "officialF1": 0.5833333333333333
+  },
+  {
+   "id": "conv-42-qa-1",
+   "conversation": "conv-42",
+   "category": 1,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "watching movies and making dairy-free desserts",
+   "failure": null,
+   "rounds": 1,
+   "input": 24788,
+   "output": 2439,
+   "elapsedMs": 17386,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Covers both shared interests: watching movies and making desserts, with dairy-free supported by the evidence.",
+   "officialF1": 0.5714285714285715
+  },
+  {
+   "id": "conv-50-qa-144",
+   "conversation": "conv-50",
+   "category": 4,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Blogging about car mods",
+   "failure": null,
+   "rounds": 1,
+   "input": 26430,
+   "output": 160,
+   "elapsedMs": 1295,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches evidence that Dave shares his passion by blogging about car mods.",
+   "officialF1": 0.6666666666666665
+  },
+  {
+   "id": "conv-50-qa-144",
+   "conversation": "conv-50",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Starting a blog on car mods",
+   "failure": null,
+   "rounds": 1,
+   "input": 7948,
+   "output": 95,
+   "elapsedMs": 1302,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to Dave starting a blog on car mods to share his passion.",
+   "officialF1": 0.8000000000000002
+  },
+  {
+   "id": "conv-26-qa-19",
+   "conversation": "conv-26",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Nature, animals and dinosaur bones, pottery and clay, painting, the beach, camping, hiking and exploring forests, parks, and the Grand Canyon.",
+   "failure": null,
+   "rounds": 8,
+   "input": 389037,
+   "output": 3054,
+   "elapsedMs": 25003,
+   "toolCalls": 14,
+   "search": [
+    {
+     "facets": 6,
+     "passages": 50,
+     "context": 59,
+     "chars": 36223
+    },
+    {
+     "facets": 1,
+     "passages": 0,
+     "context": 0,
+     "chars": 6227
+    },
+    {
+     "facets": 1,
+     "passages": 50,
+     "context": 66,
+     "chars": 77809
+    },
+    {
+     "facets": 1,
+     "passages": 30,
+     "context": 31,
+     "chars": 19836
+    },
+    {
+     "facets": 1,
+     "passages": 50,
+     "context": 48,
+     "chars": 32312
+    },
+    {
+     "facets": 1,
+     "passages": 50,
+     "context": 54,
+     "chars": 32910
+    },
+    {
+     "facets": 1,
+     "passages": 50,
+     "context": 57,
+     "chars": 34201
+    },
+    {
+     "facets": 1,
+     "passages": 50,
+     "context": 57,
+     "chars": 33660
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Covers nature and dinosaurs/animal bones plus other kid-liked activities supported by the chats.",
+   "officialF1": 0.75
+  },
+  {
+   "id": "conv-26-qa-19",
+   "conversation": "conv-26",
+   "category": 1,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Nature and learning about animals and dinosaur bones",
+   "failure": null,
+   "rounds": 1,
+   "input": 19194,
+   "output": 845,
+   "elapsedMs": 5472,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference: nature and dinosaur/animal learning.",
+   "officialF1": 0.2857142857142857
+  },
+  {
+   "id": "conv-26-qa-176",
+   "conversation": "conv-26",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 25783,
+   "output": 269,
+   "elapsedMs": 3225,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 3,
+     "passages": 23,
+     "context": 10,
+     "chars": 9674
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-26-qa-176",
+   "conversation": "conv-26",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 19197,
+   "output": 233,
+   "elapsedMs": 2892,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-41-qa-39",
+   "conversation": "conv-41",
+   "category": 3,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Independence Day",
+   "failure": null,
+   "rounds": 1,
+   "input": 28813,
+   "output": 259,
+   "elapsedMs": 2708,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Independence Day matches the reference and the July 3 conversation context.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-41-qa-39",
+   "conversation": "conv-41",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Independence Day (July 4th)",
+   "failure": null,
+   "rounds": 3,
+   "input": 59825,
+   "output": 513,
+   "elapsedMs": 7154,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 22,
+     "chars": 13230
+    },
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 31,
+     "chars": 15351
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Independence Day (July 4th) is equivalent to the reference.",
+   "officialF1": 0.6666666666666666
+  },
+  {
+   "id": "conv-47-qa-144",
+   "conversation": "conv-47",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "An apartment near McGee's bar.",
+   "failure": null,
+   "rounds": 1,
+   "input": 11838,
+   "output": 123,
+   "elapsedMs": 1526,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent paraphrase: 'near McGee's bar' means not far from McGee's bar.",
+   "officialF1": 0.5454545454545454
+  },
+  {
+   "id": "conv-47-qa-144",
+   "conversation": "conv-47",
+   "category": 4,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "An apartment not far from McGee's bar",
+   "failure": null,
+   "rounds": 1,
+   "input": 27034,
+   "output": 160,
+   "elapsedMs": 2076,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference exactly: an apartment not far from McGee's bar.",
+   "officialF1": 0.923076923076923
+  },
+  {
+   "id": "conv-41-qa-60",
+   "conversation": "conv-41",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Coco, Shadow",
+   "failure": null,
+   "rounds": 2,
+   "input": 34603,
+   "output": 347,
+   "elapsedMs": 4421,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 15,
+     "chars": 12181
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence names Maria's dogs as Coco and Shadow.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-41-qa-60",
+   "conversation": "conv-41",
+   "category": 1,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Coco, Shadow",
+   "failure": null,
+   "rounds": 1,
+   "input": 28809,
+   "output": 226,
+   "elapsedMs": 2565,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence names Maria's dogs as Coco and Shadow.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-42-qa-251",
+   "conversation": "conv-42",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "fantasy RPG",
+   "failure": null,
+   "rounds": 1,
+   "input": 24796,
+   "output": 158,
+   "elapsedMs": 1999,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false
+  },
+  {
+   "id": "conv-42-qa-251",
+   "conversation": "conv-42",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Fantasy RPG",
+   "failure": null,
+   "rounds": 1,
+   "input": 8488,
+   "output": 152,
+   "elapsedMs": 1747,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false
+  },
+  {
+   "id": "conv-30-qa-67",
+   "conversation": "conv-30",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "To stay organized and motivated: it sets goals, tracks his achievements, and helps him find areas to improve.",
+   "failure": null,
+   "rounds": 2,
+   "input": 18812,
+   "output": 443,
+   "elapsedMs": 4011,
+   "toolCalls": 2,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the evidence: Jon uses it to stay organized and motivated, set goals, track achievements, and find areas to improve.",
+   "officialF1": 0.64
+  },
+  {
+   "id": "conv-30-qa-67",
+   "conversation": "conv-30",
+   "category": 4,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "To stay organized and motivated by setting goals, tracking achievements, and finding areas to improve.",
+   "failure": null,
+   "rounds": 1,
+   "input": 15190,
+   "output": 197,
+   "elapsedMs": 1952,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Correctly states the clipboard is used for organization and motivation via goals, achievement tracking, and finding improvements.",
+   "officialF1": 0.7272727272727274
+  },
+  {
+   "id": "conv-48-qa-30",
+   "conversation": "conv-48",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "21 February 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 24106,
+   "output": 345,
+   "elapsedMs": 3595,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 27,
+     "chars": 14891
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference date of 21 February 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-48-qa-30",
+   "conversation": "conv-48",
+   "category": 2,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "The night of 21 February 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 26024,
+   "output": 267,
+   "elapsedMs": 2479,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Correctly specifies the night of 21 February 2023, supported by evidence.",
+   "officialF1": 0.7499999999999999
+  },
+  {
+   "id": "conv-43-qa-49",
+   "conversation": "conv-43",
+   "category": 1,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "One time",
+   "failure": null,
+   "rounds": 1,
+   "input": 28878,
+   "output": 1794,
+   "elapsedMs": 11183,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference says two times, not one time.",
+   "officialF1": 0.5
+  },
+  {
+   "id": "conv-43-qa-49",
+   "conversation": "conv-43",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "One",
+   "failure": null,
+   "rounds": 3,
+   "input": 59343,
+   "output": 1868,
+   "elapsedMs": 14503,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 23,
+     "chars": 13682
+    },
+    {
+     "facets": 6,
+     "passages": 24,
+     "context": 21,
+     "chars": 12244
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference says two times, not one.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-30-qa-100",
+   "conversation": "conv-30",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "She doesn't use it; it appears in Jon's photo, and Gina asks him how he's been using it.",
+   "failure": null,
+   "rounds": 2,
+   "input": 20989,
+   "output": 454,
+   "elapsedMs": 3625,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 8,
+     "chars": 8870
+    }
+   ],
+   "correct": false
+  },
+  {
+   "id": "conv-30-qa-100",
+   "conversation": "conv-30",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 15190,
+   "output": 450,
+   "elapsedMs": 3703,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-41-qa-108",
+   "conversation": "conv-41",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "She said it felt like being in a fairy tale — the water sounded so calming, the surroundings were beautiful, and it was truly magical.",
+   "failure": null,
+   "rounds": 2,
+   "input": 21704,
+   "output": 433,
+   "elapsedMs": 3415,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 12,
+     "context": 7,
+     "chars": 6097
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference and supported evidence: Maria described it as like being in a fairy tale and added supported details.",
+   "officialF1": 0.3846153846153846
+  },
+  {
+   "id": "conv-41-qa-108",
+   "conversation": "conv-41",
+   "category": 4,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "She felt like she was in a fairy tale: the water sounded calming, the surroundings were beautiful, and it was truly magical.",
+   "failure": null,
+   "rounds": 1,
+   "input": 28815,
+   "output": 329,
+   "elapsedMs": 3042,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches Maria's statement that she felt like she was in a fairy tale, with supported descriptive details.",
+   "officialF1": 0.3478260869565218
+  },
+  {
+   "id": "conv-49-qa-51",
+   "conversation": "conv-49",
+   "category": 3,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Sam faces weight-related health risks and discomfort, cravings for sugary drinks and snacks triggered by stress, boredom, or comfort, lack of motivation and confidence, family pressure, and occasional setbacks and guilt; he addresses them by cutting down on soda and candy, improving his diet and cooking healthier meals, making meal and workout plans, exercising through gym sessions, morning runs, hiking, kayaking, and beach walks, planning to get doctor advice, and using painting, writing, support, and Weight Watchers coaching to stay motivated.",
+   "failure": null,
+   "rounds": 1,
+   "input": 21251,
+   "output": 756,
+   "elapsedMs": 6074,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "The challenges and responses are supported: cravings/triggers, family pressure, setbacks, dietary changes, cooking, exercise plans/activities, doctor advice, and Weight Watchers coaching.",
+   "officialF1": 0.2150537634408602
+  },
+  {
+   "id": "conv-49-qa-51",
+   "conversation": "conv-49",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Sam struggles with excess weight, sugary-drink and snack cravings triggered by stress, boredom and comfort-seeking, low motivation and confidence, and fitness goals that are hard to reach; he addresses these by cutting sugary drinks and snacks, taking healthy cooking classes, making a meal plan and workout schedule, doing low-impact exercise, yoga, swimming and hiking, spending time in nature, and joining Weight Watchers, where he became a coach.",
+   "failure": null,
+   "rounds": 2,
+   "input": 32876,
+   "output": 923,
+   "elapsedMs": 7220,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 6,
+     "passages": 30,
+     "context": 36,
+     "chars": 27904
+    },
+    {
+     "facets": 1,
+     "passages": 30,
+     "context": 42,
+     "chars": 22373
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Mostly supported, but it says Sam addresses challenges through swimming; the evidence only has swimming recommended/suggested, not shown as Sam's own action.",
+   "officialF1": 0.225
+  },
+  {
+   "id": "conv-50-qa-179",
+   "conversation": "conv-50",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "A flight to Boston",
+   "failure": null,
+   "rounds": 2,
+   "input": 28494,
+   "output": 814,
+   "elapsedMs": 5873,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 30,
+     "context": 45,
+     "chars": 22777
+    },
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 16,
+     "chars": 9888
+    }
+   ],
+   "correct": false
+  },
+  {
+   "id": "conv-50-qa-179",
+   "conversation": "conv-50",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 26435,
+   "output": 457,
+   "elapsedMs": 3154,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-30-qa-13",
+   "conversation": "conv-30",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "March 16, 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 21090,
+   "output": 350,
+   "elapsedMs": 3846,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 21,
+     "context": 17,
+     "chars": 11769
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference date 16 March, 2023, and is supported by the evidence timestamp when Gina announces the store is open.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-30-qa-13",
+   "conversation": "conv-30",
+   "category": 2,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "16 March 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 15185,
+   "output": 268,
+   "elapsedMs": 2196,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to the reference date 16 March, 2023, and supported by the evidence.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-30-qa-13",
+   "conversation": "conv-30",
+   "category": 2,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "March 16, 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 8010,
+   "output": 114,
+   "elapsedMs": 1211,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference date 16 March, 2023, and is supported by the conversation evidence.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-47-qa-9",
+   "conversation": "conv-47",
+   "category": 1,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Max, Daisy, Ned",
+   "failure": null,
+   "rounds": 1,
+   "input": 27025,
+   "output": 125,
+   "elapsedMs": 1751,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Lists all three dog names: Max, Daisy, and Ned.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-47-qa-9",
+   "conversation": "conv-47",
+   "category": 1,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Max, Daisy, Ned",
+   "failure": null,
+   "rounds": 1,
+   "input": 11193,
+   "output": 85,
+   "elapsedMs": 1108,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Lists all three dog names: Max, Daisy, and Ned.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-47-qa-9",
+   "conversation": "conv-47",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Max, Daisy, and Ned",
+   "failure": null,
+   "rounds": 2,
+   "input": 42604,
+   "output": 151,
+   "elapsedMs": 2446,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 12,
+     "context": 16,
+     "chars": 24039
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Lists all three dog names: Max, Daisy, and Ned.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-48-qa-77",
+   "conversation": "conv-48",
+   "category": 1,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 20777,
+   "output": 205,
+   "elapsedMs": 2153,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 12,
+     "context": 15,
+     "chars": 8276
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference states Phuket; evidence links the trip/retreat to Phuket, so 'Not mentioned' is wrong.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-48-qa-77",
+   "conversation": "conv-48",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 3,
+   "input": 40768,
+   "output": 390,
+   "elapsedMs": 3754,
+   "toolCalls": 3,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 12,
+     "chars": 13007
+    },
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 17,
+     "chars": 12129
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference states Phuket; evidence links the trip/retreat to Phuket, so 'Not mentioned' is wrong.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-48-qa-77",
+   "conversation": "conv-48",
+   "category": 1,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 26024,
+   "output": 154,
+   "elapsedMs": 1742,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference states Phuket; evidence links the trip/retreat to Phuket, so 'Not mentioned' is wrong.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-47-qa-165",
+   "conversation": "conv-47",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 28232,
+   "output": 665,
+   "elapsedMs": 5621,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 6,
+     "passages": 24,
+     "context": 34,
+     "chars": 15087
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-47-qa-165",
+   "conversation": "conv-47",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 27024,
+   "output": 293,
+   "elapsedMs": 2090,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-47-qa-165",
+   "conversation": "conv-47",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 30123,
+   "output": 521,
+   "elapsedMs": 4190,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 14,
+     "chars": 6243
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 18,
+     "chars": 16353
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-44-qa-11",
+   "conversation": "conv-44",
+   "category": 2,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "11 June 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 28039,
+   "output": 305,
+   "elapsedMs": 2410,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference date June 11, 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-44-qa-11",
+   "conversation": "conv-44",
+   "category": 2,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "June 11, 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 8142,
+   "output": 176,
+   "elapsedMs": 1694,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Exact match to reference date.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-44-qa-11",
+   "conversation": "conv-44",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "11 June 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 20981,
+   "output": 349,
+   "elapsedMs": 3227,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 9,
+     "chars": 10918
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference date June 11, 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-49-qa-72",
+   "conversation": "conv-49",
+   "category": 1,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Hiking",
+   "failure": null,
+   "rounds": 1,
+   "input": 8395,
+   "output": 176,
+   "elapsedMs": 1214,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "The evidence supports hiking as the activity Sam resumed in December 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-49-qa-72",
+   "conversation": "conv-49",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Hiking",
+   "failure": null,
+   "rounds": 2,
+   "input": 32848,
+   "output": 487,
+   "elapsedMs": 4357,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 13,
+     "chars": 11733
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence shows Sam said hiking had been a while, then took friends on a hiking trip in late December 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-49-qa-72",
+   "conversation": "conv-49",
+   "category": 1,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Hiking",
+   "failure": null,
+   "rounds": 1,
+   "input": 21246,
+   "output": 256,
+   "elapsedMs": 2033,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Sam’s December 2023 hiking trip matches the reference activity resumed after a long time.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-26-qa-22",
+   "conversation": "conv-26",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Yes",
+   "failure": null,
+   "rounds": 2,
+   "input": 26662,
+   "output": 327,
+   "elapsedMs": 3055,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 23,
+     "context": 10,
+     "chars": 10826
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to reference's yes; evidence supports classic children's books.",
+   "officialF1": 0.25
+  },
+  {
+   "id": "conv-26-qa-22",
+   "conversation": "conv-26",
+   "category": 3,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Likely yes",
+   "failure": null,
+   "rounds": 1,
+   "input": 19201,
+   "output": 503,
+   "elapsedMs": 3545,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence shows Caroline collects kids' classics, making Dr. Seuss books likely; matches reference.",
+   "officialF1": 0.22222222222222224
+  },
+  {
+   "id": "conv-26-qa-22",
+   "conversation": "conv-26",
+   "category": 3,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Yes",
+   "failure": null,
+   "rounds": 2,
+   "input": 30541,
+   "output": 358,
+   "elapsedMs": 3615,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 13,
+     "chars": 7775
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 14,
+     "chars": 16282
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Supported by evidence that she has a library of classic children's books; reference says yes.",
+   "officialF1": 0.25
+  },
+  {
+   "id": "conv-49-qa-159",
+   "conversation": "conv-49",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 21250,
+   "output": 697,
+   "elapsedMs": 4540,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-49-qa-159",
+   "conversation": "conv-49",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 8323,
+   "output": 163,
+   "elapsedMs": 1797,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-49-qa-159",
+   "conversation": "conv-49",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Jasper",
+   "failure": null,
+   "rounds": 2,
+   "input": 21262,
+   "output": 1026,
+   "elapsedMs": 7890,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 12,
+     "chars": 10323
+    }
+   ],
+   "correct": false
+  },
+  {
+   "id": "conv-43-qa-28",
+   "conversation": "conv-43",
+   "category": 3,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "John Williams",
+   "failure": null,
+   "rounds": 4,
+   "input": 60050,
+   "output": 889,
+   "elapsedMs": 8548,
+   "toolCalls": 5,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 15,
+     "chars": 8209
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 18,
+     "chars": 8673
+    },
+    {
+     "facets": 1,
+     "passages": 0,
+     "context": 0,
+     "chars": 3036
+    },
+    {
+     "facets": 1,
+     "passages": 0,
+     "context": 0,
+     "chars": 2724
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference answer John Williams; supported by the Harry Potter film theme context.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-43-qa-28",
+   "conversation": "conv-43",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "John Williams",
+   "failure": null,
+   "rounds": 7,
+   "input": 306165,
+   "output": 1376,
+   "elapsedMs": 16563,
+   "toolCalls": 6,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 50,
+     "context": 64,
+     "chars": 33500
+    },
+    {
+     "facets": 6,
+     "passages": 50,
+     "context": 75,
+     "chars": 35076
+    },
+    {
+     "facets": 6,
+     "passages": 40,
+     "context": 54,
+     "chars": 25843
+    },
+    {
+     "facets": 5,
+     "passages": 50,
+     "context": 67,
+     "chars": 33575
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference answer John Williams; supported by the Harry Potter film theme context.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-43-qa-28",
+   "conversation": "conv-43",
+   "category": 3,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "John Williams",
+   "failure": null,
+   "rounds": 1,
+   "input": 28883,
+   "output": 413,
+   "elapsedMs": 3588,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference answer John Williams; supported by the Harry Potter film theme context.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-49-qa-4",
+   "conversation": "conv-49",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Painting",
+   "failure": null,
+   "rounds": 3,
+   "input": 62830,
+   "output": 619,
+   "elapsedMs": 6472,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 30,
+     "context": 36,
+     "chars": 20805
+    },
+    {
+     "facets": 6,
+     "passages": 25,
+     "context": 34,
+     "chars": 16587
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference hobby, painting, and Sam discusses wanting to try painting in May 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-49-qa-4",
+   "conversation": "conv-49",
+   "category": 2,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Painting",
+   "failure": null,
+   "rounds": 1,
+   "input": 21243,
+   "output": 200,
+   "elapsedMs": 2119,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference hobby, painting, and Sam discusses wanting to try painting in May 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-49-qa-4",
+   "conversation": "conv-49",
+   "category": 2,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Painting",
+   "failure": null,
+   "rounds": 2,
+   "input": 20589,
+   "output": 460,
+   "elapsedMs": 4129,
+   "toolCalls": 3,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 18,
+     "chars": 8924
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference hobby, painting, and Sam discusses wanting to try painting in May 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-44-qa-117",
+   "conversation": "conv-44",
+   "category": 4,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "She joined a dog owners group.",
+   "failure": null,
+   "rounds": 1,
+   "input": 28049,
+   "output": 381,
+   "elapsedMs": 2880,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference: Audrey joined a dog owners group.",
+   "officialF1": 0.888888888888889
+  },
+  {
+   "id": "conv-44-qa-117",
+   "conversation": "conv-44",
+   "category": 4,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "She joined a dog owners group to learn how to better take care of her dogs.",
+   "failure": null,
+   "rounds": 1,
+   "input": 7716,
+   "output": 96,
+   "elapsedMs": 1565,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference and evidence: joined a dog owners group to better care for her dogs.",
+   "officialF1": 0.4210526315789474
+  },
+  {
+   "id": "conv-44-qa-117",
+   "conversation": "conv-44",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "She joined a dog owners group to learn how to better take care of them",
+   "failure": null,
+   "rounds": 2,
+   "input": 21107,
+   "output": 477,
+   "elapsedMs": 4520,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 24,
+     "chars": 14367
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference and evidence: joined a dog owners group to learn better care.",
+   "officialF1": 0.4444444444444445
+  },
+  {
+   "id": "conv-48-qa-231",
+   "conversation": "conv-48",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 22045,
+   "output": 307,
+   "elapsedMs": 3034,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 10,
+     "chars": 6067
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 14,
+     "chars": 7316
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-48-qa-231",
+   "conversation": "conv-48",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 3,
+   "input": 53181,
+   "output": 459,
+   "elapsedMs": 5167,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 22,
+     "chars": 26701
+    },
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 27,
+     "chars": 22082
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-48-qa-231",
+   "conversation": "conv-48",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 26030,
+   "output": 694,
+   "elapsedMs": 4535,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-26-qa-53",
+   "conversation": "conv-26",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "In the week before August 23, 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 26726,
+   "output": 332,
+   "elapsedMs": 3948,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 3,
+     "passages": 24,
+     "context": 9,
+     "chars": 11135
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Says the week before 23 August, while the reference and evidence place it in the week of 23 August.",
+   "officialF1": 0.7272727272727272
+  },
+  {
+   "id": "conv-26-qa-53",
+   "conversation": "conv-26",
+   "category": 2,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "the week of 23 August 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 19195,
+   "output": 370,
+   "elapsedMs": 2481,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference timeframe exactly.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-26-qa-53",
+   "conversation": "conv-26",
+   "category": 2,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "The week of 23 August 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 10994,
+   "output": 149,
+   "elapsedMs": 1809,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference timeframe exactly.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-47-qa-17",
+   "conversation": "conv-47",
+   "category": 3,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 27035,
+   "output": 2577,
+   "elapsedMs": 15384,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "The reference gives the game name as Mafia, so it is not correctly answered as 'Not mentioned'.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-47-qa-17",
+   "conversation": "conv-47",
+   "category": 3,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 3,
+   "input": 48059,
+   "output": 1046,
+   "elapsedMs": 7835,
+   "toolCalls": 4,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 16,
+     "chars": 7670
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 15,
+     "chars": 7067
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 16,
+     "chars": 16245
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "The reference gives the game name as Mafia, so it is not correctly answered as 'Not mentioned'.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-47-qa-17",
+   "conversation": "conv-47",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Among Us",
+   "failure": null,
+   "rounds": 2,
+   "input": 28618,
+   "output": 541,
+   "elapsedMs": 4445,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 24,
+     "chars": 14940
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference identifies the game as Mafia, not Among Us.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-30-qa-69",
+   "conversation": "conv-30",
+   "category": 4,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "To clear his mind",
+   "failure": null,
+   "rounds": 1,
+   "input": 8462,
+   "output": 76,
+   "elapsedMs": 1175,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "D15:1 states Jon took a trip to Rome to clear his mind, matching the reference.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-30-qa-69",
+   "conversation": "conv-30",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "To clear his mind.",
+   "failure": null,
+   "rounds": 2,
+   "input": 20845,
+   "output": 321,
+   "elapsedMs": 3504,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 7,
+     "chars": 8944
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "D15:1 states Jon took a trip to Rome to clear his mind, matching the reference.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-30-qa-69",
+   "conversation": "conv-30",
+   "category": 4,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "To clear his mind",
+   "failure": null,
+   "rounds": 1,
+   "input": 15186,
+   "output": 106,
+   "elapsedMs": 1666,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "D15:1 states Jon took a trip to Rome to clear his mind, matching the reference.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-43-qa-224",
+   "conversation": "conv-43",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 29529,
+   "output": 377,
+   "elapsedMs": 4001,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 13,
+     "chars": 12565
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 17,
+     "chars": 15701
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-43-qa-224",
+   "conversation": "conv-43",
+   "category": 5,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 28882,
+   "output": 293,
+   "elapsedMs": 2348,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-43-qa-224",
+   "conversation": "conv-43",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 30586,
+   "output": 422,
+   "elapsedMs": 3929,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 12,
+     "context": 13,
+     "chars": 8139
+    },
+    {
+     "facets": 1,
+     "passages": 12,
+     "context": 18,
+     "chars": 24579
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-42-qa-130",
+   "conversation": "conv-42",
+   "category": 4,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Inspiring quotes, photos, and little keepsakes, including a family picture.",
+   "failure": null,
+   "rounds": 1,
+   "input": 24791,
+   "output": 395,
+   "elapsedMs": 2897,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Includes the reference items and the family picture, which is supported by the evidence.",
+   "officialF1": 0.7692307692307693
+  },
+  {
+   "id": "conv-42-qa-130",
+   "conversation": "conv-42",
+   "category": 4,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Inspiring quotes, photos, and little keepsakes, including a family picture",
+   "failure": null,
+   "rounds": 1,
+   "input": 8138,
+   "output": 136,
+   "elapsedMs": 1420,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Includes the reference items and the family picture, which is supported by the evidence.",
+   "officialF1": 0.7692307692307693
+  },
+  {
+   "id": "conv-42-qa-130",
+   "conversation": "conv-42",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Inspiring quotes, photos (including a family picture), and little keepsakes",
+   "failure": null,
+   "rounds": 1,
+   "input": 8445,
+   "output": 172,
+   "elapsedMs": 1252,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to the reference; the family picture addition is supported by the evidence.",
+   "officialF1": 0.7692307692307693
+  },
+  {
+   "id": "conv-44-qa-52",
+   "conversation": "conv-44",
+   "category": 3,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Take a trip to the park on the weekends.",
+   "failure": null,
+   "rounds": 3,
+   "input": 35843,
+   "output": 954,
+   "elapsedMs": 8040,
+   "toolCalls": 4,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 14,
+     "chars": 7136
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 6,
+     "chars": 4814
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 19,
+     "chars": 9505
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Does not mention installing a bird feeder; suggests a weekend park trip instead.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-44-qa-52",
+   "conversation": "conv-44",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Go birdwatching in nearby parks or on his weekend hikes outside the city.",
+   "failure": null,
+   "rounds": 3,
+   "input": 79770,
+   "output": 1046,
+   "elapsedMs": 8888,
+   "toolCalls": 4,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 50,
+     "context": 58,
+     "chars": 31666
+    },
+    {
+     "facets": 1,
+     "passages": 30,
+     "context": 43,
+     "chars": 37412
+    },
+    {
+     "facets": 5,
+     "passages": 40,
+     "context": 30,
+     "chars": 21113
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Suggests going to parks or weekend hikes, not installing a bird feeder to watch birds without going outdoors.",
+   "officialF1": 0.16666666666666666
+  },
+  {
+   "id": "conv-44-qa-52",
+   "conversation": "conv-44",
+   "category": 3,
+   "arm": "full",
+   "repeat": 1,
+   "unseen": true,
+   "answer": "Take short birdwatching walks in nearby parks during lunch breaks",
+   "failure": null,
+   "rounds": 1,
+   "input": 28052,
+   "output": 1296,
+   "elapsedMs": 9207,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Suggests birdwatching walks, not the referenced bird feeder outside his home.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-42-qa-25",
+   "conversation": "conv-42",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "The weekend of June 4–5, 2022",
+   "failure": null,
+   "rounds": 3,
+   "input": 35576,
+   "output": 538,
+   "elapsedMs": 5037,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 15,
+     "chars": 10817
+    },
+    {
+     "facets": 3,
+     "passages": 0,
+     "context": 0,
+     "chars": 2109
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to the weekend after 3 June 2022, supported by the 3 June chat where Joanna says she is hiking with buddies that weekend.",
+   "officialF1": 0.4444444444444445
+  },
+  {
+   "id": "conv-50-qa-26",
+   "conversation": "conv-50",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "21 August 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 20660,
+   "output": 261,
+   "elapsedMs": 3286,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 3,
+     "passages": 24,
+     "context": 15,
+     "chars": 12887
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence states on 22 August 2023 that the podcast was recorded 'yesterday,' i.e., 21 August 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-41-qa-180",
+   "conversation": "conv-41",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 23390,
+   "output": 284,
+   "elapsedMs": 2517,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 14,
+     "chars": 11227
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-48-qa-49",
+   "conversation": "conv-48",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "About three years",
+   "failure": null,
+   "rounds": 1,
+   "input": 9068,
+   "output": 152,
+   "elapsedMs": 1386,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference: about three years.",
+   "officialF1": 0.6666666666666666
+  },
+  {
+   "id": "conv-43-qa-58",
+   "conversation": "conv-43",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "August 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 25680,
+   "output": 486,
+   "elapsedMs": 4091,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 3,
+     "passages": 24,
+     "context": 29,
+     "chars": 17515
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "D4:8 is dated 2 August 2023 and D22:2 refers back to the Harry Potter trivia in August, matching the reference.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-50-qa-39",
+   "conversation": "conv-50",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "A Dodge Charger",
+   "failure": null,
+   "rounds": 3,
+   "input": 38519,
+   "output": 685,
+   "elapsedMs": 5456,
+   "toolCalls": 3,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 17,
+     "chars": 13267
+    },
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 13,
+     "chars": 12511
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to Dodge Charger; Dave's interest in classic/muscle cars supports it.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-44-qa-125",
+   "conversation": "conv-44",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 3,
+   "input": 77407,
+   "output": 1095,
+   "elapsedMs": 9297,
+   "toolCalls": 4,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 25,
+     "context": 47,
+     "chars": 21721
+    },
+    {
+     "facets": 1,
+     "passages": 15,
+     "context": 26,
+     "chars": 23983
+    },
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 31,
+     "chars": 16002
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-42-qa-1",
+   "conversation": "conv-42",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Watching movies, reading, and baking dairy-free desserts",
+   "failure": null,
+   "rounds": 2,
+   "input": 38478,
+   "output": 529,
+   "elapsedMs": 5140,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 6,
+     "passages": 50,
+     "context": 55,
+     "chars": 31278
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Watching movies and baking dairy-free desserts match the reference; reading is also supported as a shared interest.",
+   "officialF1": 0.7
+  },
+  {
+   "id": "conv-50-qa-144",
+   "conversation": "conv-50",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Blogging about car mods",
+   "failure": null,
+   "rounds": 1,
+   "input": 7948,
+   "output": 175,
+   "elapsedMs": 1779,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches evidence that Dave blogs about car mods.",
+   "officialF1": 0.6666666666666665
+  },
+  {
+   "id": "conv-26-qa-19",
+   "conversation": "conv-26",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Learning about animals and nature",
+   "failure": null,
+   "rounds": 2,
+   "input": 42013,
+   "output": 494,
+   "elapsedMs": 4728,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 6,
+     "passages": 40,
+     "context": 43,
+     "chars": 27601
+    },
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 28,
+     "chars": 31736
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Nature and learning about animals are supported and encompass the dinosaur interest.",
+   "officialF1": 0.2
+  },
+  {
+   "id": "conv-26-qa-176",
+   "conversation": "conv-26",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 26476,
+   "output": 349,
+   "elapsedMs": 3681,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 13,
+     "chars": 10631
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-41-qa-39",
+   "conversation": "conv-41",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Independence Day",
+   "failure": null,
+   "rounds": 3,
+   "input": 53763,
+   "output": 478,
+   "elapsedMs": 4809,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 15,
+     "chars": 11800
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "The car accident occurred around July 4, i.e., Independence Day, matching the reference.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-47-qa-144",
+   "conversation": "conv-47",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "An apartment not far from McGee's bar",
+   "failure": null,
+   "rounds": 1,
+   "input": 11838,
+   "output": 276,
+   "elapsedMs": 1774,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference exactly: an apartment not far from McGee's bar.",
+   "officialF1": 0.923076923076923
+  },
+  {
+   "id": "conv-41-qa-60",
+   "conversation": "conv-41",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Coco, Shadow",
+   "failure": null,
+   "rounds": 2,
+   "input": 34141,
+   "output": 308,
+   "elapsedMs": 3386,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 10,
+     "chars": 10598
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence names Maria's dogs as Coco and Shadow.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-42-qa-251",
+   "conversation": "conv-42",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Fantasy RPG",
+   "failure": null,
+   "rounds": 1,
+   "input": 8488,
+   "output": 152,
+   "elapsedMs": 1268,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false
+  },
+  {
+   "id": "conv-30-qa-67",
+   "conversation": "conv-30",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "To stay organized and motivated—setting goals, tracking his achievements, and finding areas to improve.",
+   "failure": null,
+   "rounds": 1,
+   "input": 8940,
+   "output": 285,
+   "elapsedMs": 2253,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Covers the same uses: staying organized and motivated, goal setting, tracking achievements, and improvement areas.",
+   "officialF1": 0.6666666666666666
+  },
+  {
+   "id": "conv-48-qa-30",
+   "conversation": "conv-48",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "The night of 21 February 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 23460,
+   "output": 265,
+   "elapsedMs": 2668,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 21,
+     "chars": 13114
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Same date as reference and supported by the 22 February message referring to 'last night.'",
+   "officialF1": 0.7499999999999999
+  },
+  {
+   "id": "conv-43-qa-49",
+   "conversation": "conv-43",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Once.",
+   "failure": null,
+   "rounds": 5,
+   "input": 209044,
+   "output": 3377,
+   "elapsedMs": 24910,
+   "toolCalls": 9,
+   "search": [
+    {
+     "facets": 6,
+     "passages": 50,
+     "context": 53,
+     "chars": 30359
+    },
+    {
+     "facets": 1,
+     "passages": 50,
+     "context": 70,
+     "chars": 33319
+    },
+    {
+     "facets": 1,
+     "passages": 50,
+     "context": 55,
+     "chars": 32095
+    },
+    {
+     "facets": 1,
+     "passages": 0,
+     "context": 0,
+     "chars": 708
+    },
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 27,
+     "chars": 30036
+    },
+    {
+     "facets": 1,
+     "passages": 50,
+     "context": 41,
+     "chars": 27147
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference says John injured his ankle two times, but the answer says once.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-30-qa-100",
+   "conversation": "conv-30",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "She doesn't use it; it was Jon's clipboard, and Gina asked him how he had been using it.",
+   "failure": null,
+   "rounds": 2,
+   "input": 21686,
+   "output": 484,
+   "elapsedMs": 3881,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 11,
+     "chars": 9779
+    }
+   ],
+   "correct": false
+  },
+  {
+   "id": "conv-41-qa-108",
+   "conversation": "conv-41",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Like being in a fairy tale — the water sounded calming, the surroundings were beautiful, and it was truly magical.",
+   "failure": null,
+   "rounds": 1,
+   "input": 9599,
+   "output": 273,
+   "elapsedMs": 1742,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference and supported evidence: Maria said it felt like a fairy tale, with calming water, beautiful surroundings, and magical feeling.",
+   "officialF1": 0.47619047619047616
+  },
+  {
+   "id": "conv-49-qa-51",
+   "conversation": "conv-49",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Sam's challenges include a doctor's warning that his weight is a serious health risk, weight-related lack of confidence and motivation, hard-to-reach fitness goals, occasional cravings for sugary drinks and snacks triggered by stress, boredom or wanting comfort, work stress, physical discomfort that limits his movement, and difficulty breaking old habits and finding exercise he enjoys. He addresses them with healthier eating and cooking classes, a meal plan and workout schedule, yoga and low-impact exercise, healthier snack ideas, goal-setting and an exercise buddy, Weight Watchers meetings and serving as a group coach to stay motivated and help others, time outdoors and car rides to relax, and plans to see his doctor about a balanced diet plan and low-impact exercise advice.",
+   "failure": null,
+   "rounds": 2,
+   "input": 31596,
+   "output": 730,
+   "elapsedMs": 6994,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 40,
+     "context": 55,
+     "chars": 30992
+    },
+    {
+     "facets": 1,
+     "passages": 12,
+     "context": 16,
+     "chars": 15550
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "All listed challenges and responses are supported by the conversation, including weight warning, motivation/confidence, cravings, cooking classes, plans, doctor advice, and Weight Watchers coaching.",
+   "officialF1": 0.14634146341463414
+  },
+  {
+   "id": "conv-50-qa-179",
+   "conversation": "conv-50",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 24223,
+   "output": 366,
+   "elapsedMs": 3168,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 30,
+     "context": 38,
+     "chars": 20384
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-30-qa-13",
+   "conversation": "conv-30",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "March 16, 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 8317,
+   "output": 139,
+   "elapsedMs": 1842,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference date 16 March, 2023, and the evidence says the online store is open on that date.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-47-qa-9",
+   "conversation": "conv-47",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Max, Daisy, and Ned",
+   "failure": null,
+   "rounds": 2,
+   "input": 38403,
+   "output": 285,
+   "elapsedMs": 2866,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 16,
+     "chars": 11880
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Lists all three dog names: Max, Daisy, and Ned.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-48-qa-77",
+   "conversation": "conv-48",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 4,
+   "input": 53741,
+   "output": 525,
+   "elapsedMs": 5841,
+   "toolCalls": 3,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 14,
+     "chars": 11706
+    },
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 20,
+     "chars": 13193
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference states Phuket; evidence links the trip/retreat to Phuket, so 'Not mentioned' is wrong.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-47-qa-165",
+   "conversation": "conv-47",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 26617,
+   "output": 269,
+   "elapsedMs": 3538,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 16,
+     "chars": 11140
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-44-qa-11",
+   "conversation": "conv-44",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Sunday, 11 June 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 21315,
+   "output": 414,
+   "elapsedMs": 3747,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 3,
+     "passages": 23,
+     "context": 13,
+     "chars": 12018
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Includes correct date and compatible weekday.",
+   "officialF1": 0.8571428571428571
+  },
+  {
+   "id": "conv-49-qa-72",
+   "conversation": "conv-49",
+   "category": 1,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Hiking",
+   "failure": null,
+   "rounds": 2,
+   "input": 32248,
+   "output": 315,
+   "elapsedMs": 3149,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 9,
+     "chars": 9891
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "December 2023 messages indicate Sam resumed hiking after not having done it for a while.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-26-qa-22",
+   "conversation": "conv-26",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Yes, likely.",
+   "failure": null,
+   "rounds": 2,
+   "input": 27287,
+   "output": 317,
+   "elapsedMs": 3526,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 3,
+     "passages": 24,
+     "context": 16,
+     "chars": 12627
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "'Yes, likely' matches reference and evidence about collecting children's classics.",
+   "officialF1": 0.22222222222222224
+  },
+  {
+   "id": "conv-49-qa-159",
+   "conversation": "conv-49",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 8630,
+   "output": 255,
+   "elapsedMs": 2233,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-43-qa-28",
+   "conversation": "conv-43",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "John Williams",
+   "failure": null,
+   "rounds": 5,
+   "input": 137699,
+   "output": 1428,
+   "elapsedMs": 12758,
+   "toolCalls": 4,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 30,
+     "context": 37,
+     "chars": 20345
+    },
+    {
+     "facets": 6,
+     "passages": 24,
+     "context": 29,
+     "chars": 14578
+    },
+    {
+     "facets": 6,
+     "passages": 30,
+     "context": 39,
+     "chars": 20735
+    },
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 28,
+     "chars": 13986
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference answer John Williams; supported by the Harry Potter film theme context.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-49-qa-4",
+   "conversation": "conv-49",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Painting",
+   "failure": null,
+   "rounds": 2,
+   "input": 33833,
+   "output": 519,
+   "elapsedMs": 3700,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 25,
+     "chars": 15192
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference hobby, painting, and Sam discusses wanting to try painting in May 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-44-qa-117",
+   "conversation": "conv-44",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "She joined a dog owners group to learn how to better take care of them.",
+   "failure": null,
+   "rounds": 1,
+   "input": 8023,
+   "output": 312,
+   "elapsedMs": 1869,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference and evidence: joined a dog owners group to learn better care.",
+   "officialF1": 0.4444444444444445
+  },
+  {
+   "id": "conv-48-qa-231",
+   "conversation": "conv-48",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 22178,
+   "output": 271,
+   "elapsedMs": 3723,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 17,
+     "chars": 11840
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-26-qa-53",
+   "conversation": "conv-26",
+   "category": 2,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "23 August 2023",
+   "failure": null,
+   "rounds": 1,
+   "input": 11301,
+   "output": 145,
+   "elapsedMs": 1388,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Gives only 23 August 2023, not the week; evidence says she applied 'this week' as of 23 August.",
+   "officialF1": 0.7499999999999999
+  },
+  {
+   "id": "conv-47-qa-17",
+   "conversation": "conv-47",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Among Us",
+   "failure": null,
+   "rounds": 3,
+   "input": 47420,
+   "output": 1148,
+   "elapsedMs": 9005,
+   "toolCalls": 3,
+   "search": [
+    {
+     "facets": 5,
+     "passages": 24,
+     "context": 14,
+     "chars": 10791
+    },
+    {
+     "facets": 6,
+     "passages": 24,
+     "context": 18,
+     "chars": 12749
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference identifies the game as Mafia, not Among Us.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-30-qa-69",
+   "conversation": "conv-30",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "To clear his mind.",
+   "failure": null,
+   "rounds": 2,
+   "input": 20967,
+   "output": 249,
+   "elapsedMs": 3055,
+   "toolCalls": 1,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 9,
+     "chars": 9445
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "D15:1 states Jon took a trip to Rome to clear his mind, matching the reference.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-43-qa-224",
+   "conversation": "conv-43",
+   "category": 5,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 29653,
+   "output": 302,
+   "elapsedMs": 2701,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 4,
+     "passages": 24,
+     "context": 11,
+     "chars": 10968
+    },
+    {
+     "facets": 1,
+     "passages": 12,
+     "context": 17,
+     "chars": 17308
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-42-qa-130",
+   "conversation": "conv-42",
+   "category": 4,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "Inspiring quotes, photos, and little keepsakes",
+   "failure": null,
+   "rounds": 1,
+   "input": 8445,
+   "output": 181,
+   "elapsedMs": 1709,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference exactly.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-44-qa-52",
+   "conversation": "conv-44",
+   "category": 3,
+   "arm": "hybrid-r4a",
+   "repeat": 2,
+   "unseen": true,
+   "answer": "He could pair birdwatching with the weekend hikes he already takes outside the city, spotting birds along the trail.",
+   "failure": null,
+   "rounds": 3,
+   "input": 66657,
+   "output": 929,
+   "elapsedMs": 8167,
+   "toolCalls": 4,
+   "search": [
+    {
+     "facets": 6,
+     "passages": 40,
+     "context": 38,
+     "chars": 22157
+    },
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 24,
+     "chars": 29501
+    },
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 34,
+     "chars": 17980
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Suggests pairing birdwatching with hikes, not the referenced bird feeder solution.",
+   "officialF1": 0.21428571428571427
+  },
+  {
+   "id": "conv-42-qa-25",
+   "conversation": "conv-42",
+   "category": 2,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "The weekend of 4–5 June 2022",
+   "failure": null,
+   "rounds": 2,
+   "input": 20283,
+   "output": 332,
+   "elapsedMs": 3199,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 15,
+     "chars": 6756
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to the weekend after 3 June 2022, supported by the 3 June chat where Joanna says she is hiking with buddies that weekend.",
+   "officialF1": 0.4444444444444445
+  },
+  {
+   "id": "conv-50-qa-26",
+   "conversation": "conv-50",
+   "category": 2,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "21 August 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 15904,
+   "output": 208,
+   "elapsedMs": 2127,
+   "toolCalls": 1,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence states on 22 August 2023 that the podcast was recorded 'yesterday,' i.e., 21 August 2023.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-41-qa-180",
+   "conversation": "conv-41",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 21496,
+   "output": 233,
+   "elapsedMs": 2782,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 14,
+     "chars": 7486
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-48-qa-49",
+   "conversation": "conv-48",
+   "category": 4,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "About three years",
+   "failure": null,
+   "rounds": 1,
+   "input": 8761,
+   "output": 112,
+   "elapsedMs": 2043,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches reference: about three years.",
+   "officialF1": 0.6666666666666666
+  },
+  {
+   "id": "conv-43-qa-58",
+   "conversation": "conv-43",
+   "category": 2,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 22646,
+   "output": 497,
+   "elapsedMs": 3929,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 16,
+     "chars": 9028
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "The evidence shows John attended the Harry Potter trivia, with the reference date August 2023.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-50-qa-39",
+   "conversation": "conv-50",
+   "category": 3,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Dodge Charger",
+   "failure": null,
+   "rounds": 3,
+   "input": 42049,
+   "output": 607,
+   "elapsedMs": 5683,
+   "toolCalls": 4,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 18,
+     "chars": 9082
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 20,
+     "chars": 8878
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 14,
+     "chars": 7715
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Dave is passionate about classic and muscle cars, so the Dodge Charger fits his stated preference over a Subaru Forester.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-44-qa-125",
+   "conversation": "conv-44",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "A smaller dog",
+   "failure": null,
+   "rounds": 2,
+   "input": 25728,
+   "output": 507,
+   "elapsedMs": 4154,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 18,
+     "chars": 16813
+    },
+    {
+     "facets": 1,
+     "passages": 15,
+     "context": 26,
+     "chars": 12911
+    }
+   ],
+   "correct": false
+  },
+  {
+   "id": "conv-42-qa-1",
+   "conversation": "conv-42",
+   "category": 1,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Watching movies, cooking and baking dairy-free desserts, and enjoying nature.",
+   "failure": null,
+   "rounds": 2,
+   "input": 24150,
+   "output": 554,
+   "elapsedMs": 4548,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 15,
+     "context": 26,
+     "chars": 11978
+    },
+    {
+     "facets": 1,
+     "passages": 15,
+     "context": 17,
+     "chars": 9675
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Includes watching movies and making dairy-free desserts, plus nature, which the evidence supports as a shared interest.",
+   "officialF1": 0.6666666666666666
+  },
+  {
+   "id": "conv-50-qa-144",
+   "conversation": "conv-50",
+   "category": 4,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "A blog on car mods",
+   "failure": null,
+   "rounds": 1,
+   "input": 7641,
+   "output": 117,
+   "elapsedMs": 1344,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference: a blog on car mods.",
+   "officialF1": 0.888888888888889
+  },
+  {
+   "id": "conv-26-qa-19",
+   "conversation": "conv-26",
+   "category": 1,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Nature, playing outdoors, and art activities like painting and pottery",
+   "failure": null,
+   "rounds": 2,
+   "input": 37082,
+   "output": 496,
+   "elapsedMs": 4180,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 23,
+     "chars": 14433
+    },
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 28,
+     "chars": 31836
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Omits the reference's dinosaur interest; nature alone is insufficient.",
+   "officialF1": 0.5
+  },
+  {
+   "id": "conv-26-qa-176",
+   "conversation": "conv-26",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 1,
+   "input": 10864,
+   "output": 153,
+   "elapsedMs": 1406,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true
+  },
+  {
+   "id": "conv-41-qa-39",
+   "conversation": "conv-41",
+   "category": 3,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Independence Day",
+   "failure": null,
+   "rounds": 2,
+   "input": 21753,
+   "output": 365,
+   "elapsedMs": 3080,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 15,
+     "chars": 7626
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Independence Day matches the reference and evidence timeframe.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-47-qa-144",
+   "conversation": "conv-47",
+   "category": 4,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "In a rented apartment not far from McGee's bar",
+   "failure": null,
+   "rounds": 1,
+   "input": 11531,
+   "output": 189,
+   "elapsedMs": 1839,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Matches the reference and adds supported detail that the apartment was rented.",
+   "officialF1": 0.9333333333333333
+  },
+  {
+   "id": "conv-41-qa-60",
+   "conversation": "conv-41",
+   "category": 1,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Coco, Shadow",
+   "failure": null,
+   "rounds": 1,
+   "input": 9476,
+   "output": 144,
+   "elapsedMs": 1844,
+   "toolCalls": 0,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Evidence names Maria's dogs as Coco and Shadow.",
+   "officialF1": 1.0
+  },
+  {
+   "id": "conv-42-qa-251",
+   "conversation": "conv-42",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Fantasy RPG",
+   "failure": null,
+   "rounds": 1,
+   "input": 8181,
+   "output": 114,
+   "elapsedMs": 1892,
+   "toolCalls": 0,
+   "search": [],
+   "correct": false
+  },
+  {
+   "id": "conv-30-qa-67",
+   "conversation": "conv-30",
+   "category": 4,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "To stay organized and motivated: it sets his goals, tracks his achievements, and helps him find areas to improve.",
+   "failure": null,
+   "rounds": 2,
+   "input": 18159,
+   "output": 499,
+   "elapsedMs": 3794,
+   "toolCalls": 2,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent paraphrase of the evidence, including setting goals, tracking achievements, and finding areas to improve.",
+   "officialF1": 0.6153846153846153
+  },
+  {
+   "id": "conv-48-qa-30",
+   "conversation": "conv-48",
+   "category": 2,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "The night of 21 February 2023",
+   "failure": null,
+   "rounds": 2,
+   "input": 18745,
+   "output": 247,
+   "elapsedMs": 3128,
+   "toolCalls": 1,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Consistent with evidence that on 22 February she said the dinner and drinks were 'last night,' i.e. the night of 21 February 2023.",
+   "officialF1": 0.7499999999999999
+  },
+  {
+   "id": "conv-43-qa-49",
+   "conversation": "conv-43",
+   "category": 1,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Once",
+   "failure": null,
+   "rounds": 2,
+   "input": 24671,
+   "output": 966,
+   "elapsedMs": 7626,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 20,
+     "context": 33,
+     "chars": 16202
+    }
+   ],
+   "correct": false,
+   "referenceConflict": false,
+   "reason": "Reference says two times, not once.",
+   "officialF1": 0.0
+  },
+  {
+   "id": "conv-30-qa-100",
+   "conversation": "conv-30",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 21638,
+   "output": 515,
+   "elapsedMs": 3572,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 10,
+     "chars": 5443
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 12,
+     "chars": 7126
+    }
+   ],
+   "correct": true
+  },
+  {
+   "id": "conv-41-qa-108",
+   "conversation": "conv-41",
+   "category": 4,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Like being in a fairy tale: the water sounded calming and the surroundings were beautiful, and it was truly magical.",
+   "failure": null,
+   "rounds": 2,
+   "input": 19401,
+   "output": 352,
+   "elapsedMs": 3637,
+   "toolCalls": 2,
+   "search": [],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Equivalent to the reference answer and supported by the evidence details.",
+   "officialF1": 0.5
+  },
+  {
+   "id": "conv-49-qa-51",
+   "conversation": "conv-49",
+   "category": 3,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Sam faces a doctor's warning about his weight, weight-related confidence and motivation struggles, cravings for sugary drinks and snacks, work stress, teasing from friends, and difficulty finding low-impact exercise he enjoys; he responds with healthier eating and cooking classes, a meal and workout plan, yoga, hiking and time outdoors, asking his doctor about a balanced diet and low-impact exercise, seeking healthier snack ideas and accountability, and becoming a Weight Watchers coach.",
+   "failure": null,
+   "rounds": 2,
+   "input": 23006,
+   "output": 734,
+   "elapsedMs": 5201,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 15,
+     "context": 25,
+     "chars": 12403
+    },
+    {
+     "facets": 1,
+     "passages": 15,
+     "context": 14,
+     "chars": 9887
+    }
+   ],
+   "correct": true,
+   "referenceConflict": false,
+   "reason": "Supported challenge details and responses match the evidence, including weight warning, teasing, cravings, work stress, cooking classes, plans, yoga/hiking/outdoors, doctor advice, and Weight Watchers coaching.",
+   "officialF1": 0.2222222222222222
+  },
+  {
+   "id": "conv-50-qa-179",
+   "conversation": "conv-50",
+   "category": 5,
+   "arm": "hybrid-v3",
+   "repeat": 1,
+   "unseen": false,
+   "answer": "Not mentioned",
+   "failure": null,
+   "rounds": 2,
+   "input": 21667,
+   "output": 390,
+   "elapsedMs": 3270,
+   "toolCalls": 2,
+   "search": [
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 16,
+     "chars": 7432
+    },
+    {
+     "facets": 1,
+     "passages": 10,
+     "context": 11,
+     "chars": 7035
+    }
+   ],
+   "correct": true
+  }
+ ]
+}
