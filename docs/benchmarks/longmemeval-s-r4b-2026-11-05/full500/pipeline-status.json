@@ -1,0 +1,31 @@
+{
+  "at": "2026-11-05T02:35:42.962598+00:00",
+  "phase": "complete",
+  "pid": 47152,
+  "result": {
+    "correct": 468,
+    "total": 500,
+    "accuracy": 0.936,
+    "wilson95Descriptive": [
+      0.911047591162316,
+      0.9543039839552107
+    ],
+    "missingJudgments": 0
+  },
+  "fresh": {
+    "correct": 430,
+    "total": 458,
+    "accuracy": 0.9388646288209607,
+    "wilson95Descriptive": [
+      0.9130615639470936,
+      0.9573670048230243
+    ],
+    "missingJudgments": 0
+  },
+  "usage": {
+    "requests": 1591,
+    "input": 24043249,
+    "output": 417362,
+    "unknownUsage": 0
+  }
+}

@@ -1,0 +1,193 @@
+{
+  "dataset": "LongMemEval_S cleaned, all 500",
+  "snapshot": "r4b",
+  "method": "DSH model adapter with actual frozen plugin archive/search/read and system-prompt hooks; offline e5-small, archive-only hybrid, 16000-character initial recall budget; exact pinned official scoring prompts with DeepSeek Flash low judge",
+  "overall": {
+    "correct": 468,
+    "total": 500,
+    "accuracy": 0.936,
+    "wilson95Descriptive": [
+      0.911047591162316,
+      0.9543039839552107
+    ],
+    "missingJudgments": 0
+  },
+  "observedAmongJudged": {
+    "correct": 468,
+    "total": 500,
+    "accuracy": 0.936,
+    "wilson95Descriptive": [
+      0.911047591162316,
+      0.9543039839552107
+    ],
+    "missingJudgments": 0
+  },
+  "fresh": {
+    "correct": 430,
+    "total": 458,
+    "accuracy": 0.9388646288209607,
+    "wilson95Descriptive": [
+      0.9130615639470936,
+      0.9573670048230243
+    ],
+    "missingJudgments": 0
+  },
+  "previouslyUsed": {
+    "correct": 38,
+    "total": 42,
+    "accuracy": 0.9047619047619048,
+    "wilson95Descriptive": [
+      0.7793489419142897,
+      0.9623377511944261
+    ],
+    "missingJudgments": 0
+  },
+  "byOriginalCategory": {
+    "knowledge-update": {
+      "correct": 74,
+      "total": 78,
+      "accuracy": 0.9487179487179487,
+      "wilson95Descriptive": [
+        0.8754332345270551,
+        0.9798789875261039
+      ],
+      "missingJudgments": 0
+    },
+    "multi-session": {
+      "correct": 115,
+      "total": 133,
+      "accuracy": 0.8646616541353384,
+      "wilson95Descriptive": [
+        0.7962021511881133,
+        0.9126473512649472
+      ],
+      "missingJudgments": 0
+    },
+    "single-session-assistant": {
+      "correct": 56,
+      "total": 56,
+      "accuracy": 1.0,
+      "wilson95Descriptive": [
+        0.9358060632812366,
+        1.0
+      ],
+      "missingJudgments": 0
+    },
+    "single-session-preference": {
+      "correct": 26,
+      "total": 30,
+      "accuracy": 0.8666666666666667,
+      "wilson95Descriptive": [
+        0.703186733179637,
+        0.9469034451594526
+      ],
+      "missingJudgments": 0
+    },
+    "single-session-user": {
+      "correct": 69,
+      "total": 70,
+      "accuracy": 0.9857142857142858,
+      "wilson95Descriptive": [
+        0.9234181286879168,
+        0.9974737535421097
+      ],
+      "missingJudgments": 0
+    },
+    "temporal-reasoning": {
+      "correct": 128,
+      "total": 133,
+      "accuracy": 0.9624060150375939,
+      "wilson95Descriptive": [
+        0.9150133193356746,
+        0.9838370806821235
+      ],
+      "missingJudgments": 0
+    }
+  },
+  "byDiagnosticCategory": {
+    "abstention": {
+      "correct": 26,
+      "total": 30,
+      "accuracy": 0.8666666666666667,
+      "wilson95Descriptive": [
+        0.703186733179637,
+        0.9469034451594526
+      ],
+      "missingJudgments": 0
+    },
+    "knowledge-update": {
+      "correct": 69,
+      "total": 72,
+      "accuracy": 0.9583333333333334,
+      "wilson95Descriptive": [
+        0.8845072325868389,
+        0.9857291925330748
+      ],
+      "missingJudgments": 0
+    },
+    "multi-session": {
+      "correct": 106,
+      "total": 121,
+      "accuracy": 0.8760330578512396,
+      "wilson95Descriptive": [
+        0.8055084227089188,
+        0.9234160937107464
+      ],
+      "missingJudgments": 0
+    },
+    "single-session-assistant": {
+      "correct": 56,
+      "total": 56,
+      "accuracy": 1.0,
+      "wilson95Descriptive": [
+        0.9358060632812366,
+        1.0
+      ],
+      "missingJudgments": 0
+    },
+    "single-session-preference": {
+      "correct": 26,
+      "total": 30,
+      "accuracy": 0.8666666666666667,
+      "wilson95Descriptive": [
+        0.703186733179637,
+        0.9469034451594526
+      ],
+      "missingJudgments": 0
+    },
+    "single-session-user": {
+      "correct": 63,
+      "total": 64,
+      "accuracy": 0.984375,
+      "wilson95Descriptive": [
+        0.9166589839990573,
+        0.9972364580766624
+      ],
+      "missingJudgments": 0
+    },
+    "temporal-reasoning": {
+      "correct": 122,
+      "total": 127,
+      "accuracy": 0.9606299212598425,
+      "wilson95Descriptive": [
+        0.9111437777951378,
+        0.9830682025247811
+      ],
+      "missingJudgments": 0
+    }
+  },
+  "complete": true,
+  "answerFailures": 0,
+  "judgeFailures": 0,
+  "usage": {
+    "requests": 1591,
+    "input": 24043249,
+    "output": 417362,
+    "unknownUsage": 0
+  },
+  "phases": {
+    "full500-answer": 1091,
+    "full500-official-prompt-judge": 500
+  },
+  "comparability": "Reader and judge differ from GPT-4o-judged vendor reports. Published external comparisons remain reference-only."
+}

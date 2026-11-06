@@ -1,0 +1,969 @@
+{
+  "scope": "Round-3 paired A/B on fresh LoCoMo questions frozen before tuning; single run per arm; DeepSeek blind judge; small n, exploratory.",
+  "plan": "run-plan.json",
+  "heldout": {
+    "hybrid-v3": {
+      "n": 16,
+      "correct": 13,
+      "fraction": 0.8125,
+      "wilson95": [
+        0.5699,
+        0.9341
+      ],
+      "meanRounds": 1.81,
+      "meanInput": 20329,
+      "failures": 0,
+      "officialF1": 0.6367
+    },
+    "hybrid-r3": {
+      "n": 16,
+      "correct": 14,
+      "fraction": 0.875,
+      "wilson95": [
+        0.6398,
+        0.965
+      ],
+      "meanRounds": 1.88,
+      "meanInput": 26856,
+      "failures": 0,
+      "officialF1": 0.6844
+    }
+  },
+  "heldoutByCategory": {
+    "hybrid-v3": {
+      "1": {
+        "n": 4,
+        "correct": 2,
+        "fraction": 0.5,
+        "wilson95": [
+          0.15,
+          0.85
+        ],
+        "meanRounds": 1.75,
+        "meanInput": 23845,
+        "failures": 0,
+        "officialF1": 0.5417
+      },
+      "2": {
+        "n": 4,
+        "correct": 3,
+        "fraction": 0.75,
+        "wilson95": [
+          0.3006,
+          0.9544
+        ],
+        "meanRounds": 2.0,
+        "meanInput": 19394,
+        "failures": 0,
+        "officialF1": 0.5486
+      },
+      "3": {
+        "n": 3,
+        "correct": 3,
+        "fraction": 1.0,
+        "wilson95": [
+          0.4385,
+          1.0
+        ],
+        "meanRounds": 2.33,
+        "meanInput": 28936,
+        "failures": 0,
+        "officialF1": 0.7407
+      },
+      "4": {
+        "n": 5,
+        "correct": 5,
+        "fraction": 1.0,
+        "wilson95": [
+          0.5655,
+          1.0
+        ],
+        "meanRounds": 1.4,
+        "meanInput": 13099,
+        "failures": 0,
+        "officialF1": 0.7209
+      }
+    },
+    "hybrid-r3": {
+      "1": {
+        "n": 4,
+        "correct": 2,
+        "fraction": 0.5,
+        "wilson95": [
+          0.15,
+          0.85
+        ],
+        "meanRounds": 2.25,
+        "meanInput": 40430,
+        "failures": 0,
+        "officialF1": 0.55
+      },
+      "2": {
+        "n": 4,
+        "correct": 4,
+        "fraction": 1.0,
+        "wilson95": [
+          0.5101,
+          1.0
+        ],
+        "meanRounds": 1.75,
+        "meanInput": 20630,
+        "failures": 0,
+        "officialF1": 0.7629
+      },
+      "3": {
+        "n": 3,
+        "correct": 3,
+        "fraction": 1.0,
+        "wilson95": [
+          0.4385,
+          1.0
+        ],
+        "meanRounds": 2.33,
+        "meanInput": 39867,
+        "failures": 0,
+        "officialF1": 0.592
+      },
+      "4": {
+        "n": 5,
+        "correct": 5,
+        "fraction": 1.0,
+        "wilson95": [
+          0.5655,
+          1.0
+        ],
+        "meanRounds": 1.4,
+        "meanInput": 13172,
+        "failures": 0,
+        "officialF1": 0.7846
+      }
+    }
+  },
+  "heldoutPaired": {
+    "pairs": 16,
+    "discordant": {
+      "r3-only": 1
+    },
+    "difference": 0.0625,
+    "clusterBootstrap95": [
+      0.0,
+      0.2
+    ],
+    "clusters": 9
+  },
+  "adversarial": {
+    "hybrid-v3": {
+      "n": 6,
+      "correct": 4,
+      "fraction": 0.6667,
+      "wilson95": [
+        0.3,
+        0.9032
+      ],
+      "meanRounds": 1.67,
+      "meanInput": 18262,
+      "failures": 0
+    },
+    "hybrid-r3": {
+      "n": 6,
+      "correct": 5,
+      "fraction": 0.8333,
+      "wilson95": [
+        0.4365,
+        0.9699
+      ],
+      "meanRounds": 2.0,
+      "meanInput": 30130,
+      "failures": 0
+    }
+  },
+  "adversarialByCategory": {
+    "hybrid-v3": {
+      "5": {
+        "n": 6,
+        "correct": 4,
+        "fraction": 0.6667,
+        "wilson95": [
+          0.3,
+          0.9032
+        ],
+        "meanRounds": 1.67,
+        "meanInput": 18262,
+        "failures": 0
+      }
+    },
+    "hybrid-r3": {
+      "5": {
+        "n": 6,
+        "correct": 5,
+        "fraction": 0.8333,
+        "wilson95": [
+          0.4365,
+          0.9699
+        ],
+        "meanRounds": 2.0,
+        "meanInput": 30130,
+        "failures": 0
+      }
+    }
+  },
+  "adversarialPaired": {
+    "pairs": 6,
+    "discordant": {
+      "r3-only": 1
+    },
+    "difference": 0.1667,
+    "clusterBootstrap95": [
+      0.0,
+      0.5
+    ],
+    "clusters": 6
+  },
+  "rows": [
+    {
+      "id": "conv-42-qa-25",
+      "conversation": "conv-42",
+      "category": 2,
+      "arm": "hybrid-v3",
+      "answer": "The weekend of 4–5 June 2022",
+      "failure": null,
+      "rounds": 2,
+      "input": 20283,
+      "output": 332,
+      "searches": [
+        "{\"query\": \"hiking with buddies new trail waterfall weekend\", \"scope\": \"transcript\", \"limit\": 10}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches reference: the weekend after 3 June 2022, i.e., 4–5 June 2022.",
+      "officialF1": 0.4444444444444445
+    },
+    {
+      "id": "conv-42-qa-25",
+      "conversation": "conv-42",
+      "category": 2,
+      "arm": "hybrid-r3",
+      "answer": "The weekend of 4–5 June 2022",
+      "failure": null,
+      "rounds": 2,
+      "input": 22997,
+      "output": 338,
+      "searches": [
+        "{\"query\": \"hike with buddies weekend new trail waterfall\", \"queries\": [\"hiking with friends\", \"hiking group trail\"], \"scope\": \"transcript\", \"limit\": 10}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches reference: the weekend after 3 June 2022, i.e., 4–5 June 2022.",
+      "officialF1": 0.4444444444444445
+    },
+    {
+      "id": "conv-50-qa-26",
+      "conversation": "conv-50",
+      "category": 2,
+      "arm": "hybrid-r3",
+      "answer": "On 21 August 2023",
+      "failure": null,
+      "rounds": 2,
+      "input": 21086,
+      "output": 216,
+      "searches": [
+        "{\"query\": \"podcast recorded with friends\", \"queries\": [\"podcast rap industry\", \"recorded a podcast\"], \"scope\": \"transcript\"}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches reference date; evidence supports 21 August 2023.",
+      "officialF1": 0.8571428571428571
+    },
+    {
+      "id": "conv-50-qa-26",
+      "conversation": "conv-50",
+      "category": 2,
+      "arm": "hybrid-v3",
+      "answer": "21 August 2023",
+      "failure": null,
+      "rounds": 2,
+      "input": 15904,
+      "output": 208,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches reference date; evidence says podcast recorded 'yesterday' on 22 August, so 21 August 2023.",
+      "officialF1": 1.0
+    },
+    {
+      "id": "conv-41-qa-180",
+      "conversation": "conv-41",
+      "category": 5,
+      "arm": "hybrid-v3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 2,
+      "input": 21496,
+      "output": 233,
+      "searches": [
+        "{\"query\": \"veteran's hospital visit criticize complaint\", \"scope\": \"transcript\", \"limit\": 10}"
+      ],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-41-qa-180",
+      "conversation": "conv-41",
+      "category": 5,
+      "arm": "hybrid-r3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 3,
+      "input": 46899,
+      "output": 350,
+      "searches": [
+        "{\"query\": \"veteran's hospital visit\", \"queries\": [\"hospital veterans criticize complaint\", \"Samuel elderly veteran hospital\", \"veterans hospital conditions\"], \"scope\": \"transcript\", \"limit\": 30}"
+      ],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-48-qa-49",
+      "conversation": "conv-48",
+      "category": 4,
+      "arm": "hybrid-r3",
+      "answer": "About three years",
+      "failure": null,
+      "rounds": 1,
+      "input": 8934,
+      "output": 177,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference and evidence that Jolene has done yoga and meditation for about three years.",
+      "officialF1": 0.6666666666666666
+    },
+    {
+      "id": "conv-48-qa-49",
+      "conversation": "conv-48",
+      "category": 4,
+      "arm": "hybrid-v3",
+      "answer": "About three years",
+      "failure": null,
+      "rounds": 1,
+      "input": 8761,
+      "output": 112,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference and evidence that Jolene has done yoga and meditation for about three years.",
+      "officialF1": 0.6666666666666666
+    },
+    {
+      "id": "conv-43-qa-58",
+      "conversation": "conv-43",
+      "category": 2,
+      "arm": "hybrid-v3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 2,
+      "input": 22646,
+      "output": 497,
+      "searches": [
+        "{\"query\": \"Harry Potter trivia charity event Anthony\", \"scope\": \"transcript\", \"limit\": 10}"
+      ],
+      "correct": false,
+      "referenceConflict": false,
+      "reason": "The reference explicitly gives August 2023, so it is not correct to say the timing is not mentioned.",
+      "officialF1": 0.0
+    },
+    {
+      "id": "conv-43-qa-58",
+      "conversation": "conv-43",
+      "category": 2,
+      "arm": "hybrid-r3",
+      "answer": "August 2023",
+      "failure": null,
+      "rounds": 2,
+      "input": 29149,
+      "output": 729,
+      "searches": [
+        "{\"query\": \"Harry Potter trivia charity event\", \"queries\": [\"trivia contest Anthony prize\", \"charity event Harry Potter trivia\"], \"scope\": \"transcript\", \"limit\": 20}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "The reference states August 2023, and the evidence discusses John's Harry Potter trivia experience in the 2 August 2023 conversation.",
+      "officialF1": 1.0
+    },
+    {
+      "id": "conv-50-qa-39",
+      "conversation": "conv-50",
+      "category": 3,
+      "arm": "hybrid-r3",
+      "answer": "A Dodge Charger",
+      "failure": null,
+      "rounds": 3,
+      "input": 65560,
+      "output": 695,
+      "searches": [
+        "{\"query\": \"Dodge Charger Subaru Forester preference\", \"queries\": [\"Dodge Charger\", \"Subaru Forester\", \"favorite car\", \"muscle car classic car\", \"Ford Mustang restoration\"], \"scope\": \"transcript\", \"limit\": 20}",
+        "{\"query\": \"Dave car preference Dodge Charger Subaru Forester\", \"scope\": \"memory\", \"limit\": 20}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference and Dave’s stated preference for classic/muscle cars over a Subaru Forester.",
+      "officialF1": 1.0
+    },
+    {
+      "id": "conv-50-qa-39",
+      "conversation": "conv-50",
+      "category": 3,
+      "arm": "hybrid-v3",
+      "answer": "Dodge Charger",
+      "failure": null,
+      "rounds": 3,
+      "input": 42049,
+      "output": 607,
+      "searches": [
+        "{\"query\": \"Dodge Charger\", \"scope\": \"transcript\", \"limit\": 10}",
+        "{\"query\": \"Subaru Forester\", \"scope\": \"transcript\", \"limit\": 10}",
+        "{\"query\": \"classic muscle car restoration favorite car type\", \"scope\": \"transcript\", \"limit\": 10}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference answer, Dodge Charger.",
+      "officialF1": 1.0
+    },
+    {
+      "id": "conv-44-qa-125",
+      "conversation": "conv-44",
+      "category": 5,
+      "arm": "hybrid-v3",
+      "answer": "A smaller dog",
+      "failure": null,
+      "rounds": 2,
+      "input": 25728,
+      "output": 507,
+      "searches": [
+        "{\"query\": \"Audrey looking to adopt a dog living space apartment small dog\", \"scope\": \"memory\", \"limit\": 10}",
+        "{\"query\": \"smaller dog best apartment living space breed adopt\", \"scope\": \"transcript\", \"limit\": 15}"
+      ],
+      "correct": false,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-44-qa-125",
+      "conversation": "conv-44",
+      "category": 5,
+      "arm": "hybrid-r3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 2,
+      "input": 35325,
+      "output": 673,
+      "searches": [
+        "{\"query\": \"Audrey looking to adopt a dog apartment size living space small dog\", \"queries\": [\"Audrey adopt dog size of living space\", \"small dog apartment\", \"Audrey looking for a dog\", \"Audrey wants another dog\"], \"scope\": \"transcript\"}",
+        "{\"query\": \"Audrey dogs city apartment breed size\", \"scope\": \"memory\"}"
+      ],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-42-qa-1",
+      "conversation": "conv-42",
+      "category": 1,
+      "arm": "hybrid-r3",
+      "answer": "Watching movies, nature, and cooking dairy-free desserts",
+      "failure": null,
+      "rounds": 3,
+      "input": 50937,
+      "output": 1248,
+      "searches": [
+        "{\"query\": \"shared interests movies reading nature hobbies\", \"queries\": [\"Joanna Nate both enjoy watching movies\", \"Joanna reading books Nate\", \"Joanna nature hiking Nate outdoors\", \"Joanna cooking baking Nate ice cream\", \"we both have similar interests\"], \"scope\": \"transcript\", \"limit\": 20}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Covers the referenced shared interests of watching movies and making desserts; nature and dairy-free dessert cooking are consistent with the evidence.",
+      "officialF1": 0.7
+    },
+    {
+      "id": "conv-42-qa-1",
+      "conversation": "conv-42",
+      "category": 1,
+      "arm": "hybrid-v3",
+      "answer": "Watching movies, cooking and baking dairy-free desserts, and enjoying nature.",
+      "failure": null,
+      "rounds": 2,
+      "input": 24150,
+      "output": 554,
+      "searches": [
+        "{\"query\": \"Joanna and Nate share similar interests movies cooking hiking nature\", \"scope\": \"transcript\", \"intent\": \"related\", \"limit\": 15}",
+        "{\"query\": \"dairy-free recipes baking ice cream share recipe\", \"scope\": \"transcript\", \"intent\": \"related\", \"limit\": 15}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Includes the referenced shared interests of watching movies and making desserts; dairy-free dessert making and enjoying nature are supported by the conversation evidence.",
+      "officialF1": 0.6666666666666666
+    },
+    {
+      "id": "conv-50-qa-144",
+      "conversation": "conv-50",
+      "category": 4,
+      "arm": "hybrid-v3",
+      "answer": "A blog on car mods",
+      "failure": null,
+      "rounds": 1,
+      "input": 7641,
+      "output": 117,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference: Dave shares his passion through a blog on car mods.",
+      "officialF1": 0.888888888888889
+    },
+    {
+      "id": "conv-50-qa-144",
+      "conversation": "conv-50",
+      "category": 4,
+      "arm": "hybrid-r3",
+      "answer": "Blogging about car mods",
+      "failure": null,
+      "rounds": 1,
+      "input": 7814,
+      "output": 85,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Equivalent paraphrase: blogging about car mods is Dave's way to share his passion.",
+      "officialF1": 0.6666666666666665
+    },
+    {
+      "id": "conv-26-qa-19",
+      "conversation": "conv-26",
+      "category": 1,
+      "arm": "hybrid-r3",
+      "answer": "Nature, arts and crafts such as pottery and painting, the beach, and exploring outdoors and parks.",
+      "failure": null,
+      "rounds": 2,
+      "input": 40867,
+      "output": 547,
+      "searches": [
+        "{\"query\": \"Melanie's kids like\", \"queries\": [\"kids love nature\", \"kids enjoyed pottery\", \"kids painting\", \"kids beach\", \"children excited\"], \"scope\": \"transcript\"}",
+        "{\"query\": \"what Melanie's children enjoy doing\", \"queries\": [\"children love exploring outdoors\", \"kids campfire marshmallows\", \"kids playground\", \"kids museum water play\"], \"scope\": \"transcript\"}"
+      ],
+      "correct": false,
+      "referenceConflict": false,
+      "reason": "Mentions nature and other activities but omits dinosaurs, which the reference lists as something Melanie's kids like.",
+      "officialF1": 0.5
+    },
+    {
+      "id": "conv-26-qa-19",
+      "conversation": "conv-26",
+      "category": 1,
+      "arm": "hybrid-v3",
+      "answer": "Nature, playing outdoors, and art activities like painting and pottery",
+      "failure": null,
+      "rounds": 2,
+      "input": 37082,
+      "output": 496,
+      "searches": [
+        "{\"query\": \"Melanie kids love like enjoy nature playing art pottery\", \"scope\": \"transcript\", \"intent\": \"related\", \"limit\": 20}",
+        "{\"query\": \"kids excited loved it fun\", \"scope\": \"memory\", \"intent\": \"related\", \"limit\": 20}"
+      ],
+      "correct": false,
+      "referenceConflict": false,
+      "reason": "Mentions nature and art/outdoor activities but omits dinosaurs, which the reference lists as something Melanie's kids like.",
+      "officialF1": 0.5
+    },
+    {
+      "id": "conv-26-qa-176",
+      "conversation": "conv-26",
+      "category": 5,
+      "arm": "hybrid-v3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 1,
+      "input": 10864,
+      "output": 153,
+      "searches": [],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-26-qa-176",
+      "conversation": "conv-26",
+      "category": 5,
+      "arm": "hybrid-r3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 2,
+      "input": 31410,
+      "output": 296,
+      "searches": [
+        "{\"query\": \"meteor shower\", \"queries\": [\"Perseid meteor shower camping Caroline\", \"Caroline watching meteor shower feeling\", \"stargazing Caroline\"], \"scope\": \"transcript\"}"
+      ],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-41-qa-39",
+      "conversation": "conv-41",
+      "category": 3,
+      "arm": "hybrid-r3",
+      "answer": "Independence Day (the Fourth of July)",
+      "failure": null,
+      "rounds": 2,
+      "input": 26400,
+      "output": 356,
+      "searches": [
+        "{\"query\": \"Maria car accident red light hit\", \"queries\": [\"car accident July 4th\", \"Independence Day accident\", \"Maria car crash holiday\"], \"scope\": \"transcript\"}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Independence Day, also called the Fourth of July, is equivalent to the reference.",
+      "officialF1": 0.5714285714285715
+    },
+    {
+      "id": "conv-41-qa-39",
+      "conversation": "conv-41",
+      "category": 3,
+      "arm": "hybrid-v3",
+      "answer": "Independence Day",
+      "failure": null,
+      "rounds": 2,
+      "input": 21753,
+      "output": 365,
+      "searches": [
+        "{\"query\": \"Maria car accident ran a red light hit us holiday\", \"scope\": \"transcript\", \"intent\": \"history\", \"limit\": 10}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Independence Day matches the reference and is consistent with the car accident occurring around July 4.",
+      "officialF1": 1.0
+    },
+    {
+      "id": "conv-47-qa-144",
+      "conversation": "conv-47",
+      "category": 4,
+      "arm": "hybrid-v3",
+      "answer": "In a rented apartment not far from McGee's bar",
+      "failure": null,
+      "rounds": 1,
+      "input": 11531,
+      "output": 189,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Supported by evidence that they rented an apartment not far from McGee's bar.",
+      "officialF1": 0.9333333333333333
+    },
+    {
+      "id": "conv-47-qa-144",
+      "conversation": "conv-47",
+      "category": 4,
+      "arm": "hybrid-r3",
+      "answer": "An apartment not far from McGee's bar",
+      "failure": null,
+      "rounds": 1,
+      "input": 11704,
+      "output": 101,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference and evidence exactly.",
+      "officialF1": 0.923076923076923
+    },
+    {
+      "id": "conv-41-qa-60",
+      "conversation": "conv-41",
+      "category": 1,
+      "arm": "hybrid-r3",
+      "answer": "Coco, Shadow",
+      "failure": null,
+      "rounds": 1,
+      "input": 9649,
+      "output": 114,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference names Coco and Shadow, both supported as Maria's dogs in the evidence.",
+      "officialF1": 1.0
+    },
+    {
+      "id": "conv-41-qa-60",
+      "conversation": "conv-41",
+      "category": 1,
+      "arm": "hybrid-v3",
+      "answer": "Coco, Shadow",
+      "failure": null,
+      "rounds": 1,
+      "input": 9476,
+      "output": 144,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference names Coco and Shadow, both supported as Maria's dogs in the evidence.",
+      "officialF1": 1.0
+    },
+    {
+      "id": "conv-42-qa-251",
+      "conversation": "conv-42",
+      "category": 5,
+      "arm": "hybrid-v3",
+      "answer": "Fantasy RPG",
+      "failure": null,
+      "rounds": 1,
+      "input": 8181,
+      "output": 114,
+      "searches": [],
+      "correct": false,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-42-qa-251",
+      "conversation": "conv-42",
+      "category": 5,
+      "arm": "hybrid-r3",
+      "answer": "Fantasy RPG",
+      "failure": null,
+      "rounds": 1,
+      "input": 8354,
+      "output": 93,
+      "searches": [],
+      "correct": false,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-30-qa-67",
+      "conversation": "conv-30",
+      "category": 4,
+      "arm": "hybrid-r3",
+      "answer": "To stay organized and motivated, set goals, track achievements, and identify areas to improve.",
+      "failure": null,
+      "rounds": 3,
+      "input": 27941,
+      "output": 421,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Equivalent to the reference and supported by evidence: stay organized/motivated, set goals, track achievements, identify improvements.",
+      "officialF1": 0.6666666666666666
+    },
+    {
+      "id": "conv-30-qa-67",
+      "conversation": "conv-30",
+      "category": 4,
+      "arm": "hybrid-v3",
+      "answer": "To stay organized and motivated: it sets his goals, tracks his achievements, and helps him find areas to improve.",
+      "failure": null,
+      "rounds": 2,
+      "input": 18159,
+      "output": 499,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Matches the reference and evidence: he uses it to stay organized/motivated, set goals, track achievements, and identify improvements.",
+      "officialF1": 0.6153846153846153
+    },
+    {
+      "id": "conv-48-qa-30",
+      "conversation": "conv-48",
+      "category": 2,
+      "arm": "hybrid-v3",
+      "answer": "The night of 21 February 2023",
+      "failure": null,
+      "rounds": 2,
+      "input": 18745,
+      "output": 247,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "D6:1 on 22 February says she had dinner and drinks 'last night,' i.e., the night of 21 February 2023.",
+      "officialF1": 0.7499999999999999
+    },
+    {
+      "id": "conv-48-qa-30",
+      "conversation": "conv-48",
+      "category": 2,
+      "arm": "hybrid-r3",
+      "answer": "The night of February 21, 2023",
+      "failure": null,
+      "rounds": 1,
+      "input": 9289,
+      "output": 186,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "D6:1 on 22 February says she had dinner and drinks 'last night,' i.e., the night of February 21, 2023.",
+      "officialF1": 0.7499999999999999
+    },
+    {
+      "id": "conv-43-qa-49",
+      "conversation": "conv-43",
+      "category": 1,
+      "arm": "hybrid-r3",
+      "answer": "Once",
+      "failure": null,
+      "rounds": 3,
+      "input": 60267,
+      "output": 717,
+      "searches": [
+        "{\"query\": \"ankle injury\", \"queries\": [\"injured ankle\", \"hurt my ankle\", \"ankle sprain\", \"injury recovery physical therapy\", \"cast on foot injury\"], \"scope\": \"transcript\", \"limit\": 30}",
+        "{\"query\": \"injury\", \"queries\": [\"injured myself\", \"miss some games\", \"rehab\", \"out with injury\", \"hurt\"], \"scope\": \"transcript\", \"limit\": 40}"
+      ],
+      "correct": false,
+      "referenceConflict": false,
+      "reason": "Reference states John injured his ankle two times; 'Once' contradicts that.",
+      "officialF1": 0.0
+    },
+    {
+      "id": "conv-43-qa-49",
+      "conversation": "conv-43",
+      "category": 1,
+      "arm": "hybrid-v3",
+      "answer": "Once",
+      "failure": null,
+      "rounds": 2,
+      "input": 24671,
+      "output": 966,
+      "searches": [
+        "{\"query\": \"John ankle injury injured miss games\", \"scope\": \"transcript\", \"intent\": \"history\", \"limit\": 20}"
+      ],
+      "correct": false,
+      "referenceConflict": false,
+      "reason": "Reference states John injured his ankle two times; 'Once' contradicts that.",
+      "officialF1": 0.0
+    },
+    {
+      "id": "conv-30-qa-100",
+      "conversation": "conv-30",
+      "category": 5,
+      "arm": "hybrid-v3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 2,
+      "input": 21638,
+      "output": 515,
+      "searches": [
+        "{\"query\": \"clipboard notepad\", \"scope\": \"transcript\", \"limit\": 10}",
+        "{\"query\": \"Gina tracking goals notebook plans\", \"scope\": \"transcript\", \"limit\": 10}"
+      ],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-30-qa-100",
+      "conversation": "conv-30",
+      "category": 5,
+      "arm": "hybrid-r3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 2,
+      "input": 25535,
+      "output": 538,
+      "searches": [
+        "{\"query\": \"clipboard notepad Gina writing plans\", \"queries\": [\"notepad\", \"clipboard\", \"writing down plans goals\", \"journal keeping organized\"], \"scope\": \"transcript\"}"
+      ],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-41-qa-108",
+      "conversation": "conv-41",
+      "category": 4,
+      "arm": "hybrid-r3",
+      "answer": "Like being in a fairy tale",
+      "failure": null,
+      "rounds": 1,
+      "input": 9465,
+      "output": 187,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Directly matches the reference answer.",
+      "officialF1": 1.0
+    },
+    {
+      "id": "conv-41-qa-108",
+      "conversation": "conv-41",
+      "category": 4,
+      "arm": "hybrid-v3",
+      "answer": "Like being in a fairy tale: the water sounded calming and the surroundings were beautiful, and it was truly magical.",
+      "failure": null,
+      "rounds": 2,
+      "input": 19401,
+      "output": 352,
+      "searches": [],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "Includes the reference meaning 'like being in a fairy tale' with supporting details from the evidence.",
+      "officialF1": 0.5
+    },
+    {
+      "id": "conv-49-qa-51",
+      "conversation": "conv-49",
+      "category": 3,
+      "arm": "hybrid-v3",
+      "answer": "Sam faces a doctor's warning about his weight, weight-related confidence and motivation struggles, cravings for sugary drinks and snacks, work stress, teasing from friends, and difficulty finding low-impact exercise he enjoys; he responds with healthier eating and cooking classes, a meal and workout plan, yoga, hiking and time outdoors, asking his doctor about a balanced diet and low-impact exercise, seeking healthier snack ideas and accountability, and becoming a Weight Watchers coach.",
+      "failure": null,
+      "rounds": 2,
+      "input": 23006,
+      "output": 734,
+      "searches": [
+        "{\"query\": \"Sam challenges healthier lifestyle weight cravings motivation\", \"scope\": \"transcript\", \"intent\": \"history\", \"limit\": 15}",
+        "{\"query\": \"Sam yoga low-impact exercise diet plan doctor cooking class hiking\", \"scope\": \"transcript\", \"intent\": \"history\", \"limit\": 15}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "The answer accurately reflects Sam's evidence-supported challenges and coping steps without contradicting the reference.",
+      "officialF1": 0.2222222222222222
+    },
+    {
+      "id": "conv-49-qa-51",
+      "conversation": "conv-49",
+      "category": 3,
+      "arm": "hybrid-r3",
+      "answer": "Sam struggles with a weight-related health risk, low confidence and motivation, stress/boredom-triggered cravings for sugary drinks and snacks, and difficulty finding low-impact exercise he enjoys; he addresses these by making a meal plan and workout schedule, eating healthier and taking a cooking class, doing yoga, joining Weight Watchers (and becoming a group coach), planning to ask his doctor about a balanced diet and low-impact exercise, seeking exercise goals and a buddy, and spending time outdoors hiking and on relaxing country drives.",
+      "failure": null,
+      "rounds": 2,
+      "input": 27640,
+      "output": 457,
+      "searches": [
+        "{\"query\": \"Sam weight loss challenges motivation cravings\", \"queries\": [\"Sam low-impact exercise yoga\", \"Sam diet plan doctor advice\", \"Sam confidence motivation weight\", \"Sam sugary snacks cravings stress\"], \"scope\": \"transcript\", \"limit\": 20}"
+      ],
+      "correct": true,
+      "referenceConflict": false,
+      "reason": "All listed challenges and actions are supported by the conversation evidence and consistent with the reference.",
+      "officialF1": 0.20454545454545456
+    },
+    {
+      "id": "conv-50-qa-179",
+      "conversation": "conv-50",
+      "category": 5,
+      "arm": "hybrid-r3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 2,
+      "input": 33254,
+      "output": 434,
+      "searches": [
+        "{\"query\": \"booked a flight ticket Boston\", \"queries\": [\"Dave flight ticket\", \"flight booking September 2023\", \"boarding pass Boston trip\"], \"scope\": \"transcript\"}",
+        "{\"query\": \"Calvin booked flight ticket to Boston\", \"scope\": \"memory\"}"
+      ],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    },
+    {
+      "id": "conv-50-qa-179",
+      "conversation": "conv-50",
+      "category": 5,
+      "arm": "hybrid-v3",
+      "answer": "Not mentioned",
+      "failure": null,
+      "rounds": 2,
+      "input": 21667,
+      "output": 390,
+      "searches": [
+        "{\"query\": \"Dave booked flight ticket\", \"scope\": \"transcript\", \"intent\": \"related\", \"limit\": 10}",
+        "{\"query\": \"flight ticket Boston September 2023\", \"scope\": \"transcript\", \"intent\": \"history\", \"limit\": 10}"
+      ],
+      "correct": true,
+      "rule": "official category-5 abstention string"
+    }
+  ]
+}

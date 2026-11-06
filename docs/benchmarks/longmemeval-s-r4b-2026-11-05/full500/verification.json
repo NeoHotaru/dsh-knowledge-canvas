@@ -1,0 +1,260 @@
+{
+  "partial": false,
+  "passed": true,
+  "checks": [
+    {
+      "name": "500 questions in plan order",
+      "ok": true,
+      "detail": "500"
+    },
+    {
+      "name": "fresh/prior split 458/42",
+      "ok": true,
+      "detail": "Counter({False: 458, True: 42})"
+    },
+    {
+      "name": "question file hash equals plan",
+      "ok": true,
+      "detail": "2"
+    },
+    {
+      "name": "backend snapshot hashes equal plan",
+      "ok": true,
+      "detail": "26 files"
+    },
+    {
+      "name": "one answer per question",
+      "ok": true,
+      "detail": "500 answers"
+    },
+    {
+      "name": "all 500 answered",
+      "ok": true,
+      "detail": "500"
+    },
+    {
+      "name": "one judgment per question",
+      "ok": true,
+      "detail": "500 judgments"
+    },
+    {
+      "name": "all 500 judged",
+      "ok": true,
+      "detail": "500"
+    },
+    {
+      "name": "no answer failures",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "no judge failures",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "every answer stopped normally",
+      "ok": true,
+      "detail": "Counter({'stop': 500})"
+    },
+    {
+      "name": "answers within 12 tool rounds",
+      "ok": true,
+      "detail": "8"
+    },
+    {
+      "name": "ledger balanced",
+      "ok": true,
+      "detail": "3471"
+    },
+    {
+      "name": "no duplicate ledger requests",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "answer requests in ledger with answer phase",
+      "ok": true,
+      "detail": "1091"
+    },
+    {
+      "name": "judge requests in ledger with judge phase",
+      "ok": true,
+      "detail": "500"
+    },
+    {
+      "name": "all requests have usage",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "each answer request id is unique",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "model and effort as frozen",
+      "ok": true,
+      "detail": "Counter({('deepseek-flash', 'high'): 1091})"
+    },
+    {
+      "name": "judge effort low",
+      "ok": true,
+      "detail": "Counter({('deepseek-flash', 'low'): 500})"
+    },
+    {
+      "name": "official scorer file hash",
+      "ok": true,
+      "detail": "ecce9c4c79dc"
+    },
+    {
+      "name": "judge prompts equal official function output",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "hypotheses match answers",
+      "ok": true,
+      "detail": "500"
+    },
+    {
+      "name": "labels equal raw judge text in ledger",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "no gold-session marker in model-visible data",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "reference answer never appears as a tool argument",
+      "ok": true,
+      "detail": "[]"
+    },
+    {
+      "name": "scored.json agrees with recomputation",
+      "ok": true,
+      "detail": "468"
+    }
+  ],
+  "result": {
+    "complete": true,
+    "overallAllDenominator": 0.936,
+    "overall": {
+      "correct": 468,
+      "judged": 500,
+      "total": 500,
+      "accuracy": 0.936
+    },
+    "fresh458": {
+      "correct": 430,
+      "judged": 458,
+      "total": 458,
+      "accuracy": 0.9388646288209607
+    },
+    "prior42": {
+      "correct": 38,
+      "judged": 42,
+      "total": 42,
+      "accuracy": 0.9047619047619048
+    },
+    "byOriginal": {
+      "knowledge-update": {
+        "correct": 74,
+        "judged": 78,
+        "total": 78,
+        "accuracy": 0.9487179487179487
+      },
+      "multi-session": {
+        "correct": 115,
+        "judged": 133,
+        "total": 133,
+        "accuracy": 0.8646616541353384
+      },
+      "single-session-assistant": {
+        "correct": 56,
+        "judged": 56,
+        "total": 56,
+        "accuracy": 1.0
+      },
+      "single-session-preference": {
+        "correct": 26,
+        "judged": 30,
+        "total": 30,
+        "accuracy": 0.8666666666666667
+      },
+      "single-session-user": {
+        "correct": 69,
+        "judged": 70,
+        "total": 70,
+        "accuracy": 0.9857142857142858
+      },
+      "temporal-reasoning": {
+        "correct": 128,
+        "judged": 133,
+        "total": 133,
+        "accuracy": 0.9624060150375939
+      }
+    },
+    "byDiagnostic": {
+      "abstention": {
+        "correct": 26,
+        "judged": 30,
+        "total": 30,
+        "accuracy": 0.8666666666666667
+      },
+      "knowledge-update": {
+        "correct": 69,
+        "judged": 72,
+        "total": 72,
+        "accuracy": 0.9583333333333334
+      },
+      "multi-session": {
+        "correct": 106,
+        "judged": 121,
+        "total": 121,
+        "accuracy": 0.8760330578512396
+      },
+      "single-session-assistant": {
+        "correct": 56,
+        "judged": 56,
+        "total": 56,
+        "accuracy": 1.0
+      },
+      "single-session-preference": {
+        "correct": 26,
+        "judged": 30,
+        "total": 30,
+        "accuracy": 0.8666666666666667
+      },
+      "single-session-user": {
+        "correct": 63,
+        "judged": 64,
+        "total": 64,
+        "accuracy": 0.984375
+      },
+      "temporal-reasoning": {
+        "correct": 122,
+        "judged": 127,
+        "total": 127,
+        "accuracy": 0.9606299212598425
+      }
+    },
+    "macroAverageSixOriginal": 0.9380277617119722
+  },
+  "usage": {
+    "answer": {
+      "requests": 1091,
+      "input": 23865380,
+      "output": 381215
+    },
+    "judge": {
+      "requests": 500,
+      "input": 177869,
+      "output": 36147
+    },
+    "meanInputPerAnswer": 47730.76,
+    "meanRounds": 2.182
+  }
+}
